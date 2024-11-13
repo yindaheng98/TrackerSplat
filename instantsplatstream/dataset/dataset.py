@@ -1,10 +1,7 @@
-from abc import abstractmethod
-import json
-from typing import List, NamedTuple, Union
+from typing import List, NamedTuple
 import torch
 
-from gaussian_splatting.utils import getWorld2View2
-from gaussian_splatting.camera import Camera, build_camera
+from gaussian_splatting.camera import build_camera
 from torch.utils.data import Dataset
 
 
