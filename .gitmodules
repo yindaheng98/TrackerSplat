@@ -1,0 +1,7 @@
+[submodule "submodules/diff-gaussian-rasterization"]
+	path = submodules/diff-gaussian-rasterization
+	url = https://github.com/yindaheng98/diff-gaussian-rasterization
+	branch = objectpixel
+[submodule "submodules/dot"]
+	path = submodules/dot
+	url = https://github.com/16lemoing/dot
