@@ -18,14 +18,17 @@ class FixedViewMotionEstimator(MotionEstimator, metaclass=ABC):
         self.iter_idx = 0
 
     @abstractmethod
-    def estimate(self, idx: int) -> Motion:
+    def estimate(self, prevframe_idx: int) -> Motion:
         raise NotImplementedError
+
+    def gather_views(self, frame_idx: int) -> List[CameraMeta]:
+        return [CameraMeta(**{**camera._asdict(), "image_path": camera.image_path[frame_idx]}) for camera in self.cameras]
 
     def __iter__(self) -> 'FixedViewMotionEstimator':
         return self
 
     def __next__(self) -> Motion:
-        if self.iter_idx >= self.length:
+        if self.iter_idx+1 >= self.length:
             raise StopIteration
         motion = self.estimate(self.iter_idx)
         self.iter_idx += 1
