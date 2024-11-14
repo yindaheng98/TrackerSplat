@@ -62,3 +62,6 @@ class VideoCameraDataset(Dataset):
 
     def __len__(self):
         return len(self.framemetas)
+
+    def get_metas(self):
+        return [[CameraMeta(**camera._asdict()) for camera in frame] for frame in self.framemetas]

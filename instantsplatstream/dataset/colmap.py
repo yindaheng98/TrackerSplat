@@ -26,6 +26,7 @@ def ColmapVideoCameraDataset(video_folder: str, frame_folder_fmt: str = "frame%d
             T=camera.T,
             image_path=camera.image_path
         ) for camera in read_colmap_cameras(frame_folder)]
+        framemeta = sorted(framemeta, key=lambda x: x.image_path)
         framemetas.append(framemeta)
         cameras_count += len(framemeta)
         pbar.set_postfix({'total frames': frame_idx, 'total cameras': cameras_count})
