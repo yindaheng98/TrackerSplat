@@ -1,7 +1,7 @@
 data
 output
 *.dist-info
-/instantsplatstream/diff_gaussian_rasterization
+/instantsplatstream/motionestimator/point_tracker/diff_gaussian_rasterization
 /dot
 
 # Byte-compiled / optimized / DLL files
