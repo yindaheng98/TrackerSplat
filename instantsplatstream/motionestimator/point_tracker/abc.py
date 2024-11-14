@@ -11,15 +11,21 @@ class CameraPointTrack(CameraMeta):
     mask: torch.Tensor
 
 
+class PointTrack2Motion(metaclass=ABC):
+
+    @abstractmethod
+    def __call__(self, tracks: List[CameraPointTrack]) -> Motion:
+        raise NotImplementedError
+
+
 class FixedViewPointTrackingMotionEstimator(FixedViewMotionEstimator, metaclass=ABC):
-    def __init__(self, cameras, model: GaussianModel):
+    def __init__(self, cameras, track2motion: PointTrack2Motion):
         super().__init__(cameras)
-        self.model = model
+        self.track2motion = track2motion
 
     @abstractmethod
     def point_track(self, idx: int) -> List[CameraPointTrack]:
         raise NotImplementedError
 
     def estimate(self, idx: int) -> Motion:
-        track = self.point_track(idx)
-        pass  # TODO: implement the motion fusion from point tracks
+        return self.track2motion(self.point_track(idx))
