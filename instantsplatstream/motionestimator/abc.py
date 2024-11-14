@@ -1,4 +1,4 @@
-from typing import List, NamedTuple
+from typing import NamedTuple
 from abc import ABC, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
