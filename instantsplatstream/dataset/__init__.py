@@ -1,2 +1,2 @@
-from .dataset import MetaCamera, FrameCameraDataset, VideoCameraDataset
+from .dataset import CameraMeta, FrameCameraDataset, VideoCameraDataset
 from .colmap import ColmapVideoCameraDataset

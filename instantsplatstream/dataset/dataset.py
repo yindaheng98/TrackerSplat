@@ -5,7 +5,7 @@ from gaussian_splatting.camera import build_camera
 from torch.utils.data import Dataset
 
 
-class MetaCamera(NamedTuple):
+class CameraMeta(NamedTuple):
     image_height: int
     image_width: int
     FoVx: float
@@ -16,13 +16,13 @@ class MetaCamera(NamedTuple):
 
 
 class FrameCameraDataset(Dataset):
-    def __init__(self, metacameras: List[MetaCamera], device="cuda"):
+    def __init__(self, camerametas: List[CameraMeta], device="cuda"):
         super().__init__()
-        self.metacameras = [MetaCamera(**camera._asdict()) for camera in metacameras]
+        self.camerametas = [CameraMeta(**camera._asdict()) for camera in camerametas]
         self.to(device)
 
     def to(self, device) -> 'FrameCameraDataset':
-        self.cameras = [build_camera(**camera._asdict(), device=device) for camera in self.metacameras]
+        self.cameras = [build_camera(**camera._asdict(), device=device) for camera in self.camerametas]
         return self
 
     def __getitem__(self, idx):
@@ -32,13 +32,13 @@ class FrameCameraDataset(Dataset):
         return len(self.cameras)
 
 
-MetaFrame = List[MetaCamera]
+MetaFrame = List[CameraMeta]
 
 
 class VideoCameraDataset(Dataset):
     def __init__(self, frames: List[MetaFrame], device="cuda"):
         super().__init__()
-        self.frames = [[MetaCamera(**camera._asdict()) for camera in frame] for frame in frames]
+        self.framemetas = [[CameraMeta(**camera._asdict()) for camera in frame] for frame in frames]
         self.to(device)
 
     def to(self, device) -> 'VideoCameraDataset':
@@ -49,11 +49,11 @@ class VideoCameraDataset(Dataset):
         if isinstance(idx, tuple) and len(idx) == 1:
             idx = idx[0]
         if isinstance(idx, int):  # a frame contains multiple cameras
-            return FrameCameraDataset(self.frames[idx], device=self.device)
+            return FrameCameraDataset(self.framemetas[idx], device=self.device)
         if isinstance(idx, slice) or isinstance(idx, list):  # a video contains multiple frames
-            return VideoCameraDataset(self.frames[idx], device=self.device)
+            return VideoCameraDataset(self.framemetas[idx], device=self.device)
         if isinstance(idx, tuple) and len(idx) == 2 and isinstance(idx[0], int):
-            frame = self.frames[idx[0]]
+            frame = self.framemetas[idx[0]]
             if isinstance(idx[1], int):  # a camera
                 return build_camera(**frame[idx[1]]._asdict(), device=self.device)
             if isinstance(idx[1], slice) or isinstance(idx[1], list):  # a frame contains multiple cameras
@@ -61,4 +61,4 @@ class VideoCameraDataset(Dataset):
         raise ValueError("Invalid index")
 
     def __len__(self):
-        return len(self.frames)
+        return len(self.framemetas)
