@@ -23,10 +23,9 @@ class ViewCollector:
 class FixedViewMotionEstimator(MotionEstimator, metaclass=ABC):
     def __init__(self, cameras: List[FixedViewCameraMetaSequence]):
         super().__init__()
-        for camera in cameras:
-            assert len(camera.image_path) == len(cameras[0].image_path)
         self.cameras = cameras
-        self.length = len(cameras[0].image_path)
+        for camera in self.cameras:
+            assert len(camera.image_path) == len(self.cameras[0].image_path)
         self.iter_idx = 0
 
     @property
@@ -43,7 +42,9 @@ class FixedViewMotionEstimator(MotionEstimator, metaclass=ABC):
         return self
 
     def __next__(self) -> Motion:
-        if self.iter_idx+1 >= self.length:
+        for camera in self.cameras:
+            assert len(camera.image_path) == len(self.cameras[0].image_path)
+        if self.iter_idx+1 >= len(self.cameras[0].image_path):
             raise StopIteration
         motion = self.estimate(self.iter_idx)
         self.iter_idx += 1
