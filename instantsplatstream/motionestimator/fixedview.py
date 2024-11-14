@@ -30,3 +30,7 @@ class FixedViewMotionEstimator(MotionEstimator, metaclass=ABC):
         motion = self.estimate(self.iter_idx)
         self.iter_idx += 1
         return motion
+
+
+class DynamicViewMotionEstimator(MotionEstimator, metaclass=ABC):
+    pass  # TODO: implement the dynamic view motion estimator
