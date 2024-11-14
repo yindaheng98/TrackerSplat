@@ -12,7 +12,10 @@ class CameraMeta(NamedTuple):
     FoVy: float
     R: torch.Tensor
     T: torch.Tensor
-    image_path: str
+    image_path: str = None
+
+    def build_camera(self, device="cuda"):
+        return build_camera(**self._asdict(), device=device)
 
 
 class FrameCameraDataset(Dataset):
@@ -22,7 +25,7 @@ class FrameCameraDataset(Dataset):
         self.to(device)
 
     def to(self, device) -> 'FrameCameraDataset':
-        self.cameras = [build_camera(**camera._asdict(), device=device) for camera in self.camerametas]
+        self.cameras = [camera.build_camera(device=device) for camera in self.camerametas]
         return self
 
     def __getitem__(self, idx):
@@ -55,7 +58,7 @@ class VideoCameraDataset(Dataset):
         if isinstance(idx, tuple) and len(idx) == 2 and isinstance(idx[0], int):
             frame = self.framemetas[idx[0]]
             if isinstance(idx[1], int):  # a camera
-                return build_camera(**frame[idx[1]]._asdict(), device=self.device)
+                return frame[idx[1]].build_camera(device=self.device)
             if isinstance(idx[1], slice) or isinstance(idx[1], list):  # a frame contains multiple cameras
                 return FrameCameraDataset(frame[idx[1]], device=self.device)
         raise ValueError("Invalid index")
