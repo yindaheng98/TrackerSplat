@@ -11,7 +11,7 @@ class CameraPointTrack(CameraMeta):
     mask: torch.Tensor
 
 
-class PointTrackingFixedViewMotionEstimator(FixedViewMotionEstimator, metaclass=ABC):
+class FixedViewPointTrackingMotionEstimator(FixedViewMotionEstimator, metaclass=ABC):
     def __init__(self, cameras, model: GaussianModel):
         super().__init__(cameras)
         self.model = model
