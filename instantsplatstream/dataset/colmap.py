@@ -2,7 +2,7 @@ import os
 from tqdm import tqdm
 from gaussian_splatting.dataset.colmap.dataset import read_colmap_cameras
 
-from .dataset import CameraMeta, VideoCameraDataset
+from .dataset import DatasetCameraMeta, VideoCameraDataset
 
 
 def ColmapVideoCameraDataset(video_folder: str, frame_folder_fmt: str = "frame%d", start_frame=1, n_frames=None, device="cuda") -> VideoCameraDataset:
@@ -17,7 +17,7 @@ def ColmapVideoCameraDataset(video_folder: str, frame_folder_fmt: str = "frame%d
         frame_folder = os.path.join(video_folder, frame_folder_fmt % frame_idx)
         if not os.path.exists(frame_folder):
             break
-        framemeta = [CameraMeta(
+        framemeta = [DatasetCameraMeta(
             image_height=camera.image_height,
             image_width=camera.image_width,
             FoVx=camera.FoVx,

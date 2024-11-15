@@ -5,7 +5,7 @@ from gaussian_splatting.camera import build_camera
 from torch.utils.data import Dataset
 
 
-class CameraMeta(NamedTuple):
+class DatasetCameraMeta(NamedTuple):
     image_height: int
     image_width: int
     FoVx: float
@@ -19,13 +19,13 @@ class CameraMeta(NamedTuple):
 
 
 class FrameCameraDataset(Dataset):
-    def __init__(self, camerametas: List[CameraMeta], device="cuda"):
+    def __init__(self, DatasetCameraMetas: List[DatasetCameraMeta], device="cuda"):
         super().__init__()
-        self.camerametas = [CameraMeta(**camera._asdict()) for camera in camerametas]
+        self.DatasetCameraMetas = [DatasetCameraMeta(**camera._asdict()) for camera in DatasetCameraMetas]
         self.to(device)
 
     def to(self, device) -> 'FrameCameraDataset':
-        self.cameras = [camera.build_camera(device=device) for camera in self.camerametas]
+        self.cameras = [camera.build_camera(device=device) for camera in self.DatasetCameraMetas]
         return self
 
     def __getitem__(self, idx):
@@ -35,13 +35,13 @@ class FrameCameraDataset(Dataset):
         return len(self.cameras)
 
 
-MetaFrame = List[CameraMeta]
+MetaFrame = List[DatasetCameraMeta]
 
 
 class VideoCameraDataset(Dataset):
     def __init__(self, frames: List[MetaFrame], device="cuda"):
         super().__init__()
-        self.framemetas = [[CameraMeta(**camera._asdict()) for camera in frame] for frame in frames]
+        self.framemetas = [[DatasetCameraMeta(**camera._asdict()) for camera in frame] for frame in frames]
         self.to(device)
 
     def to(self, device) -> 'VideoCameraDataset':
@@ -67,4 +67,4 @@ class VideoCameraDataset(Dataset):
         return len(self.framemetas)
 
     def get_metas(self):
-        return [[CameraMeta(**camera._asdict()) for camera in frame] for frame in self.framemetas]
+        return [[DatasetCameraMeta(**camera._asdict()) for camera in frame] for frame in self.framemetas]
