@@ -1,5 +1,5 @@
 import copy
-from typing import NamedTuple
+from typing import NamedTuple, List
 from abc import ABC, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
