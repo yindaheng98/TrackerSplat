@@ -8,14 +8,13 @@ from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker, FixedV
 class DotPointTracker(FixedViewBatchPointTracker):
     def __init__(
             self,
-            height: int,
-            width: int,
-            tracker_config: str,
-            tracker_path: str,
-            estimator_config: str,
-            estimator_path: str,
-            refiner_config: str,
-            refiner_path: str):
+            height: int = 512, width: int = 512,
+            tracker_config: str = "configs/cotracker2_patch_4_wind_8.json",
+            tracker_path: str = "checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
+            estimator_config: str = "configs/raft_patch_8.json",
+            estimator_path: str = "checkpoints/cvo_raft_patch_8.pth",
+            refiner_config: str = "configs/raft_patch_4_alpha.json",
+            refiner_path: str = "checkpoints/movi_f_raft_patch_4_alpha.pth"):
         self.model = DenseOpticalTracker(
             height=height,
             width=width,
