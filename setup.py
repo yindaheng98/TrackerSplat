@@ -9,13 +9,12 @@
 # For inquiries contact  george.drettakis@inria.fr
 #
 
-from setuptools import setup, find_packages
-from torch import cuda
+from setuptools import setup, find_packages, find_namespace_packages
 from torch.utils.cpp_extension import CUDAExtension, BuildExtension
 import os
 
 packages = ['instantsplatstream'] + ["instantsplatstream." + package for package in find_packages(where="instantsplatstream")]
-packages_dot = ['dot'] + ["dot." + package for package in find_packages(where="submodules/dot/dot")]
+packages_dot = ['dot'] + ["dot." + package for package in find_namespace_packages(where="submodules/dot/dot")]
 rasterizor_root = "submodules/diff-gaussian-rasterization"
 rasterizor_sources = [
     "cuda_rasterizer/rasterizer_impl.cu",

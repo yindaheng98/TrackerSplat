@@ -339,11 +339,11 @@ class MyDemoOptions(DemoOptions):
         parser.add_argument("--boundaries_thresh", type=float, default=0.05)
         parser.set_defaults(
             estimator_config="submodules/dot/configs/raft_patch_8.json",
-            estimator_path="submodules/dot/checkpoints/cvo_raft_patch_8.pth",
+            estimator_path="checkpoints/cvo_raft_patch_8.pth",
             refiner_config="submodules/dot/configs/raft_patch_4_alpha.json",
-            refiner_path="submodules/dot/checkpoints/movi_f_raft_patch_4_alpha.pth",
+            refiner_path="checkpoints/movi_f_raft_patch_4_alpha.pth",
             tracker_config="submodules/dot/configs/cotracker2_patch_4_wind_8.json",
-            tracker_path="submodules/dot/checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
+            tracker_path="checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
         )
         return parser
 

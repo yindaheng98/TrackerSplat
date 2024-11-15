@@ -3,6 +3,7 @@ output
 *.dist-info
 /instantsplatstream/motionestimator/point_tracker/diff_gaussian_rasterization
 /dot
+/checkpoints
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
