@@ -48,9 +48,9 @@ class FixedViewBatchMotionEstimator(MotionEstimator):
 
             def __getitem__(self, frame_idx: Union[int, slice]) -> List[FixedViewFrameSequenceMeta]:
                 if isinstance(frame_idx, slice):
-                    return [FixedViewFrameSequenceMeta(**{**camera._asdict(), "frame_paths": camera.frames_path[frame_idx]}) for camera in self.cameras]
+                    return [camera._replace(frames_path=camera.frames_path[frame_idx]) for camera in self.cameras]
                 if isinstance(frame_idx, int):
-                    return [FixedViewFrameSequenceMeta(**{**camera._asdict(), "frame_paths": [camera.frames_path[frame_idx]]}) for camera in self.cameras]
+                    return [camera._replace(frames_path=[camera.frames_path[frame_idx]]) for camera in self.cameras]
                 raise ValueError("frame_idx must be either an integer or a slice")
         return ViewCollector(self.cameras)
 
@@ -68,10 +68,12 @@ class FixedViewBatchMotionEstimator(MotionEstimator):
         if self.frame_idx >= length:
             raise StopIteration
         prevframe_idx = self.frame_idx - 1
-        initframe_idx = (prevframe_idx // self.batch_size) * self.batch_size
+        initframe_idx = (prevframe_idx // (self.batch_size-1)) * (self.batch_size-1)
         if initframe_idx + self.batch_size > length:
             initframe_idx = length - self.batch_size
         if initframe_idx != self.curr_initframe_idx:
-            self.curr_motions = self.batch_func(self.frames[initframe_idx:initframe_idx + self.batch_size])
-            self.curr_motions[-1] = self.curr_motions[-1]._replace(update_baseframe=True)
-        return self.curr_motions[self.frame_idx - initframe_idx]
+            motions = self.batch_func(self.frames[initframe_idx:initframe_idx + self.batch_size])
+            assert len(motions) == self.batch_size-1
+            motions[-1] = motions[-1]._replace(update_baseframe=True)
+            self.curr_motions = motions
+        return self.curr_motions[self.frame_idx-initframe_idx-1]
