@@ -37,13 +37,13 @@ class FixedViewBatchTracks2Motion(metaclass=ABC):
         raise NotImplementedError
 
 
-class FixedViewBatchPointTrackMotionEstimator(FixedViewBatchMotionEstimationFunc, metaclass=ABC):
+class FixedViewBatchPointTrackMotionEstimationFunc(FixedViewBatchMotionEstimationFunc, metaclass=ABC):
     def __init__(self, tracker: FixedViewBatchPointTracker, track2motion: FixedViewBatchTracks2Motion, device="cuda"):
         self.tracker = tracker
         self.tracks2motion = track2motion
         self.to(device)
 
-    def to(self, device: torch.device) -> 'FixedViewBatchPointTrackMotionEstimator':
+    def to(self, device: torch.device) -> 'FixedViewBatchPointTrackMotionEstimationFunc':
         self.tracker = self.tracker.to(device)
         self.tracks2motion = self.tracks2motion.to(device)
         return self

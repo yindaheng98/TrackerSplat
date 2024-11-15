@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 import torch
 from .abc import Motion, MotionEstimator
 
+from instantsplatstream.dataset import DatasetCameraMeta, VideoCameraDataset
+
 
 class FixedViewFrameSequenceMeta(NamedTuple):
     image_height: int
@@ -12,6 +14,25 @@ class FixedViewFrameSequenceMeta(NamedTuple):
     R: torch.Tensor  # TODO: quaternion maybe better?
     T: torch.Tensor
     frames_path: List[str]
+
+    @classmethod
+    def from_datasetcameras(cls, cameras: List[DatasetCameraMeta]) -> 'FixedViewFrameSequenceMeta':
+        for camera in cameras:
+            assert camera.image_height == cameras[0].image_height
+            assert camera.image_width == cameras[0].image_width
+            assert camera.FoVx == cameras[0].FoVx
+            assert camera.FoVy == cameras[0].FoVy
+            assert camera.R == cameras[0].R
+            assert camera.T == cameras[0].T
+        return cls(
+            image_height=camera.image_height,
+            image_width=camera.image_width,
+            FoVx=camera.FoVx,
+            FoVy=camera.FoVy,
+            R=camera.R,
+            T=camera.T,
+            frames_path=[camera.image_path for camera in cameras]
+        )
 
 
 class FixedViewBatchMotionEstimationFunc(metaclass=ABC):
@@ -25,13 +46,15 @@ class FixedViewBatchMotionEstimationFunc(metaclass=ABC):
 
 
 class FixedViewBatchMotionEstimator(MotionEstimator):
-    def __init__(self, cameras: List[FixedViewFrameSequenceMeta], batch_func: FixedViewBatchMotionEstimationFunc, batch_size=2):
+    def __init__(self, dataset: VideoCameraDataset, batch_func: FixedViewBatchMotionEstimationFunc, batch_size=2, device="cuda"):
         super().__init__()
-        self.cameras = cameras
-        for camera in self.cameras:
-            assert len(camera.frames_path) == len(self.cameras[0].frames_path)
+        cameras = dataset.get_metas()
+        for frame in cameras:
+            assert len(frame) == len(cameras[0])
+        self.cameras = [FixedViewFrameSequenceMeta.from_datasetcameras(frame) for frame in zip(*cameras)]
         self.batch_func = batch_func
         self.batch_size = batch_size
+        self.to(device)
 
     def to(self, device: torch.device) -> 'MotionEstimator':
         self.batch_func = self.batch_func.to(device)

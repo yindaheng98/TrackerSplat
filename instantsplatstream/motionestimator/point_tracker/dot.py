@@ -2,7 +2,7 @@ import torch
 from dot.models import DenseOpticalTracker
 from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker
+from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker, FixedViewBatchPointTrackMotionEstimationFunc
 
 
 class DotPointTracker(FixedViewBatchPointTracker):
@@ -40,4 +40,17 @@ class DotPointTracker(FixedViewBatchPointTracker):
         with torch.no_grad():
             pred = self.model.get_tracks_from_first_to_every_other_frame({"video": video[None]})
         tracks = pred["tracks"][0]
-        # TODO
+        return FixedViewPointTrackSequence(
+            image_height=frames.image_height,
+            image_width=frames.image_width,
+            FoVx=frames.FoVx,
+            FoVy=frames.FoVy,
+            R=frames.R,
+            T=frames.T,
+            track=tracks,
+            mask=torch.ones_like(tracks),
+        )
+
+
+def DotMotionEstimationFunc(track2motion, device="cuda", *args, **kwargs):
+    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(*args, **kwargs), track2motion, device)
