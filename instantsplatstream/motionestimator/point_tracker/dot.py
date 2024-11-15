@@ -1,47 +1,43 @@
-from typing import NamedTuple
-
 import torch
-from dot.models import create_model
+from dot.models import DenseOpticalTracker
+from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import FixedViewPointTrackFrame, FixedViewPointTracker, FixedViewPointTrackerFactory
+from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker
 
 
-class DotArgs(NamedTuple):
-    model: str
-    height: int
-    width: int
-    tracker_config: str
-    tracker_path: str
-    estimator_config: str
-    estimator_path: str
-    refiner_config: str
-    refiner_path: str
+class DotPointTracker(FixedViewBatchPointTracker):
+    def __init__(
+            self,
+            height: int,
+            width: int,
+            tracker_config: str,
+            tracker_path: str,
+            estimator_config: str,
+            estimator_path: str,
+            refiner_config: str,
+            refiner_path: str):
+        self.model = DenseOpticalTracker(
+            height=height,
+            width=width,
+            tracker_config=tracker_config,
+            tracker_path=tracker_path,
+            estimator_config=estimator_config,
+            estimator_path=estimator_path,
+            refiner_config=refiner_config,
+            refiner_path=refiner_path,
+        )
 
+    def to(self, device: torch.device) -> 'FixedViewBatchPointTracker':
+        self.model = self.model.to(device)
+        return self
 
-class DotPointTracker(FixedViewPointTracker):
-    def __init__(self, model, frames: FixedViewFrameSequenceMeta, batch_size):
-        self.model = model
-        self.frames = frames
-        self.batch_size = batch_size
-        self.curr_initframe_idx = -1
-        self.curr_tracks = []
-
-    def __call__(self, prevframe_idx: int) -> FixedViewPointTrackFrame:
-        initframe_idx = (prevframe_idx // self.batch_size) * self.batch_size
-        if initframe_idx == self.curr_initframe_idx:
-            return self.curr_tracks[prevframe_idx % self.batch_size]
-        # TODO: Update self.curr_tracks
-        return self.curr_tracks[prevframe_idx % self.batch_size]
-
-
-class DotPointTrackerFactory(FixedViewPointTrackerFactory):
-    def __init__(self, batch_size=1, *args, **kwargs):
-        self.args = DotArgs(*args, **kwargs)
-        self.batch_size = batch_size
-        self.model = create_model(self.args)
-        self.device_dict = {}
-
-    def __call__(self, frames: FixedViewFrameSequenceMeta, device: torch.device) -> FixedViewPointTracker:
-        if str(device) not in self.device_dict:
-            self.device_dict[str(device)] = self.model.to(device)
-        return DotPointTracker(self.device_dict[str(device)], frames, self.batch_size)
+    def __call__(self, frames: FixedViewFrameSequenceMeta) -> FixedViewPointTrackSequence:
+        video = []
+        for path in frames.frames_path:
+            frame = read_frame(path)
+            video.append(frame)
+        video = torch.stack(video)
+        with torch.no_grad():
+            pred = self.model.get_tracks_from_first_to_every_other_frame({"video": video[None]})
+        tracks = pred["tracks"][0]
+        # TODO
