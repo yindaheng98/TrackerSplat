@@ -1,0 +1,29 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "point track test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "point_track_test.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--visualization_modes",
+                "spaghetti_last_static",
+                "--data_root",
+                "data/point_track_test",
+                "--inference_mode",
+                "tracks_from_first_to_every_other_frame",
+                "--video_path",
+                "cam00-small.mp4",
+                "--num_tracks",
+                "1024",
+                "--sim_tracks",
+                "1024"
+            ]
+        },
+    ]
+}
