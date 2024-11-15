@@ -20,10 +20,6 @@ class FixedViewPointTrackFrame(NamedTuple):
 class FixedViewPointTracker(metaclass=ABC):
 
     @abstractmethod
-    def to(self, device: torch.device) -> 'FixedViewPointTracker':
-        return self
-
-    @abstractmethod
     def __call__(self, prevframe_idx: int) -> FixedViewPointTrackFrame:
         raise NotImplementedError
 
@@ -31,7 +27,7 @@ class FixedViewPointTracker(metaclass=ABC):
 class FixedViewPointTrackerFactory(metaclass=ABC):
 
     @abstractmethod
-    def __call__(self, frames: FixedViewFrameSequenceMeta) -> FixedViewPointTracker:
+    def __call__(self, frames: FixedViewFrameSequenceMeta, device: torch.device) -> FixedViewPointTracker:
         raise NotImplementedError
 
 
@@ -49,13 +45,13 @@ class FixedViewPointTracks2Motion(metaclass=ABC):
 class FixedViewPointTrackingMotionEstimator(FixedViewMotionEstimator, metaclass=ABC):
     def __init__(self, cameras, tracker_factory: FixedViewPointTrackerFactory, track2motion: FixedViewPointTracks2Motion, device="cuda"):
         super().__init__(cameras)
+        self.tracker_factory = tracker_factory
         self.tracks2motion: FixedViewPointTracks2Motion = track2motion
-        self.trackers: List[FixedViewPointTracker] = [tracker_factory(camera) for camera in cameras]
         self.to(device)
 
     def to(self, device: torch.device) -> 'FixedViewPointTrackingMotionEstimator':
+        self.trackers: List[FixedViewPointTracker] = [self.tracker_factory(camera, device=device) for camera in self.cameras]
         self.tracks2motion = self.tracks2motion.to(device)
-        self.trackers = [tracker.to(device) for tracker in self.trackers]
         return self
 
     def estimate(self, prevframe_idx: int) -> Motion:
