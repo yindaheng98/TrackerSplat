@@ -22,8 +22,8 @@ class FixedViewFrameSequenceMeta(NamedTuple):
             assert camera.image_width == cameras[0].image_width
             assert camera.FoVx == cameras[0].FoVx
             assert camera.FoVy == cameras[0].FoVy
-            assert camera.R == cameras[0].R
-            assert camera.T == cameras[0].T
+            assert torch.all(camera.R == cameras[0].R).item()
+            assert torch.all(camera.T == cameras[0].T).item()
         return cls(
             image_height=camera.image_height,
             image_width=camera.image_width,
@@ -46,7 +46,7 @@ class FixedViewBatchMotionEstimationFunc(metaclass=ABCMeta):
 
 
 class FixedViewBatchMotionEstimator(MotionEstimator):
-    def __init__(self, dataset: VideoCameraDataset, batch_func: FixedViewBatchMotionEstimationFunc, batch_size=2, device="cuda"):
+    def __init__(self, dataset: VideoCameraDataset, batch_func: FixedViewBatchMotionEstimationFunc, batch_size=2, device=torch.device("cuda")):
         super().__init__()
         cameras = dataset.get_metas()
         for frame in cameras:
