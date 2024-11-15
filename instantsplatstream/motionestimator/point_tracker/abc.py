@@ -38,7 +38,7 @@ class FixedViewBatchTracks2Motion(metaclass=ABCMeta):
 
 
 class FixedViewBatchPointTrackMotionEstimationFunc(FixedViewBatchMotionEstimationFunc, metaclass=ABCMeta):
-    def __init__(self, tracker: FixedViewBatchPointTracker, track2motion: FixedViewBatchTracks2Motion, device="cuda"):
+    def __init__(self, tracker: FixedViewBatchPointTracker, track2motion: FixedViewBatchTracks2Motion, device=torch.device("cuda")):
         self.tracker = tracker
         self.tracks2motion = track2motion
         self.to(device)

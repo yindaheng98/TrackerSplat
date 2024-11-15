@@ -1,11 +1,12 @@
 import os
 from tqdm import tqdm
+import torch
 from gaussian_splatting.dataset.colmap.dataset import read_colmap_cameras
 
 from .dataset import DatasetCameraMeta, VideoCameraDataset
 
 
-def ColmapVideoCameraDataset(video_folder: str, frame_folder_fmt: str = "frame%d", start_frame=1, n_frames=None, device="cuda") -> VideoCameraDataset:
+def ColmapVideoCameraDataset(video_folder: str, frame_folder_fmt: str = "frame%d", start_frame=1, n_frames=None, device=torch.device("cuda")) -> VideoCameraDataset:
     """
     Load a video dataset from a sequence of COLMAP workspaces.
     """

@@ -14,12 +14,12 @@ class DatasetCameraMeta(NamedTuple):
     T: torch.Tensor
     image_path: str = None
 
-    def build_camera(self, device="cuda"):
+    def build_camera(self, device=torch.device("cuda")):
         return build_camera(**self._asdict(), device=device)
 
 
 class FrameCameraDataset(Dataset):
-    def __init__(self, DatasetCameraMetas: List[DatasetCameraMeta], device="cuda"):
+    def __init__(self, DatasetCameraMetas: List[DatasetCameraMeta], device=torch.device("cuda")):
         super().__init__()
         self.DatasetCameraMetas = [DatasetCameraMeta(**camera._asdict()) for camera in DatasetCameraMetas]
         self.to(device)
@@ -39,7 +39,7 @@ MetaFrame = List[DatasetCameraMeta]
 
 
 class VideoCameraDataset(Dataset):
-    def __init__(self, frames: List[MetaFrame], device="cuda"):
+    def __init__(self, frames: List[MetaFrame], device=torch.device("cuda")):
         super().__init__()
         self.framemetas = [[DatasetCameraMeta(**camera._asdict()) for camera in frame] for frame in frames]
         self.to(device)
