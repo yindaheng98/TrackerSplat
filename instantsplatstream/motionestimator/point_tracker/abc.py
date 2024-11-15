@@ -1,5 +1,5 @@
 from typing import List, NamedTuple
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import torch
 from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimationFunc, FixedViewFrameSequenceMeta
 
@@ -15,7 +15,7 @@ class FixedViewPointTrackSequence(NamedTuple):
     mask: torch.Tensor
 
 
-class FixedViewBatchPointTracker(metaclass=ABC):
+class FixedViewBatchPointTracker(metaclass=ABCMeta):
 
     @abstractmethod
     def to(self, device: torch.device) -> 'FixedViewBatchPointTracker':
@@ -26,7 +26,7 @@ class FixedViewBatchPointTracker(metaclass=ABC):
         raise NotImplementedError
 
 
-class FixedViewBatchTracks2Motion(metaclass=ABC):
+class FixedViewBatchTracks2Motion(metaclass=ABCMeta):
 
     @abstractmethod
     def to(self, device: torch.device) -> 'FixedViewBatchTracks2Motion':
@@ -37,7 +37,7 @@ class FixedViewBatchTracks2Motion(metaclass=ABC):
         raise NotImplementedError
 
 
-class FixedViewBatchPointTrackMotionEstimationFunc(FixedViewBatchMotionEstimationFunc, metaclass=ABC):
+class FixedViewBatchPointTrackMotionEstimationFunc(FixedViewBatchMotionEstimationFunc, metaclass=ABCMeta):
     def __init__(self, tracker: FixedViewBatchPointTracker, track2motion: FixedViewBatchTracks2Motion, device="cuda"):
         self.tracker = tracker
         self.tracks2motion = track2motion

@@ -1,6 +1,6 @@
 import copy
 from typing import NamedTuple, List
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_raw_multiply
@@ -12,7 +12,7 @@ class Motion(NamedTuple):
     update_baseframe: bool = True
 
 
-class MotionEstimator(metaclass=ABC):
+class MotionEstimator(metaclass=ABCMeta):
     @abstractmethod
     def to(self, device: torch.device) -> 'MotionEstimator':
         return self

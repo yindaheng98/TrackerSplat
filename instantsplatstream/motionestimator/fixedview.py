@@ -1,5 +1,5 @@
 from typing import List, NamedTuple, Union
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import torch
 from .abc import Motion, MotionEstimator
 
@@ -35,7 +35,7 @@ class FixedViewFrameSequenceMeta(NamedTuple):
         )
 
 
-class FixedViewBatchMotionEstimationFunc(metaclass=ABC):
+class FixedViewBatchMotionEstimationFunc(metaclass=ABCMeta):
     @abstractmethod
     def to(self, device: torch.device) -> 'MotionEstimator':
         return self
