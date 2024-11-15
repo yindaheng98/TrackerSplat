@@ -43,6 +43,8 @@ class FixedViewBatchMotionEstimator(MotionEstimator):
         class ViewCollector:
             def __init__(self, cameras: List[FixedViewFrameSequenceMeta]):
                 self.cameras = cameras
+                for camera in self.cameras:
+                    assert len(camera.frames_path) == len(self.cameras[0].frames_path)
 
             def __getitem__(self, frame_idx: Union[int, slice]) -> List[FixedViewFrameSequenceMeta]:
                 if isinstance(frame_idx, slice):
@@ -53,14 +55,23 @@ class FixedViewBatchMotionEstimator(MotionEstimator):
         return ViewCollector(self.cameras)
 
     def __iter__(self) -> 'FixedViewBatchMotionEstimator':
-        self.iter_idx = 0
+        self.frame_idx = 0
+        self.curr_initframe_idx = -1
+        self.curr_motions = []
         return self
 
     def __next__(self) -> Motion:
+        length = len(self.cameras[0].frames_path)
         for camera in self.cameras:
-            assert len(camera.frames_path) == len(self.cameras[0].frames_path)
-        if self.iter_idx+1 >= len(self.cameras[0].frames_path):
+            assert len(camera.frames_path) == length
+        self.frame_idx += 1
+        if self.frame_idx >= length:
             raise StopIteration
-        # TODO
-        self.iter_idx += 1
-        return motion
+        prevframe_idx = self.frame_idx - 1
+        initframe_idx = (prevframe_idx // self.batch_size) * self.batch_size
+        if initframe_idx + self.batch_size > length:
+            initframe_idx = length - self.batch_size
+        if initframe_idx != self.curr_initframe_idx:
+            self.curr_motions = self.batch_func(self.frames[initframe_idx:initframe_idx + self.batch_size])
+            self.curr_motions[-1] = self.curr_motions[-1]._replace(update_baseframe=True)
+        return self.curr_motions[self.frame_idx - initframe_idx]
