@@ -1,2 +1,2 @@
 from .abc import Motion, MotionEstimator, MotionCompensater
-from .fixedview import FixedViewMotionEstimator, FixedViewFrameSequenceMeta
+from .fixedview import FixedViewFrameSequenceMeta, FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimationFunc
