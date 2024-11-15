@@ -13,6 +13,7 @@ Install Pillow, numpy and tqdm
 pip install Pillow numpy tqdm
 pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
+pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
 ```
 
 ### Pip Install
