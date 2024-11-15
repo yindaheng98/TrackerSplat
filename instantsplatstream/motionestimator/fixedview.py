@@ -1,11 +1,21 @@
-from typing import List, Union
+from typing import List, NamedTuple, Union
 from abc import ABC, abstractmethod
-from instantsplatstream.dataset import CameraMeta
+import torch
+from gaussian_splatting.camera import build_camera
 from .abc import Motion, MotionEstimator
 
 
-class FixedViewCameraMetaSequence(CameraMeta):
+class FixedViewCameraMetaSequence(NamedTuple):
+    image_height: int
+    image_width: int
+    FoVx: float
+    FoVy: float
+    R: torch.Tensor # TODO: quaternion maybe better?
+    T: torch.Tensor
     image_path: List[str]
+
+    def build_camera(self, device="cuda"):
+        return build_camera(**{**self._asdict(), "image_path": None}, device=device)
 
 
 class ViewCollector:
