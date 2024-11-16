@@ -4,4 +4,4 @@
 	branch = objectpixel
 [submodule "submodules/dot"]
 	path = submodules/dot
-	url = https://github.com/16lemoing/dot
+	url = https://github.com/yindaheng98/dot
