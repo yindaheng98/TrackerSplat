@@ -1,2 +1,3 @@
 from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker, FixedViewBatchTracks2Motion, FixedViewBatchPointTrackMotionEstimationFunc
 from .dot import DotPointTracker, DotMotionEstimationFunc
+from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimationFunc
