@@ -66,3 +66,27 @@ class DotPointTracker(FixedViewBatchPointTracker):
 
 def DotMotionEstimationFunc(track2motion, device=torch.device("cuda"), **kwargs):
     return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, **kwargs), track2motion, device)
+
+
+def Cotracker3DotMotionEstimationFunc(
+        track2motion, device=torch.device("cuda"),
+        tracker_config: str = "submodules/dot/configs/cotracker2_patch_4_wind_8.json",
+        tracker_path: str = "checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
+        **kwargs):
+    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), track2motion, device)
+
+
+def TapirDotMotionEstimationFunc(
+        track2motion, device=torch.device("cuda"),
+        tracker_config: str = "submodules/dot/configs/tapir.json",
+        tracker_path: str = "checkpoints/panning_movi_e_tapir.pth",
+        **kwargs):
+    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), track2motion, device)
+
+
+def BootsTapirDotMotionEstimationFunc(
+        track2motion, device=torch.device("cuda"),
+        tracker_config: str = "submodules/dot/configs/bootstapir.json",
+        tracker_path: str = "checkpoints/panning_movi_e_plus_bootstapir.pth",
+        **kwargs):
+    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), track2motion, device)
