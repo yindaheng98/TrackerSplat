@@ -1,10 +1,10 @@
 import math
 import torch
-from gaussian_splatting import GaussianModel
+from gaussian_splatting import GaussianModel, Camera
 from .diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 
 
-class PixelGaussianCorrelation(GaussianModel):
+class PixelSplatter(GaussianModel):
 
     @classmethod
     def from_gaussians(cls, gaussians: GaussianModel):
@@ -13,7 +13,7 @@ class PixelGaussianCorrelation(GaussianModel):
             setattr(this, k, v)
         return this
 
-    def forward(self, viewpoint_camera):
+    def forward(self, viewpoint_camera: Camera):
         # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
         screenspace_points = torch.zeros_like(self.get_xyz, dtype=self.get_xyz.dtype, requires_grad=True, device=self._xyz.device) + 0
         try:
