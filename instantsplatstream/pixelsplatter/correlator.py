@@ -4,7 +4,7 @@ from gaussian_splatting import GaussianModel, Camera
 from .diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
 
 
-class PixelSplatter(GaussianModel):
+class PixelGaussianCorrelator(GaussianModel):
 
     @classmethod
     def from_gaussians(cls, gaussians: GaussianModel):

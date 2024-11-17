@@ -1,1 +1,1 @@
-from .splat import PixelGaussianCorrelation
+from .correlator import PixelGaussianCorrelator
