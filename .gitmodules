@@ -1,7 +1,11 @@
-[submodule "submodules/diff-gaussian-rasterization"]
-	path = submodules/diff-gaussian-rasterization
-	url = https://github.com/yindaheng98/diff-gaussian-rasterization
-	branch = pixelsplat
 [submodule "submodules/dot"]
 	path = submodules/dot
 	url = https://github.com/yindaheng98/dot
+[submodule "submodules/featurefusion"]
+	path = submodules/featurefusion
+	url = https://github.com/yindaheng98/diff-gaussian-rasterization
+	branch = featurefusion
+[submodule "submodules/motionfusion"]
+	path = submodules/motionfusion
+	url = https://github.com/yindaheng98/diff-gaussian-rasterization
+	branch = motionfusion
