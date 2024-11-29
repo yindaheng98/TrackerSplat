@@ -5,6 +5,9 @@ from tqdm import tqdm
 from os import makedirs
 import torchvision
 from argparse import ArgumentParser, Namespace
+from omegaconf import OmegaConf
+from dinov2.models import build_model_from_cfg
+from dinov2.utils.utils import load_pretrained_weights
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapTrainableCameraDataset
@@ -21,6 +24,9 @@ parser.add_argument("-i", "--iteration", required=True, type=int)
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
 parser.add_argument("--device", default="cuda", type=str)
+parser.add_argument("--dinov2_configfile", type=str, default="./configs/dinov2/vits14_reg4_pretrain.yaml")
+parser.add_argument("--dinov2_checkpoint", type=str, default="./checkpoints/dinov2_vits14_reg4_pretrain.pth")
+parser.add_argument("--dinov2_device", default="cuda", type=str)
 
 
 def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None):
@@ -32,10 +38,20 @@ def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply
         case "camera":
             gaussians = CameraTrainableGaussianModel(sh_degree).to(device)
             gaussians.load_ply(load_ply)
-            dataset = (ColmapTrainableCameraDataset(source) if load_camera else TrainableCameraDataset.from_json(load_camera)).to(device)
+            dataset = (TrainableCameraDataset.from_json(load_camera) if load_camera else ColmapTrainableCameraDataset(source)).to(device)
         case _:
             raise ValueError(f"Unknown mode: {mode}")
     return dataset, gaussians
+
+
+def init_dinov2(configfile: str, checkpoint: str, device: torch.device):
+    default_config = OmegaConf.create(OmegaConf.load("./configs/dinov2/ssl_default_config.yaml"))
+    loaded_config = OmegaConf.create(OmegaConf.load(configfile))
+    config = OmegaConf.merge(default_config, loaded_config)
+    model, _ = build_model_from_cfg(config, only_teacher=True)
+    model = model.to(device)
+    load_pretrained_weights(model, checkpoint, "teacher")
+    return model
 
 
 def assign_color_block(BLOCK_SIZE, camera):
@@ -59,6 +75,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
+    featurizer = init_dinov2(args.dinov2_configfile, args.dinov2_checkpoint, args.dinov2_device)
     opacity_backup = gaussians._opacity.clone()
     features_dc_backup = gaussians._features_dc.clone()
     features_rest_backup = gaussians._features_rest.clone()
