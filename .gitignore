@@ -5,6 +5,7 @@ output
 /instantsplatstream/utils/featurefusion/diff_gaussian_rasterization
 /dot
 /checkpoints
+/configs/dinov2
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
