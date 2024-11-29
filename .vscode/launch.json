@@ -25,5 +25,25 @@
                 "1024"
             ]
         },
+        {
+            "name": "test featurefusion",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "featurefusion_test.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck",
+                "-i",
+                "30000",
+                "--mode",
+                "densify",
+                "--load_camera",
+                "output/truck/cameras.json",
+            ]
+        },
     ]
 }
