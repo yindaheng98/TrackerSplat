@@ -11,7 +11,7 @@ class FeatureFuser(metaclass=ABCMeta):
         self.n_features = n_features
         n_gaussians = gaussians.get_xyz.shape[0]
         self.features = torch.zeros(size=(n_gaussians, n_features))
-        self.weights = torch.zeros(size=n_gaussians)
+        self.weights = torch.zeros(size=(n_gaussians,))
         self.to(device)
 
     def to(self, device: torch.device):
@@ -20,8 +20,9 @@ class FeatureFuser(metaclass=ABCMeta):
         self.weights = self.weights.to(device)
         return self
 
-    def splat_feature_map(self, viewpoint_camera: Camera, feature_map: torch.Tensor) -> torch.Tensor:
-        _, features, features_alpha = feature_fusion(self.gaussians, viewpoint_camera, feature_map)
+    def splat_feature_map(self, camera: Camera, feature_map: torch.Tensor) -> torch.Tensor:
+        assert feature_map.shape[0] == self.n_features and feature_map.shape[1:] == (camera.image_height, camera.image_width)
+        _, features, features_alpha = feature_fusion(self.gaussians, camera, feature_map.permute(1, 2, 0))
         self.features += features
         self.weights += features_alpha
 
@@ -32,7 +33,6 @@ class FeatureFuser(metaclass=ABCMeta):
     def fuse(self, camera: Camera):
         assert camera.ground_truth_image is not None and camera.ground_truth_image.dim() == 3
         feature_map = self.compute_feature_map(camera.ground_truth_image)
-        assert feature_map.dim() == 3 and feature_map.shape[0] == self.n_features
         self.splat_feature_map(camera, feature_map)
 
     def compute_feature_map_batch(self, images: List[torch.Tensor]) -> List[torch.Tensor]:
@@ -45,5 +45,4 @@ class FeatureFuser(metaclass=ABCMeta):
             images.append(camera.ground_truth_image)
         feature_maps = self.compute_feature_map_batch(images)
         for camera, feature_map in zip(cameras, feature_maps):
-            assert feature_map.dim() == 3 and feature_map.shape[0] == self.n_features
             self.splat_feature_map(camera, feature_map)

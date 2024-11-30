@@ -5,9 +5,6 @@ from tqdm import tqdm
 from os import makedirs
 import torchvision
 from argparse import ArgumentParser, Namespace
-from omegaconf import OmegaConf
-from dinov2.models import build_model_from_cfg
-from dinov2.utils.utils import load_pretrained_weights
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapTrainableCameraDataset
@@ -15,6 +12,7 @@ from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from instantsplatstream.utils.featurefusion import feature_fusion
+from instantsplatstream.featurefuser import Dinov2FeatureFuser
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)
@@ -44,16 +42,6 @@ def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply
     return dataset, gaussians
 
 
-def init_dinov2(configfile: str, checkpoint: str, device: torch.device):
-    default_config = OmegaConf.create(OmegaConf.load("./configs/dinov2/ssl_default_config.yaml"))
-    loaded_config = OmegaConf.create(OmegaConf.load(configfile))
-    config = OmegaConf.merge(default_config, loaded_config)
-    model, _ = build_model_from_cfg(config, only_teacher=True)
-    model = model.to(device)
-    load_pretrained_weights(model, checkpoint, "teacher")
-    return model
-
-
 def assign_color_block(BLOCK_SIZE, camera):
     x = torch.arange(0, math.ceil(camera.image_width / BLOCK_SIZE)).repeat(BLOCK_SIZE, 1).T.reshape(-1)[:camera.image_width]
     y = torch.arange(0, math.ceil(camera.image_height / BLOCK_SIZE)).repeat(BLOCK_SIZE, 1).T.reshape(-1)[:camera.image_height]
@@ -75,12 +63,13 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
-    featurizer = init_dinov2(args.dinov2_configfile, args.dinov2_checkpoint, args.dinov2_device)
+    fuser = Dinov2FeatureFuser(["configs/dinov2/ssl_default_config.yaml", args.dinov2_configfile], args.dinov2_checkpoint, dinov2_device=args.dinov2_device, device=device, gaussians=gaussians)
     opacity_backup = gaussians._opacity.clone()
     features_dc_backup = gaussians._features_dc.clone()
     features_rest_backup = gaussians._features_rest.clone()
     pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
+        fuser.fuse(camera)
         feature_map = assign_color_block(16, camera)
         out, features, features_alpha = feature_fusion(gaussians, camera, feature_map.to(device))
         features = features / features_alpha.unsqueeze(-1)
