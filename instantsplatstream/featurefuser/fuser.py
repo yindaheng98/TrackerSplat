@@ -23,7 +23,7 @@ class FeatureFuser(metaclass=ABCMeta):
 
     def splat_feature_map(self, camera: Camera, feature_map: torch.Tensor) -> torch.Tensor:
         assert feature_map.shape[0] == self.n_features and feature_map.shape[1:] == (camera.image_height, camera.image_width)
-        _, features, features_alpha = feature_fusion(self.gaussians, camera, feature_map.permute(1, 2, 0), self.fusion_alpha_threshold)
+        _, features, features_alpha, features_idx = feature_fusion(self.gaussians, camera, feature_map.permute(1, 2, 0), self.fusion_alpha_threshold)
         self.features += features
         self.weights += features_alpha
 

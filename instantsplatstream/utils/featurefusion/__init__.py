@@ -45,7 +45,7 @@ def feature_fusion(self: GaussianModel, viewpoint_camera: Camera, feature_map: t
     shs = self.get_features
 
     # Rasterize visible Gaussians to image, obtain their radii (on screen).
-    rendered_image, radii, depth_image, features, features_alpha = rasterizer(
+    rendered_image, radii, depth_image, features, features_alpha, features_idx = rasterizer(
         feature_map=feature_map,
         means3D=means3D,
         means2D=means2D,
@@ -67,4 +67,4 @@ def feature_fusion(self: GaussianModel, viewpoint_camera: Camera, feature_map: t
         "radii": radii,
         "depth": depth_image,
     }
-    return out, features, features_alpha
+    return out, features, features_alpha, features_idx
