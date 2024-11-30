@@ -63,7 +63,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
-    fuser = Dinov2FeatureFuser(["configs/dinov2/ssl_default_config.yaml", args.dinov2_configfile], args.dinov2_checkpoint, dinov2_device=args.dinov2_device, device=device, gaussians=gaussians)
+    fuser = Dinov2FeatureFuser(["configs/dinov2/ssl_default_config.yaml", args.dinov2_configfile], args.dinov2_checkpoint, dinov2_device=args.dinov2_device, device=device, gaussians=gaussians, fusion_alpha_threshold=0.01)
     opacity_backup = gaussians._opacity.clone()
     features_dc_backup = gaussians._features_dc.clone()
     features_rest_backup = gaussians._features_rest.clone()

@@ -4,7 +4,7 @@ from gaussian_splatting import Camera, GaussianModel
 from .diff_gaussian_rasterization import GaussianRasterizer, GaussianRasterizationSettings
 
 
-def feature_fusion(self: GaussianModel, viewpoint_camera: Camera, feature_map: torch.Tensor):
+def feature_fusion(self: GaussianModel, viewpoint_camera: Camera, feature_map: torch.Tensor, fusion_alpha_threshold: float = 0.):
     '''Copy of the forward method from gaussian_splatting.GaussianModel, only change the rasterizer'''
     # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
     screenspace_points = torch.zeros_like(self.get_xyz, dtype=self.get_xyz.dtype, requires_grad=True, device=self._xyz.device) + 0
@@ -30,7 +30,8 @@ def feature_fusion(self: GaussianModel, viewpoint_camera: Camera, feature_map: t
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=self.debug,
-        antialiasing=self.antialiasing
+        antialiasing=self.antialiasing,
+        fusion_alpha_threshold=fusion_alpha_threshold,
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
