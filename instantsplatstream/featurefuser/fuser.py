@@ -10,8 +10,15 @@ class FeatureFuser(metaclass=ABCMeta):
         self.gaussians = gaussians
         self.n_features = n_features
         n_gaussians = gaussians.get_xyz.shape[0]
-        self.features = torch.zeros(size=(n_gaussians, n_features), device=device)
-        self.weights = torch.zeros(size=n_gaussians, device=device)
+        self.features = torch.zeros(size=(n_gaussians, n_features))
+        self.weights = torch.zeros(size=n_gaussians)
+        self.to(device)
+
+    def to(self, device: torch.device):
+        self.gaussians = self.gaussians.to(device)
+        self.features = self.features.to(device)
+        self.weights = self.weights.to(device)
+        return self
 
     def splat_feature_map(self, viewpoint_camera: Camera, feature_map: torch.Tensor) -> torch.Tensor:
         _, features, features_alpha = feature_fusion(self.gaussians, viewpoint_camera, feature_map)
