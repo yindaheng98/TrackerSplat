@@ -14,7 +14,6 @@ pip install Pillow numpy tqdm
 pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
-pip install --upgrade git+https://github.com/facebookresearch/dinov2@main xformers --index-url https://download.pytorch.org/whl/cu121 --no-deps
 ```
 
 ### Pip Install
@@ -44,11 +43,6 @@ wget -P checkpoints https://huggingface.co/facebook/cotracker3/resolve/main/scal
 ```
 
 ```shell
-wget -P configs/dinov2 https://raw.githubusercontent.com/facebookresearch/dinov2/refs/heads/main/dinov2/configs/ssl_default_config.yaml
-wget -P configs/dinov2 https://raw.githubusercontent.com/facebookresearch/dinov2/refs/heads/main/dinov2/configs/eval/vits14_reg4_pretrain.yaml
-wget -P configs/dinov2 https://raw.githubusercontent.com/facebookresearch/dinov2/refs/heads/main/dinov2/configs/eval/vitl14_reg4_pretrain.yaml
-wget -P configs/dinov2 https://raw.githubusercontent.com/facebookresearch/dinov2/refs/heads/main/dinov2/configs/eval/vitb14_reg4_pretrain.yaml
-wget -P configs/dinov2 https://raw.githubusercontent.com/facebookresearch/dinov2/refs/heads/main/dinov2/configs/eval/vitg14_reg4_pretrain.yaml
 wget -P checkpoints https://dl.fbaipublicfiles.com/dinov2/dinov2_vits14/dinov2_vits14_reg4_pretrain.pth
 wget -P checkpoints https://dl.fbaipublicfiles.com/dinov2/dinov2_vitb14/dinov2_vitb14_reg4_pretrain.pth
 wget -P checkpoints https://dl.fbaipublicfiles.com/dinov2/dinov2_vitl14/dinov2_vitl14_reg4_pretrain.pth

@@ -4,6 +4,7 @@ output
 /instantsplatstream/utils/motionfusion/diff_gaussian_rasterization
 /instantsplatstream/utils/featurefusion/diff_gaussian_rasterization
 /dot
+/dinov2
 /checkpoints
 /configs/dinov2
 

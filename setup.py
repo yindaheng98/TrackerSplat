@@ -15,6 +15,7 @@ import os
 
 packages = ['instantsplatstream'] + ["instantsplatstream." + package for package in find_packages(where="instantsplatstream")]
 packages_dot = ['dot'] + ["dot." + package for package in find_namespace_packages(where="submodules/dot/dot")]
+packages_dinov2 = ['dinov2'] + ["dinov2." + package for package in find_namespace_packages(where="submodules/dinov2/dinov2")]
 featurefusion_root = "submodules/featurefusion"
 motionfusion_root = "submodules/motionfusion"
 rasterizor_sources = [
@@ -37,10 +38,11 @@ if os.name == 'nt':
 
 setup(
     name="instantsplatstream",
-    packages=packages + packages_dot + list(rasterizor_packages.keys()),
+    packages=packages + packages_dot + packages_dinov2 + list(rasterizor_packages.keys()),
     package_dir={
         'instantsplatstream': 'instantsplatstream',
         'dot': 'submodules/dot/dot',
+        'dinov2': 'submodules/dinov2/dinov2',
         **rasterizor_packages
     },
     ext_modules=[
