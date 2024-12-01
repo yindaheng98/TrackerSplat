@@ -12,7 +12,7 @@ from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from instantsplatstream.utils.featurefusion import feature_fusion
-from instantsplatstream.featurefuser import Dinov2FeatureFuser
+from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)
@@ -63,7 +63,8 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
-    fuser = Dinov2FeatureFuser(["configs/dinov2/ssl_default_config.yaml", args.dinov2_configfile], args.dinov2_checkpoint, dinov2_device=args.dinov2_device, device=device, gaussians=gaussians, fusion_alpha_threshold=0.01)
+    extractor = Dinov2FeatureExtractor(["configs/dinov2/ssl_default_config.yaml", args.dinov2_configfile], args.dinov2_checkpoint, device=device)
+    fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
     opacity_backup = gaussians._opacity.clone()
     features_dc_backup = gaussians._features_dc.clone()
     features_rest_backup = gaussians._features_rest.clone()

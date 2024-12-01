@@ -5,29 +5,32 @@ from omegaconf import OmegaConf
 import torchvision
 from dinov2.models import build_model_from_cfg
 from dinov2.utils.utils import load_pretrained_weights
-from .fuser import FeatureFuser
+from .fuser import FeatureExtractor
 
 
-class Dinov2FeatureFuser(FeatureFuser):
-    def __init__(self, configfile: Union[List[str], str], checkpoint, dinov2_device: torch.device = torch.device("cuda"), *args, **kwargs):
+class Dinov2FeatureExtractor(FeatureExtractor):
+    def __init__(self, configfile: Union[List[str], str], checkpoint, device: torch.device = torch.device("cuda")):
+        super().__init__()
         if isinstance(configfile, list):
             config = OmegaConf.merge(*[OmegaConf.create(OmegaConf.load(c)) for c in configfile])
         else:
             config = OmegaConf.create(OmegaConf.load(configfile))
-        model, embed_dim = build_model_from_cfg(config, only_teacher=True)
-        super().__init__(*args, n_features=embed_dim, **kwargs)
-        load_pretrained_weights(model, checkpoint, "teacher")
+        self.model, self.embed_dim = build_model_from_cfg(config, only_teacher=True)
+        load_pretrained_weights(self.model, checkpoint, "teacher")
         self.patch_size = config.student.patch_size
-        self.model = model
-        self.dinov2_to(dinov2_device)
+        self.to(device)
         self.norm = torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375])
         self.output_indices = [1]
 
-    def dinov2_to(self, device: torch.device):
-        self.model = self.model.to(device)
-        return super().to(device)
+    @property
+    def n_features(self) -> int:
+        return self.embed_dim
 
-    def compute_feature_map(self, image: torch.Tensor) -> torch.Tensor:
+    def to(self, device: torch.device):
+        self.model = self.model.to(device)
+        return self
+
+    def extract_features(self, image: torch.Tensor) -> torch.Tensor:
         _, h, w = image.shape
         pad_h = 0 if h % self.patch_size == 0 else self.patch_size - (h % self.patch_size)
         pad_w = 0 if w % self.patch_size == 0 else self.patch_size - (w % self.patch_size)
