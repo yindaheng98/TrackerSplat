@@ -50,7 +50,7 @@ def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str
         case "dinov2":
             extractor = Dinov2FeatureExtractor(["configs/dinov2/ssl_default_config.yaml", configfile], checkpoint, device=device)
         case "dinov2seg":
-            extractor = Dinov2SegFeatureExtractor(configfile, device=device)
+            extractor = Dinov2SegFeatureExtractor(device=device)
         case _:
             raise ValueError(f"Unknown extractor: {extractor}")
     return extractor
