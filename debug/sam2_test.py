@@ -37,6 +37,18 @@ mask_generator = SAM2AutomaticMaskGenerator(model)
 image = Image.open("./data/truck/images/000001.jpg")
 image = np.array(image.convert("RGB"))
 
+original_reset_predictor = mask_generator.predictor.__class__.reset_predictor
+img_embed = {}
+
+
+def custom_reset_predictor(cls):
+    global img_embed
+    img_embed = cls._features
+    original_reset_predictor(cls)
+
+
+mask_generator.predictor.reset_predictor = custom_reset_predictor.__get__(mask_generator.predictor)
+
 with torch.inference_mode(), torch.autocast("cuda", dtype=torch.bfloat16):
     masks = mask_generator.generate(image)
     plt.figure(figsize=(20, 20))
