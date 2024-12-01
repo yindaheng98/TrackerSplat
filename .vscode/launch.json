@@ -44,11 +44,9 @@
                 "--load_camera",
                 "output/truck/cameras.json",
                 "--extractor",
-                "dinov2",
+                "dinov2seg",
                 "--extractor_configfile",
-                "./configs/dinov2/vits14_reg4_pretrain.yaml",
-                "--extractor_checkpoint",
-                "./checkpoints/dinov2_vits14_reg4_pretrain.pth"
+                "small",
             ]
         },
     ]

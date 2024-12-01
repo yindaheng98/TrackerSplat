@@ -12,7 +12,7 @@ from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from instantsplatstream.utils.featurefusion import feature_fusion
-from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor, SAM2FeatureExtractor
+from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor, Dinov2SegFeatureExtractor, SAM2FeatureExtractor
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)
@@ -22,7 +22,7 @@ parser.add_argument("-i", "--iteration", required=True, type=int)
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
 parser.add_argument("--device", default="cuda", type=str)
-parser.add_argument("--extractor", choices=["sam2", "dinov2"], default="sam2")
+parser.add_argument("--extractor", choices=["sam2", "dinov2", "dinov2seg"], default="sam2")
 parser.add_argument("--extractor_configfile", type=str, default="./configs/sam2.1/sam2.1_hiera_l.yaml")
 parser.add_argument("--extractor_checkpoint", type=str, default="./checkpoints/sam2.1_hiera_large.pt")
 parser.add_argument("--extractor_device", default="cuda", type=str)
@@ -49,6 +49,8 @@ def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str
             extractor = SAM2FeatureExtractor(configfile, checkpoint, device=device)
         case "dinov2":
             extractor = Dinov2FeatureExtractor(["configs/dinov2/ssl_default_config.yaml", configfile], checkpoint, device=device)
+        case "dinov2seg":
+            extractor = Dinov2SegFeatureExtractor(configfile, device=device)
         case _:
             raise ValueError(f"Unknown extractor: {extractor}")
     return extractor
