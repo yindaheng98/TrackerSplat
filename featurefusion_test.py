@@ -56,16 +56,6 @@ def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str
     return extractor
 
 
-def assign_color_block(BLOCK_SIZE, camera):
-    x = torch.arange(0, math.ceil(camera.image_width / BLOCK_SIZE)).repeat(BLOCK_SIZE, 1).T.reshape(-1)[:camera.image_width]
-    y = torch.arange(0, math.ceil(camera.image_height / BLOCK_SIZE)).repeat(BLOCK_SIZE, 1).T.reshape(-1)[:camera.image_height]
-    grid_x, grid_y = torch.meshgrid(x, y, indexing='xy')
-    tile_id = (x[-1] + 1) * grid_y + grid_x
-    colors = torch.rand(((x[-1] + 1) * (y[-1] + 1), 3))
-    feature_map = colors[tile_id]
-    return feature_map
-
-
 def main(sh_degree: int, source: str, destination: str, iteration: int, device: str, args):
     with open(os.path.join(destination, "cfg_args"), 'w') as cfg_log_f:
         cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
@@ -79,33 +69,11 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     makedirs(gt_path, exist_ok=True)
     extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
-    opacity_backup = gaussians._opacity.clone()
-    features_dc_backup = gaussians._features_dc.clone()
-    features_rest_backup = gaussians._features_rest.clone()
     pbar = tqdm(dataset, desc="Rendering progress")
-    for idx, camera in enumerate(pbar):
+    for camera in pbar:
         fuser.fuse(camera)
-        feature_map = assign_color_block(16, camera)
-        out, features, features_alpha = feature_fusion(gaussians, camera, feature_map.to(device))
-        features = features / features_alpha.unsqueeze(-1)
-        features[features_alpha < 1e-5, ...] = 0
-        rendering = out["render"]
-        gt = camera.ground_truth_image
-        pbar.set_postfix({"PSNR": psnr(rendering, gt).mean().item()})
-        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
-        torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
-        fusion_save_path = os.path.join(os.path.join(destination, f"fusion_{idx+1}"))
-        makedirs(os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration)), exist_ok=True)
-        with open(os.path.join(fusion_save_path, "cfg_args"), 'w') as cfg_log_f:
-            cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
-        gaussians._opacity[features_alpha < 1] += gaussians.inverse_opacity_activation(features_alpha[features_alpha < 1].unsqueeze(-1))
-        gaussians._opacity[gaussians.get_opacity < 0.05] = gaussians.inverse_opacity_activation(torch.tensor(0.05)).to(device)
-        gaussians._features_dc[:, 0, :] = features
-        gaussians._features_rest[...] = 0
-        gaussians.save_ply(os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"))
-        gaussians._opacity[...] = opacity_backup
-        gaussians._features_dc[...] = features_dc_backup
-        gaussians._features_rest[...] = features_rest_backup
+    features = fuser.get_features()
+    print("features:", features)
 
 
 if __name__ == "__main__":

@@ -22,6 +22,9 @@ class FeatureExtractor(metaclass=ABCMeta):
     def extract_features_batch(self, images: List[torch.Tensor]) -> List[torch.Tensor]:
         return [self.extract_features(image) for image in images]
 
+    def postprocess_features(self, features: torch.Tensor) -> torch.Tensor:
+        return features
+
 
 class FeatureFuser(metaclass=ABCMeta):
     def __init__(self, gaussians: GaussianModel, extractor: FeatureExtractor, fusion_alpha_threshold=0., device: torch.device = torch.device("cuda")):
@@ -60,3 +63,8 @@ class FeatureFuser(metaclass=ABCMeta):
         assert len(cameras) == len(feature_maps)
         for camera, feature_map in zip(cameras, feature_maps):
             self.splat_feature_map(camera, feature_map)
+
+    def get_features(self) -> torch.Tensor:
+        features = self.features / self.weights.unsqueeze(-1)
+        features[self.weights < 1e-5, ...] = 0
+        return self.extractor.postprocess_features(features)

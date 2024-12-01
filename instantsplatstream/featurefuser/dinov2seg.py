@@ -78,7 +78,7 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
         model = init_segmentor(cfg)
         model.init_weights()
         head_checkpoint_url = f"./checkpoints/{backbone_name}_{HEAD_DATASET}_{HEAD_TYPE}_head.pth"
-        load_checkpoint(self.model, head_checkpoint_url, map_location="cpu")
+        load_checkpoint(model, head_checkpoint_url, map_location="cpu")
         self.head = model.decode_head
         self.to(device)
         self.norm = torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375])
@@ -103,3 +103,6 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
             features_resize = F.interpolate(features_head, size=(h + pad_h, w + pad_w), mode='bilinear', align_corners=False).squeeze(0)
             features = features_resize[:, :h, :w]
             return features
+
+    def postprocess_features(self, features):
+        return F.softmax(features, dim=1).argmax(dim=1)
