@@ -58,11 +58,11 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
         backbone_arch = backbone_archs[BACKBONE_SIZE]
         config = OmegaConf.merge(
             OmegaConf.create(OmegaConf.load("./configs/dinov2/ssl_default_config.yaml")),
-            OmegaConf.create(OmegaConf.load(f"./configs/dinov2/{backbone_arch}_reg4_pretrain.yaml")),
+            OmegaConf.create(OmegaConf.load(f"./configs/dinov2/{backbone_arch}_pretrain.yaml")),
         )
         self.model, self.embed_dim = build_model_from_cfg(config, only_teacher=True)
         backbone_name = f"dinov2_{backbone_arch}"
-        load_pretrained_weights(self.model, f"./checkpoints/{backbone_name}_reg4_pretrain.pth", "teacher")
+        load_pretrained_weights(self.model, f"./checkpoints/{backbone_name}_pretrain.pth", "teacher")
         self.patch_size = config.student.patch_size
         head_config_url = f"./configs/dinov2/{backbone_name}_{HEAD_DATASET}_{HEAD_TYPE}_config.py"
         cfg = mmcv.Config.fromfile(head_config_url)
@@ -96,7 +96,7 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
         _, h, w = image.shape
         pad_h = 0 if h % self.patch_size == 0 else self.patch_size - (h % self.patch_size)
         pad_w = 0 if w % self.patch_size == 0 else self.patch_size - (w % self.patch_size)
-        image_in = F.pad(self.norm(image), (0, pad_w, 0, pad_h), mode='constant', value=0).transpose(1, 2).unsqueeze(0)
+        image_in = F.pad(self.norm(image), (0, pad_w, 0, pad_h), mode='constant', value=0).unsqueeze(0)
         with torch.no_grad():
             features_out = self.backbone(image_in)
             features_head = self.head(features_out)
