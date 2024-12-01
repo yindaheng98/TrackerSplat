@@ -12,7 +12,7 @@ from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from instantsplatstream.utils.featurefusion import feature_fusion
-from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor
+from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor, SAM2FeatureExtractor
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)
@@ -22,9 +22,10 @@ parser.add_argument("-i", "--iteration", required=True, type=int)
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
 parser.add_argument("--device", default="cuda", type=str)
-parser.add_argument("--dinov2_configfile", type=str, default="./configs/dinov2/vits14_reg4_pretrain.yaml")
-parser.add_argument("--dinov2_checkpoint", type=str, default="./checkpoints/dinov2_vits14_reg4_pretrain.pth")
-parser.add_argument("--dinov2_device", default="cuda", type=str)
+parser.add_argument("--extractor", choices=["sam2", "dinov2"], default="sam2")
+parser.add_argument("--extractor_configfile", type=str, default="./configs/sam2.1/sam2.1_hiera_l.yaml")
+parser.add_argument("--extractor_checkpoint", type=str, default="./checkpoints/sam2.1_hiera_large.pt")
+parser.add_argument("--extractor_device", default="cuda", type=str)
 
 
 def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None):
@@ -40,6 +41,17 @@ def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply
         case _:
             raise ValueError(f"Unknown mode: {mode}")
     return dataset, gaussians
+
+
+def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str):
+    match extractor:
+        case "sam2":
+            extractor = SAM2FeatureExtractor(configfile, checkpoint, device=device)
+        case "dinov2":
+            extractor = Dinov2FeatureExtractor(["configs/dinov2/ssl_default_config.yaml", configfile], checkpoint, device=device)
+        case _:
+            raise ValueError(f"Unknown extractor: {extractor}")
+    return extractor
 
 
 def assign_color_block(BLOCK_SIZE, camera):
@@ -63,7 +75,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
-    extractor = Dinov2FeatureExtractor(["configs/dinov2/ssl_default_config.yaml", args.dinov2_configfile], args.dinov2_checkpoint, device=device)
+    extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
     opacity_backup = gaussians._opacity.clone()
     features_dc_backup = gaussians._features_dc.clone()

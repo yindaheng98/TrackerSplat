@@ -9,7 +9,11 @@ from .fuser import FeatureExtractor
 
 
 class Dinov2FeatureExtractor(FeatureExtractor):
-    def __init__(self, configfile: Union[List[str], str], checkpoint, device: torch.device = torch.device("cuda")):
+    def __init__(
+            self,
+            configfile: Union[List[str], str] = ["configs/dinov2/ssl_default_config.yaml", "./configs/dinov2/vits14_reg4_pretrain.yaml"],
+            checkpoint="./checkpoints/dinov2_vits14_reg4_pretrain.pth",
+            device: torch.device = torch.device("cuda")):
         super().__init__()
         if isinstance(configfile, list):
             config = OmegaConf.merge(*[OmegaConf.create(OmegaConf.load(c)) for c in configfile])
