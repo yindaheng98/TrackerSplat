@@ -1,5 +1,7 @@
+import copy
 from typing import List
 import torch
+from torch import nn
 from abc import ABCMeta, abstractmethod
 from gaussian_splatting import Camera, GaussianModel
 from instantsplatstream.utils.featurefusion import feature_fusion
@@ -78,4 +80,13 @@ class FeatureFuser(metaclass=ABCMeta):
         return self.extractor.postprocess_features(features)
 
     def visualize_features(self) -> torch.Tensor:
-        return self.extractor.assign_colors(self.get_features())
+        colors = self.extractor.assign_colors(self.get_features())
+        gaussians = copy.copy(self.gaussians)
+        gaussians._opacity = nn.Parameter(gaussians._opacity.clone())
+        gaussians._opacity[self.weights < 1] += gaussians.inverse_opacity_activation(self.weights[self.weights < 1].unsqueeze(-1))
+        gaussians._opacity[gaussians.get_opacity < 0.05] = gaussians.inverse_opacity_activation(torch.tensor(0.05)).to(gaussians._opacity.device)
+        gaussians._features_dc = nn.Parameter(gaussians._features_dc.clone())
+        gaussians._features_dc[:, 0, :] = colors
+        gaussians._features_rest = nn.Parameter(gaussians._features_rest.clone())
+        gaussians._features_rest[...] = 0
+        return gaussians

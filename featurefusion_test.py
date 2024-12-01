@@ -70,14 +70,14 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
     pbar = tqdm(dataset, desc="Rendering progress")
-    i = 0
     for camera in pbar:
         fuser.fuse(camera)
-        i += 1
-        if i % 10 == 0:
-            break
-    colors = fuser.visualize_features()
-    print("features:", colors)
+    vis_gaussians = fuser.visualize_features()
+    fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion"))
+    makedirs(os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration)), exist_ok=True)
+    with open(os.path.join(fusion_save_path, "cfg_args"), 'w') as cfg_log_f:
+        cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
+    vis_gaussians.save_ply(os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"))
 
 
 if __name__ == "__main__":
