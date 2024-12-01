@@ -25,6 +25,9 @@ class FeatureExtractor(metaclass=ABCMeta):
     def postprocess_features(self, features: torch.Tensor) -> torch.Tensor:
         return features
 
+    def assign_colors(self, features: torch.Tensor) -> torch.Tensor:
+        pass  # TODO
+
 
 class FeatureFuser(metaclass=ABCMeta):
     def __init__(self, gaussians: GaussianModel, extractor: FeatureExtractor, fusion_alpha_threshold=0., device: torch.device = torch.device("cuda")):
@@ -32,8 +35,8 @@ class FeatureFuser(metaclass=ABCMeta):
         self.extractor = extractor
         self.fusion_alpha_threshold = fusion_alpha_threshold
         n_gaussians = gaussians.get_xyz.shape[0]
-        self.features = torch.zeros(size=(n_gaussians, extractor.n_features))
-        self.weights = torch.zeros(size=(n_gaussians,))
+        self.features = torch.zeros(size=(n_gaussians, extractor.n_features), dtype=torch.float64)
+        self.weights = torch.zeros(size=(n_gaussians,), dtype=torch.float64)
         self.to(device)
 
     def to(self, device: torch.device) -> 'FeatureFuser':
@@ -68,3 +71,6 @@ class FeatureFuser(metaclass=ABCMeta):
         features = self.features / self.weights.unsqueeze(-1)
         features[self.weights < 1e-5, ...] = 0
         return self.extractor.postprocess_features(features)
+
+    def asign_colors(self) -> torch.Tensor:
+        return self.extractor.assign_colors(self.get_features())
