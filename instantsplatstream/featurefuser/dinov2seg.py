@@ -105,4 +105,4 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
             return features
 
     def postprocess_features(self, features):
-        return F.softmax(features, dim=1).argmax(dim=1)
+        return F.softmax(features, dim=1)

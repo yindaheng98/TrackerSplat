@@ -26,7 +26,12 @@ class FeatureExtractor(metaclass=ABCMeta):
         return features
 
     def assign_colors(self, features: torch.Tensor) -> torch.Tensor:
-        pass  # TODO
+        colormap = torch.rand((self.n_features, 3), dtype=torch.float, device=features.device)
+        sum_weights = features.sum(dim=1)
+        sum_colors = (features.unsqueeze(-1) * colormap.unsqueeze(0)).sum(dim=1)
+        colors = sum_colors / sum_weights.unsqueeze(-1)
+        colors[sum_weights < 1e-5, ...] = 0
+        return colors
 
 
 class FeatureFuser(metaclass=ABCMeta):
@@ -72,5 +77,5 @@ class FeatureFuser(metaclass=ABCMeta):
         features[self.weights < 1e-5, ...] = 0
         return self.extractor.postprocess_features(features)
 
-    def asign_colors(self) -> torch.Tensor:
+    def visualize_features(self) -> torch.Tensor:
         return self.extractor.assign_colors(self.get_features())

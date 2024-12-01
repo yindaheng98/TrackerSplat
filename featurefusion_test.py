@@ -70,10 +70,14 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
     pbar = tqdm(dataset, desc="Rendering progress")
+    i = 0
     for camera in pbar:
         fuser.fuse(camera)
-    features = fuser.get_features()
-    print("features:", features)
+        i += 1
+        if i % 10 == 0:
+            break
+    colors = fuser.visualize_features()
+    print("features:", colors)
 
 
 if __name__ == "__main__":
