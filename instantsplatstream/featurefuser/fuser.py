@@ -27,12 +27,15 @@ class FeatureExtractor(metaclass=ABCMeta):
     def postprocess_features(self, features: torch.Tensor) -> torch.Tensor:
         return features
 
-    def assign_colors(self, features: torch.Tensor) -> torch.Tensor:
+    def assign_colors(self, features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
         colormap = torch.rand((self.n_features, 3), dtype=torch.float, device=features.device)
-        sum_weights = features.sum(dim=1)
-        sum_colors = (features.unsqueeze(-1) * colormap.unsqueeze(0)).sum(dim=1)
-        colors = sum_colors / sum_weights.unsqueeze(-1)
-        colors[sum_weights < 1e-5, ...] = 0
+        valid_idx = weights > 1e-5
+        sum_weights = features[valid_idx, ...].sum(dim=1)
+        sum_colors = (features[valid_idx, ...].unsqueeze(-1) * colormap.unsqueeze(0)).sum(dim=1)
+        valid_colors = sum_colors / sum_weights.unsqueeze(-1)
+        valid_colors[sum_weights < 1e-5, ...] = 0
+        colors = torch.zeros((features.shape[0], 3), dtype=valid_colors.dtype, device=valid_colors.device)
+        colors[valid_idx, ...] = valid_colors
         return colors
 
 
@@ -79,8 +82,8 @@ class FeatureFuser(metaclass=ABCMeta):
         features[self.weights < 1e-5, ...] = 0
         return self.extractor.postprocess_features(features)
 
-    def visualize_features(self) -> torch.Tensor:
-        colors = self.extractor.assign_colors(self.get_features())
+    def visualize_features(self) -> GaussianModel:
+        colors = self.extractor.assign_colors(self.get_features(), self.weights)
         gaussians = copy.copy(self.gaussians)
         gaussians._opacity = nn.Parameter(gaussians._opacity.clone())
         gaussians._opacity[self.weights < 1] += gaussians.inverse_opacity_activation(self.weights[self.weights < 1].unsqueeze(-1))
