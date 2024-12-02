@@ -1,6 +1,6 @@
 [submodule "submodules/dot"]
 	path = submodules/dot
-	url = https://github.com/yindaheng98/dot
+	url = https://github.com/16lemoing/dot
 [submodule "submodules/featurefusion"]
 	path = submodules/featurefusion
 	url = https://github.com/yindaheng98/diff-gaussian-rasterization
