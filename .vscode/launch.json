@@ -26,10 +26,10 @@
             ]
         },
         {
-            "name": "test featurefusion",
+            "name": "dinov2seg featurefusion",
             "type": "debugpy",
             "request": "launch",
-            "program": "featurefusion_test.py",
+            "program": "featurefusion.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [

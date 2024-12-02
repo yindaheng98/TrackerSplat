@@ -1,17 +1,13 @@
-import math
 import torch
 import os
 from tqdm import tqdm
 from os import makedirs
-import torchvision
 from argparse import ArgumentParser, Namespace
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapTrainableCameraDataset
-from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
-from instantsplatstream.utils.featurefusion import feature_fusion
 from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor, Dinov2SegFeatureExtractor, SAM2FeatureExtractor
 
 parser = ArgumentParser()
@@ -50,7 +46,7 @@ def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str
         case "dinov2":
             extractor = Dinov2FeatureExtractor(["configs/dinov2/ssl_default_config.yaml", configfile], checkpoint, device=device)
         case "dinov2seg":
-            extractor = Dinov2SegFeatureExtractor(device=device)
+            extractor = Dinov2SegFeatureExtractor(BACKBONE_SIZE=configfile, device=device)
         case _:
             raise ValueError(f"Unknown extractor: {extractor}")
     return extractor
