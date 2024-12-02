@@ -72,12 +72,18 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     pbar = tqdm(dataset, desc="Rendering progress")
     for camera in pbar:
         fuser.fuse(camera)
-    vis_gaussians = fuser.visualize_features()
     fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion"))
-    makedirs(os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration)), exist_ok=True)
+    # Save the features
+    fusion_features_save_path = os.path.join(fusion_save_path, "features", args.extractor)
+    makedirs(fusion_features_save_path, exist_ok=True)
+    torch.save(fuser.get_features(), os.path.join(fusion_features_save_path, "iteration_" + str(iteration) + ".pt"))
+    # Save the visualized point cloud
+    makedirs(fusion_save_path, exist_ok=True)
     with open(os.path.join(fusion_save_path, "cfg_args"), 'w') as cfg_log_f:
         cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
-    vis_gaussians.save_ply(os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"))
+    fusion_pcd_save_path = os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration))
+    makedirs(fusion_pcd_save_path, exist_ok=True)
+    fuser.visualize_features().save_ply(os.path.join(fusion_pcd_save_path, "point_cloud.ply"))
 
 
 if __name__ == "__main__":
