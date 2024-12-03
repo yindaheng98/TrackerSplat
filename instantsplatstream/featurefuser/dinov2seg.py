@@ -1,36 +1,110 @@
-import math
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from functools import partial
-from itertools import chain
 from omegaconf import OmegaConf
 import torchvision
-import mmcv
-from mmseg.apis import init_segmentor
-from mmcv.runner import load_checkpoint
-from mmseg.ops import resize
+import mmengine
+from mmseg.apis import init_model
+from mmengine.runner import load_checkpoint
 from dinov2.models import build_model_from_cfg
 from dinov2.utils.utils import load_pretrained_weights
+from mmengine.model import BaseModule
+from mmseg.models.utils import resize
+from mmseg.models.decode_heads.decode_head import BaseDecodeHead
+from mmseg.models.builder import HEADS
+from mmseg.models.builder import BACKBONES
 from .fuser import FeatureExtractor
-import dinov2.eval.segmentation.models
 
 
-class CenterPadding(torch.nn.Module):
-    def __init__(self, multiple):
+@BACKBONES.register_module()
+class DinoVisionTransformer(BaseModule):
+    """Vision Transformer."""
+
+    def __init__(
+        self,
+        *args,
+        **kwargs,
+    ):
         super().__init__()
-        self.multiple = multiple
 
-    def _get_pad(self, size):
-        new_size = math.ceil(size / self.multiple) * self.multiple
-        pad_size = new_size - size
-        pad_size_left = pad_size // 2
-        pad_size_right = pad_size - pad_size_left
-        return pad_size_left, pad_size_right
 
-    @torch.inference_mode()
-    def forward(self, x):
-        pads = list(chain.from_iterable(self._get_pad(m) for m in x.shape[:1:-1]))
-        output = F.pad(x, pads)
+@HEADS.register_module()
+class BNHead(BaseDecodeHead):
+    """Just a batchnorm."""
+
+    def __init__(self, resize_factors=None, **kwargs):
+        super().__init__(**kwargs)
+        assert self.in_channels == self.channels
+        self.bn = nn.SyncBatchNorm(self.in_channels)
+        self.resize_factors = resize_factors
+
+    def _forward_feature(self, inputs):
+        """Forward function for feature maps before classifying each pixel with
+        ``self.cls_seg`` fc.
+
+        Args:
+            inputs (list[Tensor]): List of multi-level img features.
+
+        Returns:
+            feats (Tensor): A tensor of shape (batch_size, self.channels,
+                H, W) which is feature map for last layer of decoder head.
+        """
+        # print("inputs", [i.shape for i in inputs])
+        x = self._transform_inputs(inputs)
+        # print("x", x.shape)
+        feats = self.bn(x)
+        # print("feats", feats.shape)
+        return feats
+
+    def _transform_inputs(self, inputs):
+        """Transform inputs for decoder.
+        Args:
+            inputs (list[Tensor]): List of multi-level img features.
+        Returns:
+            Tensor: The transformed inputs
+        """
+
+        if self.input_transform == "resize_concat":
+            # accept lists (for cls token)
+            input_list = []
+            for x in inputs:
+                if isinstance(x, list):
+                    input_list.extend(x)
+                else:
+                    input_list.append(x)
+            inputs = input_list
+            # an image descriptor can be a local descriptor with resolution 1x1
+            for i, x in enumerate(inputs):
+                if len(x.shape) == 2:
+                    inputs[i] = x[:, :, None, None]
+            # select indices
+            inputs = [inputs[i] for i in self.in_index]
+            # Resizing shenanigans
+            # print("before", *(x.shape for x in inputs))
+            if self.resize_factors is not None:
+                assert len(self.resize_factors) == len(inputs), (len(self.resize_factors), len(inputs))
+                inputs = [
+                    resize(input=x, scale_factor=f, mode="bilinear" if f >= 1 else "area")
+                    for x, f in zip(inputs, self.resize_factors)
+                ]
+                # print("after", *(x.shape for x in inputs))
+            upsampled_inputs = [
+                resize(input=x, size=inputs[0].shape[2:], mode="bilinear", align_corners=self.align_corners)
+                for x in inputs
+            ]
+            inputs = torch.cat(upsampled_inputs, dim=1)
+        elif self.input_transform == "multiple_select":
+            inputs = [inputs[i] for i in self.in_index]
+        else:
+            inputs = inputs[self.in_index]
+
+        return inputs
+
+    def forward(self, inputs):
+        """Forward function."""
+        output = self._forward_feature(inputs)
+        output = self.cls_seg(output)
         return output
 
 
@@ -65,7 +139,7 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
         load_pretrained_weights(self.model, f"./checkpoints/{backbone_name}_pretrain.pth", "teacher")
         self.patch_size = config.student.patch_size
         head_config_url = f"./configs/dinov2/{backbone_name}_{HEAD_DATASET}_{HEAD_TYPE}_config.py"
-        cfg = mmcv.Config.fromfile(head_config_url)
+        cfg = mmengine.Config.fromfile(head_config_url)
         if HEAD_TYPE == "ms":
             cfg.data.test.pipeline[1]["img_ratios"] = cfg.data.test.pipeline[1]["img_ratios"][:HEAD_SCALE_COUNT]
         self.backbone = partial(
@@ -75,7 +149,7 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
         )
 
         # init decode head
-        model = init_segmentor(cfg)
+        model = init_model(cfg)
         model.init_weights()
         head_checkpoint_url = f"./checkpoints/{backbone_name}_{HEAD_DATASET}_{HEAD_TYPE}_head.pth"
         load_checkpoint(model, head_checkpoint_url, map_location="cpu")
