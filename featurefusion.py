@@ -1,14 +1,16 @@
+from typing import Tuple
 import torch
 import os
 from tqdm import tqdm
 from os import makedirs
+import torchvision
 from argparse import ArgumentParser, Namespace
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
 from gaussian_splatting.dataset import TrainableCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapTrainableCameraDataset
-from gaussian_splatting.dataset import JSONCameraDataset
+from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
-from instantsplatstream.featurefuser import FeatureFuser, Dinov2FeatureExtractor, Dinov2SegFeatureExtractor, SAM2FeatureExtractor
+from instantsplatstream.featurefuser import FeatureFuser, FeatureExtractor, Dinov2FeatureExtractor, Dinov2SegFeatureExtractor, SAM2FeatureExtractor
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)
@@ -22,10 +24,11 @@ parser.add_argument("--extractor", choices=["sam2", "dinov2", "dinov2seg"], defa
 parser.add_argument("--extractor_configfile", type=str, default="./configs/sam2.1/sam2.1_hiera_l.yaml")
 parser.add_argument("--extractor_checkpoint", type=str, default="./checkpoints/sam2.1_hiera_large.pt")
 parser.add_argument("--extractor_device", default="cuda", type=str)
+parser.add_argument("--save_featuremap", action="store_true")
 parser.add_argument("--colorify_algo", choices=["kmeans", "weightedsum"], default="kmeans", type=str)
 
 
-def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None):
+def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None) -> Tuple[CameraDataset, GaussianModel]:
     match mode:
         case "pure" | "densify":
             gaussians = GaussianModel(sh_degree).to(device)
@@ -40,7 +43,7 @@ def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply
     return dataset, gaussians
 
 
-def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str):
+def init_extractor(extractor: str, configfile: str, checkpoint: str, device: str) -> FeatureExtractor:
     match extractor:
         case "sam2":
             extractor = SAM2FeatureExtractor(configfile, checkpoint, device=device)
@@ -60,16 +63,21 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         sh_degree=sh_degree, source=source, device=device, mode=args.mode,
         load_ply=os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"),
         load_camera=args.load_camera)
-    render_path = os.path.join(destination, "ours_{}".format(iteration), "renders")
-    gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
+    fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion"))
+    render_path = os.path.join(fusion_save_path, "ours_{}".format(iteration), "renders")
+    gt_path = os.path.join(fusion_save_path, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
     extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
     pbar = tqdm(dataset, desc="Rendering progress")
-    for camera in pbar:
-        fuser.fuse(camera)
-    fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion"))
+    for idx, camera in enumerate(pbar):
+        feature_map = fuser.fuse(camera)
+        if args.save_featuremap:
+            color = extractor.assign_colors_to_feature_map(feature_map, algo=args.colorify_algo)
+            gt = camera.ground_truth_image
+            torchvision.utils.save_image(color, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
+            torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
     # Save the features
     fusion_features_save_path = os.path.join(fusion_save_path, "features", args.extractor)
     makedirs(fusion_features_save_path, exist_ok=True)

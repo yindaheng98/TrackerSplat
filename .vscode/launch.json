@@ -47,6 +47,7 @@
                 "dinov2seg",
                 "--extractor_configfile",
                 "small",
+                "--save_featuremap",
                 "--colorify_algo",
                 "weightedsum",
             ]

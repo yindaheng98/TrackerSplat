@@ -67,6 +67,12 @@ class FeatureExtractor(metaclass=ABCMeta):
             case _:
                 raise ValueError(f"Unknown algorithm {algo}")
 
+    def assign_colors_to_feature_map(self, feature_map: torch.Tensor, algo='kmeans', **kwargs) -> torch.Tensor:
+        c, h, w = feature_map.shape
+        features_flatten = feature_map.reshape(c, -1).T
+        colors = self.assign_colors(features_flatten, torch.ones(h * w, device=features_flatten.device), algo=algo, **kwargs)
+        return colors.T.view(3, h, w)
+
 
 class FeatureFuser(metaclass=ABCMeta):
     def __init__(self, gaussians: GaussianModel, extractor: FeatureExtractor, fusion_alpha_threshold=0., device: torch.device = torch.device("cuda")):
@@ -95,6 +101,7 @@ class FeatureFuser(metaclass=ABCMeta):
         assert camera.ground_truth_image is not None and camera.ground_truth_image.dim() == 3
         feature_map = self.extractor.extract_features(camera.ground_truth_image)
         self.splat_feature_map(camera, feature_map)
+        return feature_map
 
     def fuse_batch(self, cameras: List[Camera]):
         images = []
