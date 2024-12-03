@@ -10,13 +10,13 @@ Install Pytorch and torchvision following the official guideline: [pytorch.org](
 
 Install mmseg following the official guideline: [open-mmlab/mmsegmentation](https://github.com/open-mmlab/mmsegmentation)
 
-Install Pillow, numpy and tqdm
+Install dependencies:
 ```sh
-pip install Pillow numpy tqdm
 pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
 pip install --upgrade git+https://github.com/facebookresearch/sam2@main
+pip install -U openmim && python -m mim install -U mmsegmentation mmcv-full
 ```
 
 ### Pip Install
