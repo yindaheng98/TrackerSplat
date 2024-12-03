@@ -22,6 +22,7 @@ parser.add_argument("--extractor", choices=["sam2", "dinov2", "dinov2seg"], defa
 parser.add_argument("--extractor_configfile", type=str, default="./configs/sam2.1/sam2.1_hiera_l.yaml")
 parser.add_argument("--extractor_checkpoint", type=str, default="./checkpoints/sam2.1_hiera_large.pt")
 parser.add_argument("--extractor_device", default="cuda", type=str)
+parser.add_argument("--colorify_algo", choices=["kmeans", "weightedsum"], default="kmeans", type=str)
 
 
 def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None):
@@ -79,7 +80,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
     fusion_pcd_save_path = os.path.join(fusion_save_path, "point_cloud", "iteration_" + str(iteration))
     makedirs(fusion_pcd_save_path, exist_ok=True)
-    fuser.visualize_features().save_ply(os.path.join(fusion_pcd_save_path, "point_cloud.ply"))
+    fuser.visualize_features(colorify_algo=args.colorify_algo).save_ply(os.path.join(fusion_pcd_save_path, "point_cloud.ply"))
 
 
 if __name__ == "__main__":

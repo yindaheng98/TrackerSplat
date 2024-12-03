@@ -47,6 +47,8 @@
                 "dinov2seg",
                 "--extractor_configfile",
                 "small",
+                "--colorify_algo",
+                "weightedsum",
             ]
         },
     ]

@@ -4,6 +4,7 @@ import torch
 from torch import nn
 from abc import ABCMeta, abstractmethod
 from gaussian_splatting import Camera, GaussianModel
+from sklearn.cluster import MiniBatchKMeans as KMeans
 from instantsplatstream.utils.featurefusion import feature_fusion
 
 
@@ -27,7 +28,7 @@ class FeatureExtractor(metaclass=ABCMeta):
     def postprocess_features(self, features: torch.Tensor) -> torch.Tensor:
         return features
 
-    def assign_colors(self, features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
+    def assign_colors_weightedsum(self, features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
         colormap = torch.rand((self.n_features, 3), dtype=torch.float, device=features.device)
         linspace = torch.linspace(0, 1, steps=self.n_features, device=features.device)
         colormap = torch.stack([
@@ -43,6 +44,28 @@ class FeatureExtractor(metaclass=ABCMeta):
         colors = torch.zeros((features.shape[0], 3), dtype=valid_colors.dtype, device=valid_colors.device)
         colors[valid_idx, ...] = valid_colors
         return colors
+
+    def assign_colors_kmeans(self, features: torch.Tensor, weights: torch.Tensor, n_colors=1024) -> torch.Tensor:
+        kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", verbose=1, batch_size=n_colors * 2)
+        labels = kmeans.fit_predict(features.cpu(), sample_weight=weights.cpu())
+        linspace = torch.linspace(0, 1, steps=n_colors, device=features.device)
+        colormap = torch.stack([
+            linspace,
+            linspace[torch.randperm(n_colors, device=features.device)],
+            torch.flip(linspace, dims=(0,)),
+        ]).T
+        colors = colormap[torch.from_numpy(labels).to(features.device), ...]
+        colors[weights < 1e-5, ...] = 0
+        return colors
+
+    def assign_colors(self, features: torch.Tensor, weights: torch.Tensor, algo='kmeans', **kwargs):
+        match algo:
+            case 'kmeans':
+                return self.assign_colors_kmeans(features, weights, **kwargs)
+            case 'weightedsum':
+                return self.assign_colors_weightedsum(features, weights, **kwargs)
+            case _:
+                raise ValueError(f"Unknown algorithm {algo}")
 
 
 class FeatureFuser(metaclass=ABCMeta):
@@ -88,8 +111,8 @@ class FeatureFuser(metaclass=ABCMeta):
         features[self.weights < 1e-5, ...] = 0
         return self.extractor.postprocess_features(features)
 
-    def visualize_features(self) -> GaussianModel:
-        colors = self.extractor.assign_colors(self.get_features(), self.weights)
+    def visualize_features(self, colorify_algo="kmeans") -> GaussianModel:
+        colors = self.extractor.assign_colors(self.get_features(), self.weights, algo=colorify_algo)
         gaussians = copy.copy(self.gaussians)
         gaussians._opacity = nn.Parameter(gaussians._opacity.clone())
         gaussians._opacity[self.weights < 1] += gaussians.inverse_opacity_activation(self.weights[self.weights < 1].unsqueeze(-1))
