@@ -180,6 +180,3 @@ class Dinov2SegFeatureExtractor(FeatureExtractor):
 
     def postprocess_features(self, features):
         return F.softmax(features, dim=1)
-
-    def assign_colors_to_feature_map(self, feature_map, **kwargs):
-        return super().assign_colors_to_feature_map(F.softmax(feature_map, dim=0), **kwargs)

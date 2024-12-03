@@ -70,7 +70,7 @@ class FeatureExtractor(metaclass=ABCMeta):
     def assign_colors_to_feature_map(self, feature_map: torch.Tensor, algo='kmeans', **kwargs) -> torch.Tensor:
         c, h, w = feature_map.shape
         features_flatten = feature_map.reshape(c, -1).T
-        colors = self.assign_colors(features_flatten, torch.ones(h * w, device=features_flatten.device), algo=algo, **kwargs)
+        colors = self.assign_colors(self.postprocess_features(features_flatten), torch.ones(h * w, device=features_flatten.device), algo=algo, **kwargs)
         return colors.T.view(3, h, w)
 
 
