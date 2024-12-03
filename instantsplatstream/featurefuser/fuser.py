@@ -29,6 +29,12 @@ class FeatureExtractor(metaclass=ABCMeta):
 
     def assign_colors(self, features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
         colormap = torch.rand((self.n_features, 3), dtype=torch.float, device=features.device)
+        linspace = torch.linspace(0, 1, steps=self.n_features, device=features.device)
+        colormap = torch.stack([
+            linspace,
+            linspace[torch.randperm(self.n_features, device=features.device)],
+            torch.flip(linspace, dims=(0,)),
+        ]).T
         valid_idx = weights > 1e-5
         sum_weights = features[valid_idx, ...].sum(dim=1)
         sum_colors = (features[valid_idx, ...].unsqueeze(-1) * colormap.unsqueeze(0)).sum(dim=1)
