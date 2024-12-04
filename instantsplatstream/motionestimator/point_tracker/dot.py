@@ -2,7 +2,7 @@ import torch
 from dot.models import DenseOpticalTracker
 from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimationFunc
+from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimator
 
 
 class DotPointTracker(PointTracker):
@@ -64,29 +64,29 @@ class DotPointTracker(PointTracker):
         )
 
 
-def DotMotionEstimationFunc(fuser, device=torch.device("cuda"), **kwargs):
-    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, **kwargs), fuser, device)
+def DotMotionEstimator(fuser, device=torch.device("cuda"), **kwargs):
+    return PointTrackMotionEstimator(DotPointTracker(device=device, **kwargs), fuser, device)
 
 
-def Cotracker3DotMotionEstimationFunc(
+def Cotracker3DotMotionEstimator(
         fuser, device=torch.device("cuda"),
         tracker_config: str = "submodules/dot/configs/cotracker2_patch_4_wind_8.json",
         tracker_path: str = "checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
         **kwargs):
-    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
+    return PointTrackMotionEstimator(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
 
 
-def TapirDotMotionEstimationFunc(
+def TapirDotMotionEstimator(
         fuser, device=torch.device("cuda"),
         tracker_config: str = "submodules/dot/configs/tapir.json",
         tracker_path: str = "checkpoints/panning_movi_e_tapir.pth",
         **kwargs):
-    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
+    return PointTrackMotionEstimator(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
 
 
-def BootsTapirDotMotionEstimationFunc(
+def BootsTapirDotMotionEstimator(
         fuser, device=torch.device("cuda"),
         tracker_config: str = "submodules/dot/configs/bootstapir.json",
         tracker_path: str = "checkpoints/panning_movi_e_plus_bootstapir.pth",
         **kwargs):
-    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
+    return PointTrackMotionEstimator(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)

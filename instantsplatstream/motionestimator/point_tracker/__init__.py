@@ -1,3 +1,3 @@
-from .abc import PointTrackSequence, PointTracker, MotionFuser, PointTrackMotionEstimationFunc
-from .dot import DotPointTracker, DotMotionEstimationFunc, Cotracker3DotMotionEstimationFunc, TapirDotMotionEstimationFunc, BootsTapirDotMotionEstimationFunc
-from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimationFunc
+from .abc import PointTrackSequence, PointTracker, MotionFuser, PointTrackMotionEstimator
+from .dot import DotPointTracker, DotMotionEstimator, Cotracker3DotMotionEstimator, TapirDotMotionEstimator, BootsTapirDotMotionEstimator
+from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimator

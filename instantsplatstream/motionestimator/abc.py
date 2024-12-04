@@ -1,5 +1,5 @@
 import copy
-from typing import NamedTuple, List
+from typing import NamedTuple
 from abc import ABCMeta, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
@@ -24,6 +24,10 @@ class MotionEstimator(metaclass=ABCMeta):
     @abstractmethod
     def __next__(self) -> Motion:
         raise StopIteration
+
+    @abstractmethod
+    def update_baseframe(self, frame: GaussianModel) -> 'MotionEstimator':
+        return self
 
 
 class MotionCompensater:
@@ -52,6 +56,8 @@ class MotionCompensater:
             assert motion.rotation_quaternion.shape == self.baseframe._rotation.shape
             with torch.no_grad():
                 currframe._rotation = quaternion_raw_multiply(motion.rotation_quaternion, self.baseframe._rotation)
+        # TODO: Training the model
         if motion.update_baseframe:
             self.baseframe = currframe
+            self.estimator.update_baseframe(currframe)
         return currframe

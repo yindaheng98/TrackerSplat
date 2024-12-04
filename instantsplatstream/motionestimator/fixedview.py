@@ -1,6 +1,7 @@
 from typing import List, NamedTuple, Union
 from abc import ABCMeta, abstractmethod
 import torch
+from gaussian_splatting import GaussianModel
 from .abc import Motion, MotionEstimator
 
 from instantsplatstream.dataset import DatasetCameraMeta, VideoCameraDataset
@@ -35,7 +36,7 @@ class FixedViewFrameSequenceMeta(NamedTuple):
         )
 
 
-class FixedViewBatchMotionEstimationFunc(metaclass=ABCMeta):
+class FixedViewBatchMotionEstimator(metaclass=ABCMeta):
     @abstractmethod
     def to(self, device: torch.device) -> 'MotionEstimator':
         return self
@@ -44,9 +45,13 @@ class FixedViewBatchMotionEstimationFunc(metaclass=ABCMeta):
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
         raise NotImplementedError
 
+    @abstractmethod
+    def update_baseframe(self, frame: GaussianModel) -> 'FixedViewBatchMotionEstimator':
+        return self
 
-class FixedViewBatchMotionEstimator(MotionEstimator):
-    def __init__(self, dataset: VideoCameraDataset, batch_func: FixedViewBatchMotionEstimationFunc, batch_size=2, device=torch.device("cuda")):
+
+class FixedViewMotionEstimator(MotionEstimator):
+    def __init__(self, dataset: VideoCameraDataset, batch_func: FixedViewBatchMotionEstimator, batch_size=2, device=torch.device("cuda")):
         super().__init__()
         cameras = dataset.get_metas()
         for frame in cameras:
@@ -77,7 +82,7 @@ class FixedViewBatchMotionEstimator(MotionEstimator):
                 raise ValueError("frame_idx must be either an integer or a slice")
         return ViewCollector(self.cameras)
 
-    def __iter__(self) -> 'FixedViewBatchMotionEstimator':
+    def __iter__(self) -> 'FixedViewMotionEstimator':
         self.frame_idx = 0
         self.curr_initframe_idx = -1
         self.curr_motions = []
@@ -100,3 +105,7 @@ class FixedViewBatchMotionEstimator(MotionEstimator):
             motions[-1] = motions[-1]._replace(update_baseframe=True)
             self.curr_motions = motions
         return self.curr_motions[self.frame_idx-initframe_idx-1]
+
+    def update_baseframe(self, frame: GaussianModel) -> 'FixedViewMotionEstimator':
+        self.batch_func = self.batch_func.update_baseframe(frame)
+        return self

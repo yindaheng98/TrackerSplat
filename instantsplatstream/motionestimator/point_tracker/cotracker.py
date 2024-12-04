@@ -2,7 +2,7 @@ import torch
 from cotracker.predictor import CoTrackerPredictor
 from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimationFunc
+from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimator
 
 
 class Cotracker3PointTracker(PointTracker):
@@ -44,5 +44,5 @@ class Cotracker3PointTracker(PointTracker):
         )
 
 
-def Cotracker3MotionEstimationFunc(fuser, device=torch.device("cuda"), **kwargs):
-    return PointTrackMotionEstimationFunc(Cotracker3PointTracker(device=device, **kwargs), fuser, device)
+def Cotracker3MotionEstimator(fuser, device=torch.device("cuda"), **kwargs):
+    return PointTrackMotionEstimator(Cotracker3PointTracker(device=device, **kwargs), fuser, device)
