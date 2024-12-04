@@ -4,8 +4,8 @@ import torch
 from torch import nn
 from abc import ABCMeta, abstractmethod
 from gaussian_splatting import Camera, GaussianModel
-from sklearn.cluster import MiniBatchKMeans as KMeans
 from instantsplatstream.utils.featurefusion import feature_fusion
+from .assign_colors import assign_colors
 
 
 class FeatureExtractor(metaclass=ABCMeta):
@@ -28,44 +28,8 @@ class FeatureExtractor(metaclass=ABCMeta):
     def postprocess_features(self, features: torch.Tensor) -> torch.Tensor:
         return features
 
-    def assign_colors_weightedsum(self, features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
-        colormap = torch.rand((self.n_features, 3), dtype=torch.float, device=features.device)
-        linspace = torch.linspace(0, 1, steps=self.n_features, device=features.device)
-        colormap = torch.stack([
-            linspace,
-            linspace[torch.randperm(self.n_features, device=features.device)],
-            torch.flip(linspace, dims=(0,)),
-        ]).T
-        valid_idx = weights > 1e-5
-        sum_weights = features[valid_idx, ...].sum(dim=1)
-        sum_colors = (features[valid_idx, ...].unsqueeze(-1) * colormap.unsqueeze(0)).sum(dim=1)
-        valid_colors = sum_colors / sum_weights.unsqueeze(-1)
-        valid_colors[sum_weights < 1e-5, ...] = 0
-        colors = torch.zeros((features.shape[0], 3), dtype=valid_colors.dtype, device=valid_colors.device)
-        colors[valid_idx, ...] = valid_colors
-        return colors
-
-    def assign_colors_kmeans(self, features: torch.Tensor, weights: torch.Tensor, n_colors=128) -> torch.Tensor:
-        kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", verbose=1, batch_size=n_colors * 2)
-        labels = kmeans.fit_predict(features.cpu(), sample_weight=weights.cpu())
-        linspace = torch.linspace(0, 1, steps=n_colors, device=features.device)
-        colormap = torch.stack([
-            linspace,
-            linspace[torch.randperm(n_colors, device=features.device)],
-            torch.flip(linspace, dims=(0,)),
-        ]).T
-        colors = colormap[torch.from_numpy(labels).to(features.device), ...]
-        colors[weights < 1e-5, ...] = 0
-        return colors
-
     def assign_colors(self, features: torch.Tensor, weights: torch.Tensor, algo='kmeans', **kwargs):
-        match algo:
-            case 'kmeans':
-                return self.assign_colors_kmeans(features, weights, **kwargs)
-            case 'weightedsum':
-                return self.assign_colors_weightedsum(features, weights, **kwargs)
-            case _:
-                raise ValueError(f"Unknown algorithm {algo}")
+        return assign_colors(features, weights, algo=algo, **kwargs)
 
     def assign_colors_to_feature_map(self, feature_map: torch.Tensor, algo='kmeans', **kwargs) -> torch.Tensor:
         c, h, w = feature_map.shape

@@ -25,7 +25,7 @@ parser.add_argument("--extractor_configfile", type=str, default="./configs/sam2.
 parser.add_argument("--extractor_checkpoint", type=str, default="./checkpoints/sam2.1_hiera_large.pt")
 parser.add_argument("--extractor_device", default="cuda", type=str)
 parser.add_argument("--save_featuremap", action="store_true")
-parser.add_argument("--colorify_algo", choices=["kmeans", "weightedsum"], default="kmeans", type=str)
+parser.add_argument("--colorify_algo", choices=["kmeans", "kmeans-pca", "weightedsum"], default="kmeans", type=str)
 
 
 def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None) -> Tuple[CameraDataset, GaussianModel]:

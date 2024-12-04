@@ -51,7 +51,7 @@
                 "./checkpoints/dinov2_vits14_reg4_pretrain.pth",
                 "--save_featuremap",
                 "--colorify_algo",
-                "kmeans",
+                "kmeans-pca",
             ]
         },
         {
