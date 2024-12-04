@@ -24,7 +24,7 @@ def weightedsum(features: torch.Tensor, weights: torch.Tensor) -> torch.Tensor:
 
 
 def kmeans_random(features: torch.Tensor, weights: torch.Tensor, n_colors=128) -> torch.Tensor:
-    kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", verbose=1, batch_size=n_colors * 2)
+    kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", batch_size=n_colors * 2)
     labels = kmeans.fit_predict(features.cpu(), sample_weight=weights.cpu())
     linspace = torch.linspace(0, 1, steps=n_colors, device=features.device)
     colormap = torch.stack([
@@ -38,7 +38,7 @@ def kmeans_random(features: torch.Tensor, weights: torch.Tensor, n_colors=128) -
 
 
 def kmeans_pca(features: torch.Tensor, weights: torch.Tensor, n_colors=128) -> torch.Tensor:
-    kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", verbose=1, batch_size=n_colors * 2)
+    kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", batch_size=n_colors * 2)
     labels = kmeans.fit_predict(features.cpu(), sample_weight=weights.cpu())
     pca = PCA(n_components=3).fit(kmeans.cluster_centers_)
     scale = StandardScaler().fit(pca.transform(kmeans.cluster_centers_))
