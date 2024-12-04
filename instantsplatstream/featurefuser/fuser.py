@@ -45,7 +45,7 @@ class FeatureExtractor(metaclass=ABCMeta):
         colors[valid_idx, ...] = valid_colors
         return colors
 
-    def assign_colors_kmeans(self, features: torch.Tensor, weights: torch.Tensor, n_colors=1024) -> torch.Tensor:
+    def assign_colors_kmeans(self, features: torch.Tensor, weights: torch.Tensor, n_colors=128) -> torch.Tensor:
         kmeans = KMeans(n_clusters=n_colors, init='random', random_state=0, n_init="auto", verbose=1, batch_size=n_colors * 2)
         labels = kmeans.fit_predict(features.cpu(), sample_weight=weights.cpu())
         linspace = torch.linspace(0, 1, steps=n_colors, device=features.device)

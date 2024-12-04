@@ -24,7 +24,7 @@ class Dinov2FeatureExtractor(FeatureExtractor):
         self.patch_size = config.student.patch_size
         self.to(device)
         self.norm = torchvision.transforms.Normalize(mean=[123.675, 116.28, 103.53], std=[58.395, 57.12, 57.375])
-        self.output_indices = [1]
+        self.output_indices = 1
 
     @property
     def n_features(self) -> int:
@@ -47,3 +47,6 @@ class Dinov2FeatureExtractor(FeatureExtractor):
                 features_pad += F.interpolate(feature.unsqueeze(0), size=(h + pad_h, w + pad_w), mode='bilinear', align_corners=False).squeeze(0)
             features = features_pad[:, :h, :w]
             return features
+
+    def postprocess_features(self, features):
+        return F.softmax(features, dim=1)

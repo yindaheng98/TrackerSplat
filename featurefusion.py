@@ -65,19 +65,17 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         load_camera=args.load_camera)
     fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion"))
     render_path = os.path.join(fusion_save_path, "ours_{}".format(iteration), "renders")
-    gt_path = os.path.join(fusion_save_path, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
-    makedirs(gt_path, exist_ok=True)
     extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
     pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
         feature_map = fuser.fuse(camera)
         if args.save_featuremap:
+            alpha = 0.5
             color = extractor.assign_colors_to_feature_map(feature_map, algo=args.colorify_algo)
             gt = camera.ground_truth_image
-            torchvision.utils.save_image(color, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
-            torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
+            torchvision.utils.save_image(color * alpha + gt * (1 - alpha), os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
     # Save the features
     fusion_features_save_path = os.path.join(fusion_save_path, "features", args.extractor)
     makedirs(fusion_features_save_path, exist_ok=True)
