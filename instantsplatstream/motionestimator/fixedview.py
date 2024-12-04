@@ -41,7 +41,7 @@ class FixedViewBatchMotionEstimationFunc(metaclass=ABCMeta):
         return self
 
     @abstractmethod
-    def __call__(self, frames: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
+    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
         raise NotImplementedError
 
 

@@ -2,10 +2,10 @@ import torch
 from dot.models import DenseOpticalTracker
 from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker, FixedViewBatchPointTrackMotionEstimationFunc
+from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimationFunc
 
 
-class DotPointTracker(FixedViewBatchPointTracker):
+class DotPointTracker(PointTracker):
     def __init__(
             self,
             height: int = 512, width: int = 512,
@@ -34,12 +34,12 @@ class DotPointTracker(FixedViewBatchPointTracker):
         self.n_tracks_total = n_tracks_total
         self.n_tracks_batch = n_tracks_batch
 
-    def to(self, device: torch.device) -> 'FixedViewBatchPointTracker':
+    def to(self, device: torch.device) -> 'DotPointTracker':
         self.model = self.model.to(device)
         self.device = device
         return self
 
-    def __call__(self, frames: FixedViewFrameSequenceMeta) -> FixedViewPointTrackSequence:
+    def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
         video = []
         for path in frames.frames_path:
             frame = read_frame(path, resolution=(self.height, self.width))
@@ -52,7 +52,7 @@ class DotPointTracker(FixedViewBatchPointTracker):
                 sim_tracks=self.n_tracks_batch,
             )
         tracks = pred["tracks"][0]
-        return FixedViewPointTrackSequence(
+        return PointTrackSequence(
             image_height=self.height,
             image_width=self.width,
             FoVx=frames.FoVx,
@@ -64,29 +64,29 @@ class DotPointTracker(FixedViewBatchPointTracker):
         )
 
 
-def DotMotionEstimationFunc(track2motion, device=torch.device("cuda"), **kwargs):
-    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, **kwargs), track2motion, device)
+def DotMotionEstimationFunc(fuser, device=torch.device("cuda"), **kwargs):
+    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, **kwargs), fuser, device)
 
 
 def Cotracker3DotMotionEstimationFunc(
-        track2motion, device=torch.device("cuda"),
+        fuser, device=torch.device("cuda"),
         tracker_config: str = "submodules/dot/configs/cotracker2_patch_4_wind_8.json",
         tracker_path: str = "checkpoints/movi_f_cotracker2_patch_4_wind_8.pth",
         **kwargs):
-    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), track2motion, device)
+    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
 
 
 def TapirDotMotionEstimationFunc(
-        track2motion, device=torch.device("cuda"),
+        fuser, device=torch.device("cuda"),
         tracker_config: str = "submodules/dot/configs/tapir.json",
         tracker_path: str = "checkpoints/panning_movi_e_tapir.pth",
         **kwargs):
-    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), track2motion, device)
+    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)
 
 
 def BootsTapirDotMotionEstimationFunc(
-        track2motion, device=torch.device("cuda"),
+        fuser, device=torch.device("cuda"),
         tracker_config: str = "submodules/dot/configs/bootstapir.json",
         tracker_path: str = "checkpoints/panning_movi_e_plus_bootstapir.pth",
         **kwargs):
-    return FixedViewBatchPointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), track2motion, device)
+    return PointTrackMotionEstimationFunc(DotPointTracker(device=device, tracker_config=tracker_config, tracker_path=tracker_path, **kwargs), fuser, device)

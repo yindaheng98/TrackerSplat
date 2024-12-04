@@ -2,10 +2,10 @@ import torch
 from cotracker.predictor import CoTrackerPredictor
 from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import FixedViewPointTrackSequence, FixedViewBatchPointTracker, FixedViewBatchPointTrackMotionEstimationFunc
+from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimationFunc
 
 
-class Cotracker3PointTracker(FixedViewBatchPointTracker):
+class Cotracker3PointTracker(PointTracker):
     def __init__(
             self,
             height: int = 512, width: int = 512,
@@ -19,12 +19,12 @@ class Cotracker3PointTracker(FixedViewBatchPointTracker):
         self.height = height
         self.width = width
 
-    def to(self, device: torch.device) -> 'FixedViewBatchPointTracker':
+    def to(self, device: torch.device) -> 'Cotracker3PointTracker':
         self.model = self.model.to(device)
         self.device = device
         return self
 
-    def __call__(self, frames: FixedViewFrameSequenceMeta) -> FixedViewPointTrackSequence:
+    def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
         video = []
         for path in frames.frames_path:
             frame = read_frame(path, resolution=(self.height, self.width))
@@ -32,7 +32,7 @@ class Cotracker3PointTracker(FixedViewBatchPointTracker):
         video = torch.stack(video).to(self.device)
         with torch.no_grad():
             pred_tracks, pred_visibility = self.model(video[None])
-        return FixedViewPointTrackSequence(
+        return PointTrackSequence(
             image_height=self.height,
             image_width=self.width,
             FoVx=frames.FoVx,
@@ -44,5 +44,5 @@ class Cotracker3PointTracker(FixedViewBatchPointTracker):
         )
 
 
-def Cotracker3MotionEstimationFunc(track2motion, device=torch.device("cuda"), **kwargs):
-    return FixedViewBatchPointTrackMotionEstimationFunc(Cotracker3PointTracker(device=device, **kwargs), track2motion, device)
+def Cotracker3MotionEstimationFunc(fuser, device=torch.device("cuda"), **kwargs):
+    return PointTrackMotionEstimationFunc(Cotracker3PointTracker(device=device, **kwargs), fuser, device)

@@ -4,7 +4,7 @@ import torch
 from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimationFunc, FixedViewFrameSequenceMeta
 
 
-class FixedViewPointTrackSequence(NamedTuple):
+class PointTrackSequence(NamedTuple):
     image_height: int
     image_width: int
     FoVx: float
@@ -15,38 +15,38 @@ class FixedViewPointTrackSequence(NamedTuple):
     mask: torch.Tensor
 
 
-class FixedViewBatchPointTracker(metaclass=ABCMeta):
+class PointTracker(metaclass=ABCMeta):
 
     @abstractmethod
-    def to(self, device: torch.device) -> 'FixedViewBatchPointTracker':
+    def to(self, device: torch.device) -> 'PointTracker':
         return self
 
     @abstractmethod
-    def __call__(self, frames: FixedViewFrameSequenceMeta) -> FixedViewPointTrackSequence:
+    def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
         raise NotImplementedError
 
 
-class FixedViewBatchTracks2Motion(metaclass=ABCMeta):
+class MotionFuser(metaclass=ABCMeta):
 
     @abstractmethod
-    def to(self, device: torch.device) -> 'FixedViewBatchTracks2Motion':
+    def to(self, device: torch.device) -> 'MotionFuser':
         return self
 
     @abstractmethod
-    def __call__(self, tracks: List[FixedViewPointTrackSequence]) -> List[Motion]:
+    def __call__(self, trackviews: List[PointTrackSequence]) -> List[Motion]:
         raise NotImplementedError
 
 
-class FixedViewBatchPointTrackMotionEstimationFunc(FixedViewBatchMotionEstimationFunc, metaclass=ABCMeta):
-    def __init__(self, tracker: FixedViewBatchPointTracker, track2motion: FixedViewBatchTracks2Motion, device=torch.device("cuda")):
+class PointTrackMotionEstimationFunc(FixedViewBatchMotionEstimationFunc, metaclass=ABCMeta):
+    def __init__(self, tracker: PointTracker, fuser: MotionFuser, device=torch.device("cuda")):
         self.tracker = tracker
-        self.tracks2motion = track2motion
+        self.fuser = fuser
         self.to(device)
 
-    def to(self, device: torch.device) -> 'FixedViewBatchPointTrackMotionEstimationFunc':
+    def to(self, device: torch.device) -> 'PointTrackMotionEstimationFunc':
         self.tracker = self.tracker.to(device)
-        self.tracks2motion = self.tracks2motion.to(device)
+        self.fuser = self.fuser.to(device)
         return self
 
-    def __call__(self, frames: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        return self.tracks2motion([self.tracker(camera) for camera in frames])
+    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
+        return self.fuser([self.tracker(camera) for camera in views])
