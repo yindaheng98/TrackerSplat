@@ -75,6 +75,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         if args.save_featuremap:
             color = extractor.assign_colors_to_feature_map(feature_map, algo=args.colorify_algo)
             gt = camera.ground_truth_image
+            args.colorify_alpha = max(0, min(1, args.colorify_alpha))
             torchvision.utils.save_image(color * args.colorify_alpha + gt * (1 - args.colorify_alpha), os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
     # Save the features
     fusion_features_save_path = os.path.join(fusion_save_path, "features")

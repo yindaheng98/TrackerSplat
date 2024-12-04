@@ -26,6 +26,37 @@
             ]
         },
         {
+            "name": "sam2 featurefusion",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "featurefusion.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck",
+                "-i",
+                "30000",
+                "--mode",
+                "densify",
+                "--load_camera",
+                "output/truck/cameras.json",
+                "--extractor",
+                "sam2",
+                "--extractor_configfile",
+                "./configs/sam2.1/sam2.1_hiera_l.yaml",
+                "--extractor_checkpoint",
+                "./checkpoints/sam2.1_hiera_large.pt",
+                "--save_featuremap",
+                "--colorify_algo",
+                "kmeans-pca",
+                "--colorify_alpha",
+                "1.0",
+            ]
+        },
+        {
             "name": "dinov2 featurefusion",
             "type": "debugpy",
             "request": "launch",
@@ -52,6 +83,8 @@
                 "--save_featuremap",
                 "--colorify_algo",
                 "kmeans-pca",
+                "--colorify_alpha",
+                "0.8",
             ]
         },
         {
