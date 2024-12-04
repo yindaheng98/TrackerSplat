@@ -26,6 +26,7 @@ parser.add_argument("--extractor_checkpoint", type=str, default="./checkpoints/s
 parser.add_argument("--extractor_device", default="cuda", type=str)
 parser.add_argument("--save_featuremap", action="store_true")
 parser.add_argument("--colorify_algo", choices=["kmeans", "kmeans-pca", "weightedsum"], default="kmeans", type=str)
+parser.add_argument("--colorify_alpha", default=0.5, type=float)
 
 
 def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None) -> Tuple[CameraDataset, GaussianModel]:
@@ -63,8 +64,8 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         sh_degree=sh_degree, source=source, device=device, mode=args.mode,
         load_ply=os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"),
         load_camera=args.load_camera)
-    fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion"))
-    render_path = os.path.join(fusion_save_path, "ours_{}".format(iteration), "renders")
+    fusion_save_path = os.path.join(os.path.join(destination, f"featurefusion-{args.extractor}"))
+    render_path = os.path.join(fusion_save_path, "ours_{}".format(iteration))
     makedirs(render_path, exist_ok=True)
     extractor = init_extractor(args.extractor, args.extractor_configfile, args.extractor_checkpoint, device=args.extractor_device)
     fuser = FeatureFuser(gaussians=gaussians, extractor=extractor, fusion_alpha_threshold=0.01, device=device)
@@ -72,12 +73,11 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     for idx, camera in enumerate(pbar):
         feature_map = fuser.fuse(camera)
         if args.save_featuremap:
-            alpha = 0.5
             color = extractor.assign_colors_to_feature_map(feature_map, algo=args.colorify_algo)
             gt = camera.ground_truth_image
-            torchvision.utils.save_image(color * alpha + gt * (1 - alpha), os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
+            torchvision.utils.save_image(color * args.colorify_alpha + gt * (1 - args.colorify_alpha), os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
     # Save the features
-    fusion_features_save_path = os.path.join(fusion_save_path, "features", args.extractor)
+    fusion_features_save_path = os.path.join(fusion_save_path, "features")
     makedirs(fusion_features_save_path, exist_ok=True)
     torch.save(fuser.get_features(), os.path.join(fusion_features_save_path, "iteration_" + str(iteration) + ".pt"))
     # Save the visualized point cloud
