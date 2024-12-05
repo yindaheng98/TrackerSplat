@@ -1,4 +1,4 @@
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Tuple
 from abc import ABCMeta, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
@@ -33,8 +33,28 @@ class PointTracker(metaclass=ABCMeta):
     def to(self, device: torch.device) -> 'PointTracker':
         return self
 
-    @abstractmethod
     def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
+        height, width = self.compute_rescale(frames)
+        track, mask = self.track(frames, height, width)
+        n, h, w, c = track.shape
+        assert h == height and w == width and c == 2
+        assert mask.shape == (n, h, w)
+        return PointTrackSequence(
+            image_height=height,
+            image_width=width,
+            FoVx=frames.FoVx,
+            FoVy=frames.FoVy,
+            R=frames.R,
+            T=frames.T,
+            track=track,
+            mask=mask,
+        )
+
+    def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
+        return frames.image_height, frames.image_width
+
+    @abstractmethod
+    def track(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
 

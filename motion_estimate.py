@@ -1,7 +1,7 @@
 import torch
 from instantsplatstream.dataset import ColmapVideoCameraDataset
 from instantsplatstream.motionestimator import FixedViewMotionEstimator
-from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, MotionFuser
+from instantsplatstream.motionestimator.point_tracker import MotionFuser, Cotracker3DotMotionEstimator, Cotracker3MotionEstimator
 
 
 class TestMotionFuser(MotionFuser):
@@ -19,7 +19,8 @@ class TestMotionFuser(MotionFuser):
 
 device = torch.device("cuda")
 dataset = ColmapVideoCameraDataset("data/coffee_martini", device=device)
-batch_func = Cotracker3DotMotionEstimator(fuser=TestMotionFuser(), height=496, width=664, device=device)
+# batch_func = Cotracker3DotMotionEstimator(fuser=TestMotionFuser(), device=device, rescale_factor=0.25)
+batch_func = Cotracker3MotionEstimator(fuser=TestMotionFuser(), device=device, rescale_factor=0.25)
 motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=8, device=device)
 for motion in motion_estimator:
     print(motion)

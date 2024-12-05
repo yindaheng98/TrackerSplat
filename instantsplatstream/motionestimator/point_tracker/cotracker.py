@@ -1,4 +1,5 @@
 import torch
+from typing import Tuple
 from cotracker.predictor import CoTrackerPredictor
 from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
@@ -8,40 +9,35 @@ from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimator
 class Cotracker3PointTracker(PointTracker):
     def __init__(
             self,
-            height: int = 512, width: int = 512,
             checkpoint="./checkpoints/scaled_offline.pth",
+            rescale_factor=1.0,
             device=torch.device("cuda")):
         self.model = CoTrackerPredictor(
             checkpoint=checkpoint,
             offline=True,
         )
+        self.rescale_factor = rescale_factor
         self.to(device)
-        self.height = height
-        self.width = width
 
     def to(self, device: torch.device) -> 'Cotracker3PointTracker':
         self.model = self.model.to(device)
         self.device = device
         return self
 
-    def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
+    def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
+        return int(frames.image_height * self.rescale_factor) // 8 * 8, int(frames.image_width * self.rescale_factor) // 8 * 8
+
+    def track(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> PointTrackSequence:
         video = []
         for path in frames.frames_path:
-            frame = read_frame(path, resolution=(self.height, self.width))
+            frame = read_frame(path, resolution=(height, width))
             video.append(frame)
         video = torch.stack(video).to(self.device)
         with torch.no_grad():
             pred_tracks, pred_visibility = self.model(video[None])
-        return PointTrackSequence(
-            image_height=self.height,
-            image_width=self.width,
-            FoVx=frames.FoVx,
-            FoVy=frames.FoVy,
-            R=frames.R,
-            T=frames.T,
-            track=pred_tracks[0].reshape(-1, self.height, self.width, 2),
-            mask=pred_visibility[0].reshape(-1, self.height, self.width),
-        )
+        track = pred_tracks.squeeze(0).reshape(-1, height, width, 2)
+        mask = pred_visibility.squeeze(0).reshape(-1, height, width)
+        return track, mask
 
 
 def Cotracker3MotionEstimator(fuser, device=torch.device("cuda"), **kwargs):
