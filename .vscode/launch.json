@@ -5,10 +5,33 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "motion fusion test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/motion_fusion_test.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/truck",
+                "-d",
+                "output/truck",
+                "-i",
+                "30000",
+                "--mode",
+                "densify",
+                "--load_camera",
+                "output/truck/cameras.json",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
+        {
             "name": "point track test",
             "type": "debugpy",
             "request": "launch",
-            "program": "point_track_test.py",
+            "program": "debug/point_track_test.py",
             "console": "integratedTerminal",
             "args": [
                 "--visualization_modes",
@@ -18,12 +41,15 @@
                 "--inference_mode",
                 "tracks_from_first_to_every_other_frame",
                 "--video_path",
-                "cam00-small.mp4",
+                "walkin",
                 "--num_tracks",
                 "1024",
                 "--sim_tracks",
                 "1024"
-            ]
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
         },
         {
             "name": "dot motionestimation",
