@@ -1,6 +1,7 @@
 import os
 from tqdm import tqdm
 import torch
+from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap.dataset import read_colmap_cameras
 
 from .dataset import DatasetCameraMeta, VideoCameraDataset
@@ -57,4 +58,29 @@ def FixedViewColmapVideoCameraDataset(*args, device=torch.device("cuda"), **kwar
     '''Read a video dataset from a sequence of COLMAP workspaces and validate.'''
     framemetas = read_colmap_framemetas(*args, **kwargs)
     fixedview_validate(framemetas)
+    return VideoCameraDataset(frames=framemetas, device=device)
+
+
+def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=torch.device("cuda"), **kwargs) -> VideoCameraDataset:
+    framemetas = read_colmap_framemetas(*args, **kwargs)
+    fixedview_validate(framemetas)
+    jsoncameras = JSONCameraDataset(jsonpath)
+    cam_idx_in_json = [None] * len(jsoncameras)
+    assert len(framemetas[0]) == len(jsoncameras)
+    for i, framemeta in enumerate(framemetas[0]):
+        for j, jsoncamera in enumerate(jsoncameras):
+            if os.path.normpath(framemeta.image_path) == os.path.normpath(jsoncamera.ground_truth_image_path):
+                assert framemeta.image_height == jsoncamera.image_height
+                assert framemeta.image_width == jsoncamera.image_width
+                cam_idx_in_json[i] = j
+    assert None not in cam_idx_in_json
+    framemetas = [[DatasetCameraMeta(
+        image_height=camera.image_height,
+        image_width=camera.image_width,
+        FoVx=jsoncameras[idx].FoVx,
+        FoVy=jsoncameras[idx].FoVy,
+        R=jsoncameras[idx].R,
+        T=jsoncameras[idx].T,
+        image_path=camera.image_path
+    ) for idx, camera in zip(cam_idx_in_json, framemeta)] for framemeta in framemetas]
     return VideoCameraDataset(frames=framemetas, device=device)
