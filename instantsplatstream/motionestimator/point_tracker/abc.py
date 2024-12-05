@@ -88,8 +88,9 @@ class PointTrackMotionEstimator(FixedViewBatchMotionEstimator, metaclass=ABCMeta
         trackviews = [self.tracker(view) for view in views]
         for view in trackviews:
             assert view.track.shape == trackviews[0].track.shape
-            n, c, h, w = view.track.shape
-            assert view.mask.shape == (n, h, w)
+            n, h, w, c = view.track.shape
+            assert c == 2
+            assert list(view.mask.shape) == [n, h, w]
             assert view.image_height == h and view.image_width == w
         return self.fuser(trackviews)
 

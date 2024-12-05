@@ -26,6 +26,26 @@
             ]
         },
         {
+            "name": "dot motionestimation",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "motion_estimate.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/coffee_martini",
+                "-d",
+                "output/coffee_martini/frame1",
+                "-i",
+                "1000",
+                "--load_camera",
+                "output/coffee_martini/frame1/cameras.json",
+                "--tracking_rescale",
+                "0.25",
+            ]
+        },
+        {
             "name": "sam2 featurefusion",
             "type": "debugpy",
             "request": "launch",
