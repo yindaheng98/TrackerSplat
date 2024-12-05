@@ -5,11 +5,11 @@ from tqdm import tqdm
 from os import makedirs
 import torchvision
 from argparse import ArgumentParser, Namespace
-from gaussian_splatting import GaussianModel as BaseGaussianModel, Camera
+from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
-from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization import GaussianRasterizationSettings, GaussianRasterizer
+from instantsplatstream.utils.motionfusion import motion_fusion
 from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
 
 parser = ArgumentParser()
@@ -20,76 +20,6 @@ parser.add_argument("-i", "--iteration", required=True, type=int)
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
 parser.add_argument("--device", default="cuda", type=str)
-
-
-class GaussianModel(BaseGaussianModel):
-
-    def motion_fusion(self, viewpoint_camera: Camera, motion_map: torch.Tensor):
-        # Create zero tensor. We will use it to make pytorch return gradients of the 2D (screen-space) means
-        screenspace_points = torch.zeros_like(self.get_xyz, dtype=self.get_xyz.dtype, requires_grad=True, device=self._xyz.device) + 0
-        try:
-            screenspace_points.retain_grad()
-        except:
-            pass
-
-        # Set up rasterization configuration
-        tanfovx = math.tan(viewpoint_camera.FoVx * 0.5)
-        tanfovy = math.tan(viewpoint_camera.FoVy * 0.5)
-
-        raster_settings = GaussianRasterizationSettings(
-            image_height=int(viewpoint_camera.image_height),
-            image_width=int(viewpoint_camera.image_width),
-            tanfovx=tanfovx,
-            tanfovy=tanfovy,
-            bg=viewpoint_camera.bg_color.to(self._xyz.device),
-            scale_modifier=self.scale_modifier,
-            viewmatrix=viewpoint_camera.world_view_transform,
-            projmatrix=viewpoint_camera.full_proj_transform,
-            sh_degree=self.active_sh_degree,
-            campos=viewpoint_camera.camera_center,
-            prefiltered=False,
-            debug=self.debug,
-            antialiasing=self.antialiasing
-        )
-
-        rasterizer = GaussianRasterizer(raster_settings=raster_settings)
-        means3D = self.get_xyz
-        means2D = screenspace_points
-        opacity = self.get_opacity
-
-        scales = self.get_scaling
-        rotations = self.get_rotation
-
-        shs = self.get_features
-
-        # Rasterize visible Gaussians to image, obtain their radii (on screen).
-        rendered_image, radii, depth_image, motion2d, motion_alpha, motion_det, pixhit = rasterizer.motion_fusion(
-            motion_map=motion_map,
-            means3D=means3D,
-            means2D=means2D,
-            shs=shs,
-            colors_precomp=None,
-            opacities=opacity,
-            scales=scales,
-            rotations=rotations,
-            cov3D_precomp=None)
-        rendered_image = viewpoint_camera.postprocess(viewpoint_camera, rendered_image)
-
-        # Those Gaussians that were frustum culled or had a radius of 0 were not visible.
-        # They will be excluded from value updates used in the splitting criteria.
-        rendered_image = rendered_image.clamp(0, 1)
-        out = {
-            "render": rendered_image,
-            "viewspace_points": screenspace_points,
-            "visibility_filter": (radii > 0).nonzero(),
-            "radii": radii,
-            "depth": depth_image,
-            "motion2d": motion2d,
-            "motion_alpha": motion_alpha,
-            "motion_det": motion_det,
-            "pixhit": pixhit
-        }
-        return out
 
 
 def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None):
@@ -133,7 +63,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
         xy_transformed, solution = transform2d_pixel(camera.image_height, camera.image_width, device=device)
-        out = gaussians.motion_fusion(camera, xy_transformed)
+        out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, xy_transformed)
         rendering = out["render"]
         gt = camera.ground_truth_image
         pbar.set_postfix({"PSNR": psnr(rendering, gt).mean().item()})
@@ -141,14 +71,14 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
 
         print("\nframe", idx)
-        valid_idx = (out['radii'] > 0) & (out['motion_det'] > 1e-3) & (out['motion_alpha'] > 1e-3) & (out['pixhit'] > 1)
-        motion_det = out['motion_det'][valid_idx]
-        motion_alpha = out['motion_alpha'][valid_idx]
-        pixhit = out['pixhit'][valid_idx]
+        valid_idx = (out['radii'] > 0) & (motion_det > 1e-3) & (motion_alpha > 1e-3) & (pixhit > 1)
+        motion_det = motion_det[valid_idx]
+        motion_alpha = motion_alpha[valid_idx]
+        pixhit = pixhit[valid_idx]
         # verify exported data
-        B = out['motion2d'][valid_idx]
-        # T = out['motion2d'][..., 6:15].reshape(-1, 3, 3)[valid_idx]
-        # conv3D0 = out['motion2d'][..., 6:12][valid_idx]
+        B = motion2d[valid_idx]
+        # T = motion2d[..., 6:15].reshape(-1, 3, 3)[valid_idx]
+        # conv3D0 = motion2d[..., 6:12][valid_idx]
         conv3D = gaussians.get_covariance()[valid_idx]
         # print("conv3D", (conv3D - conv3D0).abs().max())
         J = compute_Jacobian(gaussians.get_xyz.detach(), camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform)
