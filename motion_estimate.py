@@ -48,7 +48,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         frame_folder_fmt="frame%d", start_frame=1, n_frames=None,
         load_camera=args.load_camera)
     batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
-    motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=8, device=device)
+    motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=3, device=device)
     for motion in motion_estimator:
         print(motion)
 
