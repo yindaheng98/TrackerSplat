@@ -62,13 +62,9 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     makedirs(gt_path, exist_ok=True)
     pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
+        camera = camera._replace(image_height=camera.image_height // 8, image_width=camera.image_width // 8)
         xy_transformed, solution = transform2d_pixel(camera.image_height, camera.image_width, device=device)
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, xy_transformed)
-        rendering = out["render"]
-        gt = camera.ground_truth_image
-        pbar.set_postfix({"PSNR": psnr(rendering, gt).mean().item()})
-        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
-        torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
 
         print("\nframe", idx)
         valid_idx = (out['radii'] > 0) & (motion_det > 1e-3) & (motion_alpha > 1e-3) & (pixhit > 1)
