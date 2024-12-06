@@ -1,3 +1,4 @@
+from typing import Tuple
 import math
 import torch
 import os
@@ -9,7 +10,9 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
-from instantsplatstream.motionestimator.point_tracker.fuser import BaseMotionFuser
+from instantsplatstream.dataset import VideoCameraDataset, ColmapVideoCameraDataset, FixedViewColmapVideoCameraDataset_from_json
+from instantsplatstream.motionestimator import FixedViewMotionEstimator
+from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser
 from instantsplatstream.utils.motionfusion import motion_fusion
 from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
 
@@ -21,17 +24,24 @@ parser.add_argument("-i", "--iteration", required=True, type=int)
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
 parser.add_argument("--device", default="cuda", type=str)
+parser.add_argument("--tracking_rescale", default=1.0, type=float)
 
 
-def init_gaussians(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None):
-    match mode:
-        case "pure" | "densify":
-            gaussians = GaussianModel(sh_degree).to(device)
-            gaussians.load_ply(load_ply)
-            dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
-        case _:
-            raise ValueError(f"Unknown mode: {mode}")
-    return dataset, gaussians
+def init_gaussians(sh_degree: int, device: str, load_ply: str) -> Tuple[VideoCameraDataset, GaussianModel]:
+    gaussians = GaussianModel(sh_degree).to(device)
+    gaussians.load_ply(load_ply)
+    return gaussians
+
+
+def init_dataset(source: str, device: str, frame_folder_fmt: str, start_frame: int, n_frames=None, load_camera: str = None) -> Tuple[VideoCameraDataset, GaussianModel]:
+    kwargs = dict(
+        video_folder=source,
+        frame_folder_fmt=frame_folder_fmt,
+        start_frame=start_frame,
+        n_frames=n_frames
+    )
+    dataset = (FixedViewColmapVideoCameraDataset_from_json(jsonpath=load_camera, **kwargs) if load_camera else ColmapVideoCameraDataset(**kwargs)).to(device)
+    return dataset
 
 
 def transform2d_pixel(H, W, device="cuda"):
@@ -53,15 +63,18 @@ def transform2d_pixel(H, W, device="cuda"):
 def main(sh_degree: int, source: str, destination: str, iteration: int, device: str, args):
     with open(os.path.join(destination, "cfg_args"), 'w') as cfg_log_f:
         cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
-    dataset, gaussians = init_gaussians(
-        sh_degree=sh_degree, source=source, device=device, mode=args.mode,
-        load_ply=os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"),
+    gaussians = init_gaussians(
+        sh_degree=sh_degree, device=device,
+        load_ply=os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"))
+    dataset = init_dataset(
+        source=source, device=device,
+        frame_folder_fmt="frame%d", start_frame=1, n_frames=None,
         load_camera=args.load_camera)
     render_path = os.path.join(destination, "ours_{}".format(iteration), "renders")
     gt_path = os.path.join(destination, "ours_{}".format(iteration), "gt")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
-    pbar = tqdm(dataset, desc="Rendering progress")
+    pbar = tqdm(dataset[0], desc="Rendering progress")
     fuser = BaseMotionFuser(gaussians, device=device)
     for idx, camera in enumerate(pbar):
         camera = camera._replace(image_height=int(camera.image_height * 0.25) // 8 * 8, image_width=int(camera.image_width * 0.25) // 8 * 8, ground_truth_image=None)

@@ -22,6 +22,8 @@
                 "densify",
                 "--load_camera",
                 "output/coffee_martini/frame1/cameras.json",
+                "--tracking_rescale",
+                "0.25",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
