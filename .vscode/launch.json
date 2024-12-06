@@ -13,15 +13,15 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/truck",
+                "data/coffee_martini",
                 "-d",
-                "output/truck",
+                "output/coffee_martini/frame1",
                 "-i",
-                "30000",
+                "1000",
                 "--mode",
                 "densify",
                 "--load_camera",
-                "output/truck/cameras.json",
+                "output/coffee_martini/frame1/cameras.json",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"

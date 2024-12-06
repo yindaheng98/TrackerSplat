@@ -9,6 +9,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
+from instantsplatstream.motionestimator.point_tracker.fuser import BaseMotionFuser
 from instantsplatstream.utils.motionfusion import motion_fusion
 from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
 
@@ -61,10 +62,14 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
     pbar = tqdm(dataset, desc="Rendering progress")
+    fuser = BaseMotionFuser(gaussians, device=device)
     for idx, camera in enumerate(pbar):
-        camera = camera._replace(image_height=camera.image_height // 8, image_width=camera.image_width // 8)
+        camera = camera._replace(image_height=int(camera.image_height * 0.25) // 8 * 8, image_width=int(camera.image_width * 0.25) // 8 * 8, ground_truth_image=None)
         xy_transformed, solution = transform2d_pixel(camera.image_height, camera.image_width, device=device)
+        X_, Y_, valid_idx_ = fuser._compute_equations(camera, xy_transformed)
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, xy_transformed)
+        rendering = out["render"]
+        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
 
         print("\nframe", idx)
         valid_idx = (out['radii'] > 0) & (motion_det > 1e-3) & (motion_alpha > 1e-3) & (pixhit > 1)
