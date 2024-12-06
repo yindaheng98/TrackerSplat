@@ -12,7 +12,7 @@ from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from instantsplatstream.dataset import VideoCameraDataset, ColmapVideoCameraDataset, FixedViewColmapVideoCameraDataset_from_json
 from instantsplatstream.motionestimator import FixedViewMotionEstimator
-from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser
+from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser, PointTrackSequence
 from instantsplatstream.utils.motionfusion import motion_fusion
 from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
 
@@ -75,11 +75,20 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
     pbar = tqdm(dataset[0], desc="Rendering progress")
-    fuser = BaseMotionFuser(gaussians, device=device)
+    batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
     for idx, camera in enumerate(pbar):
         camera = camera._replace(image_height=int(camera.image_height * 0.25) // 8 * 8, image_width=int(camera.image_width * 0.25) // 8 * 8, ground_truth_image=None)
         xy_transformed, solution = transform2d_pixel(camera.image_height, camera.image_width, device=device)
-        X_, Y_, valid_idx_ = fuser._compute_equations(camera, xy_transformed)
+        X_, Y_, valid_idx_ = batch_func.fuser(trackviews=[PointTrackSequence(
+            image_height=camera.image_height, 
+            image_width=camera.image_width, 
+            FoVx=camera.FoVx, 
+            FoVy=camera.FoVy, 
+            R=camera.R, 
+            T=camera.T, 
+            track=xy_transformed.unsqueeze(0),
+            mask=torch.ones_like(xy_transformed[..., 0], dtype=torch.bool).unsqueeze(0)
+        )])
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, xy_transformed)
         rendering = out["render"]
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
