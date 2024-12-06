@@ -76,6 +76,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     makedirs(gt_path, exist_ok=True)
     pbar = tqdm(dataset[0], desc="Rendering progress")
     batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
+    motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=8, device=device)
     for idx, camera in enumerate(pbar):
         camera = camera._replace(image_height=int(camera.image_height * 0.25) // 8 * 8, image_width=int(camera.image_width * 0.25) // 8 * 8, ground_truth_image=None)
         xy_transformed, solution = transform2d_pixel(camera.image_height, camera.image_width, device=device)
@@ -89,6 +90,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
             track=xy_transformed.unsqueeze(0),
             mask=torch.ones_like(xy_transformed[..., 0], dtype=torch.bool).unsqueeze(0)
         )])
+        motion_estimator.batch_func(motion_estimator.frames[0:3])
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, xy_transformed)
         rendering = out["render"]
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
