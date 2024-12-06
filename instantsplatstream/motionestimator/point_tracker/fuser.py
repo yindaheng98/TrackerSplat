@@ -29,20 +29,23 @@ class BaseMotionFuser(MotionFuser):
             motions.append(motion)
         return motions
 
-    def motion_filter_before_fusion(self, out, motion2d, motion_alpha, motion_det, pixhit) -> Motion:
-        return (out['radii'] > 0) & (motion_det > 1e-3) & (motion_alpha > 1e-3) & (pixhit > 1)
+    def compute_valid_mask_and_weights(self, out, motion2d, motion_alpha, motion_det, pixhit) -> Motion:
+        valid_mask = (out['radii'] > 0) & (motion_det > 1e-3) & (motion_alpha > 1e-3) & (pixhit > 1)
+        weights = torch.ones_like(motion_alpha)[valid_mask]
+        return valid_mask, weights
 
     def _compute_equations(self, camera: Camera, track: torch.Tensor) -> Motion:
         gaussians = self.gaussians
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, track)
-        valid_idx = self.motion_filter_before_fusion(out, motion2d, motion_alpha, motion_det, pixhit)
-        mean = gaussians.get_xyz.detach()[valid_idx]
-        conv3D = gaussians.covariance_activation(gaussians.get_scaling[valid_idx], 1., gaussians._rotation[valid_idx])
-        transform2d = motion2d[valid_idx]
+        valid_mask, weights = self.compute_valid_mask_and_weights(out, motion2d, motion_alpha, motion_det, pixhit)
+        assert list(valid_mask.shape) == [gaussians.get_xyz.shape[0]] and list(weights.shape) == [valid_mask.sum().item()]
+        mean = gaussians.get_xyz.detach()[valid_mask]
+        conv3D = gaussians.covariance_activation(gaussians.get_scaling[valid_mask], 1., gaussians._rotation[valid_mask])
+        transform2d = motion2d[valid_mask]
         X, Y = solve_transform(mean, conv3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, transform2d)
-        return X, Y, valid_idx
+        return X, Y, valid_mask, weights
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
         for camera, track in zip(cameras, tracks):
-            X, Y, valid_idx = self._compute_equations(camera, track)
+            X, Y, valid_mask = self._compute_equations(camera, track)
             # TODO: implement the rest of the method
