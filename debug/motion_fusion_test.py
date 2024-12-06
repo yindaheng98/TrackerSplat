@@ -13,6 +13,7 @@ from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from instantsplatstream.dataset import VideoCameraDataset, ColmapVideoCameraDataset, FixedViewColmapVideoCameraDataset_from_json
 from instantsplatstream.motionestimator import FixedViewMotionEstimator
 from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser, PointTrackSequence
+from instantsplatstream.motionestimator.point_tracker.fake import FakeMotionEstimator
 from instantsplatstream.utils.motionfusion import motion_fusion
 from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
 
@@ -75,18 +76,19 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
     pbar = tqdm(dataset[0], desc="Rendering progress")
-    batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
+    # batch_func = FakeMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
+    batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale) # This make things wrong
     motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=8, device=device)
     for idx, camera in enumerate(pbar):
         camera = camera._replace(image_height=int(camera.image_height * 0.25) // 8 * 8, image_width=int(camera.image_width * 0.25) // 8 * 8, ground_truth_image=None)
         xy_transformed, solution = transform2d_pixel(camera.image_height, camera.image_width, device=device)
-        X_, Y_, valid_idx_ = batch_func.fuser(trackviews=[PointTrackSequence(
-            image_height=camera.image_height, 
-            image_width=camera.image_width, 
-            FoVx=camera.FoVx, 
-            FoVy=camera.FoVy, 
-            R=camera.R, 
-            T=camera.T, 
+        batch_func.fuser(trackviews=[PointTrackSequence(
+            image_height=camera.image_height,
+            image_width=camera.image_width,
+            FoVx=camera.FoVx,
+            FoVy=camera.FoVy,
+            R=camera.R,
+            T=camera.T,
             track=xy_transformed.unsqueeze(0),
             mask=torch.ones_like(xy_transformed[..., 0], dtype=torch.bool).unsqueeze(0)
         )])
