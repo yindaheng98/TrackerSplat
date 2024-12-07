@@ -1,7 +1,8 @@
 import torch
 from typing import List
+from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
-from gaussian_splatting.utils import matrix_to_quaternion
+from gaussian_splatting.utils import matrix_to_quaternion, build_rotation
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -85,12 +86,17 @@ class BaseMotionFuser(MotionFuser):
         # # we can verify that the order do not influence the result
         # order = [2, 1, 0]
         # diff_conv3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - conv3D
-        # TODO: correct the order of the eigenvectors by find the most similar with gaussians
         R = Q
         S = torch.sqrt(L)
-        # verify R and S matrix
-        from gaussian_splatting.utils import build_rotation
-        R_true = build_rotation(self.gaussians._rotation)[valid_mask]
+        # correct the order
+        R_true = build_rotation(self.gaussians._rotation[valid_mask])
         S_true = self.gaussians.get_scaling[valid_mask]
+        orders = torch.tensor(list(permutations(range(3))), dtype=torch.int64, device=self.device)
+        R_diff = (R[:, :, orders].transpose(1, 2) - R_true[:, None, :, :]).abs().sum((-1, -2))
+        S_diff = (S[:, orders] - S_true[:, None, :]).abs().sum(-1)
+        R_bestorder = orders[R_diff.argmin(-1), :]
+        S_bestorder = orders[S_diff.argmin(-1), :]
+        R_best = torch.gather(R, 2, R_bestorder.unsqueeze(1).expand(-1, 3, -1))
+        S_best = torch.gather(S, 1, S_bestorder)
         pass
         # TODO: implement the rest of the method
