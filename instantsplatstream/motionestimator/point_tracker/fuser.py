@@ -12,6 +12,7 @@ class BaseMotionFuser(MotionFuser):
         super().__init__()
         self.gaussians = gaussians
         self.to(device)
+        self.R_last, self.S_last = None, None
 
     def to(self, device: torch.device) -> 'MotionFuser':
         self.gaussians = self.gaussians.to(device)
@@ -20,6 +21,7 @@ class BaseMotionFuser(MotionFuser):
 
     def update_baseframe(self, frame: GaussianModel) -> 'MotionFuser':
         self.gaussians = frame
+        self.R_last, self.S_last = None, None
         return self.to(self.device)
 
     def __call__(self, trackviews: List[PointTrackSequence]) -> List[Motion]:
@@ -56,13 +58,13 @@ class BaseMotionFuser(MotionFuser):
         weights = alpha[valid_mask]
         return valid_mask, weights
 
-    def compute_best_order(self, R, S, R_true, S_true):
+    def compute_best_order(self, R, S, R_last, S_last):
         '''Overload this method to make your own order'''
         orders = torch.tensor(list(permutations(range(3))), dtype=torch.int64, device=self.device)
-        R_diff = (R[:, :, orders].transpose(1, 2) - R_true[:, None, :, :]).abs().sum((-1, -2))
-        S_diff = (S[:, orders] - S_true[:, None, :]).abs().sum(-1)
+        R_diff = (R[:, :, orders].transpose(1, 2) - R_last[:, None, :, :]).abs().sum((-1, -2))
+        S_diff = (S[:, orders] - S_last[:, None, :]).abs().sum(-1)
         diff = R_diff + S_diff
-        bestorder = orders[diff.argmin(-1), :] # TODO: wrong order, why?
+        bestorder = orders[diff.argmin(-1), :]  # TODO: wrong order, why?
         return bestorder
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
@@ -96,12 +98,15 @@ class BaseMotionFuser(MotionFuser):
         # order = [2, 1, 0]
         # diff_conv3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - conv3D
         R = Q
-        S = torch.sqrt(L) # TODO: dealing with negative eigen values in L
+        S = torch.sqrt(L)  # TODO: dealing with negative eigen values in L
         # correct the order
-        R_true = build_rotation(self.gaussians._rotation[valid_mask])
-        S_true = self.gaussians.get_scaling[valid_mask]
-        bestorder = self.compute_best_order(R, S, R_true, S_true)
+        R_last, S_last = self.R_last, self.S_last
+        if R_last is None or S_last is None:
+            R_last = build_rotation(self.gaussians._rotation[valid_mask])
+            S_last = self.gaussians.get_scaling[valid_mask]
+        bestorder = self.compute_best_order(R, S, R_last, S_last)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
         S_best = torch.gather(S, 1, bestorder)
+        self.R_last, self.S_last = R_best, S_best
         pass
         # TODO: implement the rest of the method
