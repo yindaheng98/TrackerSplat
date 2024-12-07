@@ -49,9 +49,9 @@ def transform2d_pixel(H, W, device="cuda"):
     y = torch.arange(H, dtype=torch.float, device=device)
     xy = torch.stack(torch.meshgrid(x, y, indexing='xy'), dim=-1)
     A = torch.rand((2, 2)).to(device) - 0.5
-    A = torch.eye(2).to(device)
+    # A = torch.eye(2).to(device)
     b = (torch.rand(2).to(device) - 0.5) * H
-    b = torch.zeros(2).to(device)
+    # b = torch.zeros(2).to(device)
     solution = torch.cat([b[:, None], A], dim=1).T
     xy_transformed = (xy.view(-1, 2) @ A.T + b).view(xy.shape)
     # X = torch.cat([torch.ones((xy.view(-1, 2).shape[0], 1)).to(device=xy.device), xy.view(-1, 2)], dim=1)

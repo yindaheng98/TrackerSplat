@@ -30,8 +30,8 @@ class BaseMotionFuser(MotionFuser):
         return motions
 
     def compute_valid_mask_and_weights(self, out, motion2d, motion_alpha, motion_det, pixhit) -> Motion:
-        valid_mask = (out['radii'] > 0) & (motion_det > 1e-3) & (motion_alpha > 1e-3) & (pixhit > 1)
-        weights = torch.ones_like(motion_alpha)[valid_mask]
+        valid_mask = (out['radii'] > 0) & (motion_det > 1e-12) & (motion_alpha > 1e-3) & (pixhit > 1)
+        weights = motion_alpha[valid_mask]
         return valid_mask, weights
 
     def _compute_equations(self, camera: Camera, track: torch.Tensor) -> Motion:
@@ -46,6 +46,16 @@ class BaseMotionFuser(MotionFuser):
         return X, Y, valid_mask, weights
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
+        gaussians = self.gaussians
+        v11 = torch.zeros((gaussians.get_xyz.shape[0], 6, 6), device=self.device, dtype=torch.float64)
+        v12 = torch.zeros((gaussians.get_xyz.shape[0], 6, 1), device=self.device, dtype=torch.float64)
+        alpha = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         for camera, track in zip(cameras, tracks):
-            X, Y, valid_mask = self._compute_equations(camera, track)
+            X, Y, valid_mask, weights = self._compute_equations(camera, track)
+            v11valid = X.transpose(1, 2).bmm(X)
+            v12valid = X.transpose(1, 2).bmm(Y)
+            v11[valid_mask] += v11valid * weights.unsqueeze(-1).unsqueeze(-1)
+            v12[valid_mask] += v12valid * weights.unsqueeze(-1).unsqueeze(-1)
+            alpha[valid_mask] += weights
+            pass
             # TODO: implement the rest of the method
