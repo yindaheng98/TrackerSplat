@@ -97,16 +97,20 @@ class BaseMotionFuser(MotionFuser):
         # # we can verify that the order do not influence the result
         # order = [2, 1, 0]
         # diff_conv3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - conv3D
-        R = Q
-        S = torch.sqrt(L)  # TODO: dealing with negative eigen values in L
+        negative_mask = (L < 0).any(-1)  # drop negative eigen values in L
+        R = Q[~negative_mask, ...]
+        S = torch.sqrt(L[~negative_mask, ...])
+        valid_positive_mask = valid_mask.clone()
+        valid_positive_mask[valid_mask] = ~negative_mask
         # correct the order
-        R_last, S_last = self.R_last, self.S_last
-        if R_last is None or S_last is None:
-            R_last = build_rotation(self.gaussians._rotation[valid_mask])
-            S_last = self.gaussians.get_scaling[valid_mask]
+        if self.R_last is None or self.S_last is None:
+            self.R_last = build_rotation(self.gaussians._rotation)
+            self.S_last = self.gaussians.get_scaling
+        R_last, S_last = self.R_last[valid_positive_mask, ...], self.S_last[valid_positive_mask, ...]
         bestorder = self.compute_best_order(R, S, R_last, S_last)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
         S_best = torch.gather(S, 1, bestorder)
-        self.R_last, self.S_last = R_best, S_best
+        self.R_last[valid_positive_mask, ...] = R_best
+        self.S_last[valid_positive_mask, ...] = S_best
         pass
         # TODO: implement the rest of the method
