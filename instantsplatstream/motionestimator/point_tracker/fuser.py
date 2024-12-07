@@ -31,13 +31,13 @@ class BaseMotionFuser(MotionFuser):
             motions.append(motion)
         return motions
 
-    def compute_valid_mask_and_weights_2d(self, out, motion2d, motion_alpha, motion_det, pixhit) -> Motion:
+    def compute_valid_mask_and_weights_2d(self, out, motion2d, motion_alpha, motion_det, pixhit):
         '''Overload this method to make your own mask and weights'''
         valid_mask = (out['radii'] > 0) & (motion_det > 1e-12) & (motion_alpha > 1e-3) & (pixhit > 1)
         weights = motion_alpha[valid_mask]
         return valid_mask, weights
 
-    def _compute_equations(self, camera: Camera, track: torch.Tensor) -> Motion:
+    def _compute_equations(self, camera: Camera, track: torch.Tensor):
         gaussians = self.gaussians
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, track)
         valid_mask, weights = self.compute_valid_mask_and_weights_2d(out, motion2d, motion_alpha, motion_det, pixhit)
@@ -48,13 +48,22 @@ class BaseMotionFuser(MotionFuser):
         X, Y = solve_transform(mean, conv3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, transform2d)
         return X, Y, valid_mask, weights, pixhit
 
-    def compute_valid_mask_and_weights_3d(self, v11, v12, alpha, pixhits) -> Motion:
+    def compute_valid_mask_and_weights_3d(self, v11, v12, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
         v11_scaled = v11 / alpha.unsqueeze(-1).unsqueeze(-1)
         det = torch.linalg.det(v11_scaled)
         valid_mask = (alpha > 1e-3) & (det > 1e-12)
         weights = alpha[valid_mask]
         return valid_mask, weights
+
+    def compute_best_order(self, R, S, R_true, S_true):
+        '''Overload this method to make your own order'''
+        orders = torch.tensor(list(permutations(range(3))), dtype=torch.int64, device=self.device)
+        R_diff = (R[:, :, orders].transpose(1, 2) - R_true[:, None, :, :]).abs().sum((-1, -2))
+        S_diff = (S[:, orders] - S_true[:, None, :]).abs().sum(-1)
+        diff = R_diff + S_diff
+        bestorder = orders[diff.argmin(-1), :] # TODO: wrong order, why?
+        return bestorder
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
         gaussians = self.gaussians
@@ -87,16 +96,12 @@ class BaseMotionFuser(MotionFuser):
         # order = [2, 1, 0]
         # diff_conv3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - conv3D
         R = Q
-        S = torch.sqrt(L)
+        S = torch.sqrt(L) # TODO: dealing with negative eigen values in L
         # correct the order
         R_true = build_rotation(self.gaussians._rotation[valid_mask])
         S_true = self.gaussians.get_scaling[valid_mask]
-        orders = torch.tensor(list(permutations(range(3))), dtype=torch.int64, device=self.device)
-        R_diff = (R[:, :, orders].transpose(1, 2) - R_true[:, None, :, :]).abs().sum((-1, -2))
-        S_diff = (S[:, orders] - S_true[:, None, :]).abs().sum(-1)
-        R_bestorder = orders[R_diff.argmin(-1), :]
-        S_bestorder = orders[S_diff.argmin(-1), :]
-        R_best = torch.gather(R, 2, R_bestorder.unsqueeze(1).expand(-1, 3, -1))
-        S_best = torch.gather(S, 1, S_bestorder)
+        bestorder = self.compute_best_order(R, S, R_true, S_true)
+        R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
+        S_best = torch.gather(S, 1, bestorder)
         pass
         # TODO: implement the rest of the method
