@@ -70,9 +70,27 @@ class BaseMotionFuser(MotionFuser):
             weights[valid_mask] += weight
             pixhits += pixhit
         valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, weights, pixhits)
-        # verify conv3D
-        conv3D = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
-        conv3D_true = gaussians.get_covariance()[valid_mask]
-        diff_conv3D = conv3D - conv3D_true
+
+        # solve conv3D
+        conv3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
+        # # verify conv3D
+        # conv3D_true = gaussians.get_covariance()[valid_mask]
+        # diff_conv3D = conv3D_flatten - conv3D_true
+
+        # solve R and S matrix
+        conv3D = unflatten_symmetry_3x3(conv3D_flatten)
+        L, Q = torch.linalg.eigh(conv3D.type(torch.float32))  # ! random order
+        # # verify conv3D
+        # diff_conv3D = Q @ (L.unsqueeze(-1) * Q.transpose(1, 2)) - conv3D
+        # # we can verify that the order do not influence the result
+        # order = [2, 1, 0]
+        # diff_conv3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - conv3D
+        # TODO: correct the order of the eigenvectors by find the most similar with gaussians
+        R = Q
+        S = torch.sqrt(L)
+        # verify R and S matrix
+        from gaussian_splatting.utils import build_rotation
+        R_true = build_rotation(self.gaussians._rotation)[valid_mask]
+        S_true = self.gaussians.get_scaling[valid_mask]
         pass
         # TODO: implement the rest of the method
