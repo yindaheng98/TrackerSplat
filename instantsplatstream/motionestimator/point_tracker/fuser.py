@@ -64,8 +64,12 @@ class BaseMotionFuser(MotionFuser):
         R_diff = (R[:, :, orders].transpose(1, 2) - R_last[:, None, :, :]).abs().sum((-1, -2))
         S_diff = (S[:, orders] - S_last[:, None, :]).abs().sum(-1)
         diff = R_diff + S_diff
-        bestorder = orders[diff.argmin(-1), :]  # TODO: wrong order, why?
+        bestorder = orders[diff.argmin(-1), :]
         return bestorder
+
+    def compute_transformation(self, R, S, R_last, S_last, rotation_last, scaling_last):
+        '''Overload this method to make your own transformation'''
+        pass  # TODO: implement the transformation
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
         gaussians = self.gaussians
@@ -111,7 +115,13 @@ class BaseMotionFuser(MotionFuser):
         bestorder = self.compute_best_order(R, S, R_last, S_last)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
         S_best = torch.gather(S, 1, bestorder)
-        # self.R_last[valid_positive_mask, ...] = R_best
-        # self.S_last[valid_positive_mask, ...] = S_best
-        pass
-        # TODO: implement the rest of the method
+        rotation_transform, scaling_transform = self.compute_transformation(
+            R_best, S_best,
+            R_last, S_last,
+            self.rotation_last[valid_positive_mask, ...],
+            self.scaling_last[valid_positive_mask, ...])
+        # TODO: implement the xyz transformation
+        return Motion(
+            rotation_quaternion=rotation_transform,
+            scaling_modifier_log=scaling_transform,
+        )
