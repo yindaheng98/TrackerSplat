@@ -2,7 +2,7 @@ import torch
 from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
-from gaussian_splatting.utils import matrix_to_quaternion, build_rotation
+from gaussian_splatting.utils import matrix_to_quaternion, quaternion_to_matrix, build_rotation
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -11,8 +11,8 @@ class BaseMotionFuser(MotionFuser):
     def __init__(self, gaussians: GaussianModel, device=torch.device("cuda")):
         super().__init__()
         self.gaussians = gaussians
+        self.rotation_last, self.scaling_last = None, None
         self.to(device)
-        self.R_last, self.S_last = None, None
 
     def to(self, device: torch.device) -> 'MotionFuser':
         self.gaussians = self.gaussians.to(device)
@@ -21,7 +21,7 @@ class BaseMotionFuser(MotionFuser):
 
     def update_baseframe(self, frame: GaussianModel) -> 'MotionFuser':
         self.gaussians = frame
-        self.R_last, self.S_last = None, None
+        self.rotation_last, self.scaling_last = None, None
         return self.to(self.device)
 
     def __call__(self, trackviews: List[PointTrackSequence]) -> List[Motion]:
@@ -103,14 +103,15 @@ class BaseMotionFuser(MotionFuser):
         valid_positive_mask = valid_mask.clone()
         valid_positive_mask[valid_mask] = ~negative_mask
         # correct the order
-        if self.R_last is None or self.S_last is None:
-            self.R_last = build_rotation(self.gaussians._rotation)
-            self.S_last = self.gaussians.get_scaling
-        R_last, S_last = self.R_last[valid_positive_mask, ...], self.S_last[valid_positive_mask, ...]
+        if self.rotation_last is None or self.scaling_last is None:
+            self.rotation_last = self.gaussians._rotation
+            self.scaling_last = self.gaussians._scaling
+        R_last = build_rotation(self.rotation_last[valid_positive_mask, ...])
+        S_last = self.gaussians.scaling_activation(self.scaling_last[valid_positive_mask, ...])
         bestorder = self.compute_best_order(R, S, R_last, S_last)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
         S_best = torch.gather(S, 1, bestorder)
-        self.R_last[valid_positive_mask, ...] = R_best
-        self.S_last[valid_positive_mask, ...] = S_best
+        # self.R_last[valid_positive_mask, ...] = R_best
+        # self.S_last[valid_positive_mask, ...] = S_best
         pass
         # TODO: implement the rest of the method
