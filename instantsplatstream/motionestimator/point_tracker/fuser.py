@@ -122,8 +122,11 @@ class BaseMotionFuser(MotionFuser):
         rotation_curr = matrix_to_quaternion(R_best) / torch.nn.functional.normalize(rotation_base) * rotation_base
         scale_curr = self.gaussians.scaling_inverse_activation(S_best)
         rotation_transform, scaling_transform = self.compute_transformation(rotation_curr, scale_curr, rotation_base, scaling_base)
-        # TODO: implement the xyz transformation
         return Motion(
+            motion_mask=valid_positive_mask,
             rotation_quaternion=rotation_transform,
             scaling_modifier_log=scaling_transform,
+            translation_vector=None,  # TODO: implement the xyz transformation
+            confidence=None,  # TODO: implement the confidence
+            update_baseframe=False
         )

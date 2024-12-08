@@ -7,9 +7,11 @@ from gaussian_splatting.utils import quaternion_raw_multiply
 
 
 class Motion(NamedTuple):
+    motion_mask: torch.Tensor = None
     rotation_quaternion: torch.Tensor = None
     scaling_modifier_log: torch.Tensor = None
     translation_vector: torch.Tensor = None
+    confidence: torch.Tensor = None
     update_baseframe: bool = True
 
 
