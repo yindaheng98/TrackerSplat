@@ -44,6 +44,7 @@ class MotionCompensater:
     def __iter__(self) -> 'MotionCompensater':
         self.estimator = self.estimator.__iter__()
         self.baseframe = self.initframe
+        self.estimator.update_baseframe(self.baseframe)
         return self
 
     @staticmethod

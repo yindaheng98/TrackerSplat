@@ -11,7 +11,6 @@ class BaseMotionFuser(MotionFuser):
     def __init__(self, gaussians: GaussianModel, device=torch.device("cuda")):
         super().__init__()
         self.gaussians = gaussians
-        self.rotation_last, self.scaling_last = None, None
         self.to(device)
 
     def to(self, device: torch.device) -> 'MotionFuser':
@@ -21,7 +20,6 @@ class BaseMotionFuser(MotionFuser):
 
     def update_baseframe(self, frame: GaussianModel) -> 'MotionFuser':
         self.gaussians = frame
-        self.rotation_last, self.scaling_last = None, None
         return self.to(self.device)
 
     def __call__(self, trackviews: List[PointTrackSequence]) -> List[Motion]:
@@ -58,16 +56,16 @@ class BaseMotionFuser(MotionFuser):
         weights = alpha[valid_mask]
         return valid_mask, weights
 
-    def compute_best_order(self, R, S, R_last, S_last):
+    def compute_best_order(self, R, S, R_base, S_base):
         '''Overload this method to make your own order'''
         orders = torch.tensor(list(permutations(range(3))), dtype=torch.int64, device=self.device)
-        R_diff = (R[:, :, orders].transpose(1, 2) - R_last[:, None, :, :]).abs().sum((-1, -2))
-        S_diff = (S[:, orders] - S_last[:, None, :]).abs().sum(-1)
+        R_diff = (R[:, :, orders].transpose(1, 2) - R_base[:, None, :, :]).abs().sum((-1, -2))
+        S_diff = (S[:, orders] - S_base[:, None, :]).abs().sum(-1)
         diff = R_diff + S_diff
         bestorder = orders[diff.argmin(-1), :]
         return bestorder
 
-    def compute_transformation(self, R, S, R_last, S_last, rotation_last, scaling_last):
+    def compute_transformation(self, R, S, R_base, S_base, rotation_base, scaling_base):
         '''Overload this method to make your own transformation'''
         pass  # TODO: implement the transformation
 
@@ -107,19 +105,18 @@ class BaseMotionFuser(MotionFuser):
         valid_positive_mask = valid_mask.clone()
         valid_positive_mask[valid_mask] = ~negative_mask
         # correct the order
-        if self.rotation_last is None or self.scaling_last is None:
-            self.rotation_last = self.gaussians._rotation
-            self.scaling_last = self.gaussians._scaling
-        R_last = build_rotation(self.rotation_last[valid_positive_mask, ...])
-        S_last = self.gaussians.scaling_activation(self.scaling_last[valid_positive_mask, ...])
-        bestorder = self.compute_best_order(R, S, R_last, S_last)
+        rotation_base = self.gaussians._rotation[valid_positive_mask, ...]
+        scaling_base = self.gaussians._scaling[valid_positive_mask, ...]
+        R_base = build_rotation(rotation_base)
+        S_base = self.gaussians.scaling_activation(scaling_base)
+        bestorder = self.compute_best_order(R, S, R_base, S_base)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
         S_best = torch.gather(S, 1, bestorder)
         rotation_transform, scaling_transform = self.compute_transformation(
             R_best, S_best,
-            R_last, S_last,
-            self.rotation_last[valid_positive_mask, ...],
-            self.scaling_last[valid_positive_mask, ...])
+            R_base, S_base,
+            rotation_base,
+            scaling_base)
         # TODO: implement the xyz transformation
         return Motion(
             rotation_quaternion=rotation_transform,
