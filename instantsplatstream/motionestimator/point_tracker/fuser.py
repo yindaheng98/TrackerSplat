@@ -2,7 +2,8 @@ import torch
 from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
-from gaussian_splatting.utils import matrix_to_quaternion, quaternion_to_matrix, build_rotation
+from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
+from instantsplatstream.utils import quaternion_invert
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -38,6 +39,7 @@ class BaseMotionFuser(MotionFuser):
         return valid_mask, weights
 
     def _compute_equations(self, camera: Camera, track: torch.Tensor):
+        # TODO: filter static points before motion fusion
         gaussians = self.gaussians
         out, motion2d, motion_alpha, motion_det, pixhit = motion_fusion(gaussians, camera, track)
         valid_mask, weights = self.compute_valid_mask_and_weights_2d(out, motion2d, motion_alpha, motion_det, pixhit)
@@ -65,9 +67,14 @@ class BaseMotionFuser(MotionFuser):
         bestorder = orders[diff.argmin(-1), :]
         return bestorder
 
-    def compute_transformation(self, R, S, R_base, S_base, rotation_base, scaling_base):
+    def compute_transformation(self, rotation, scale_log, rotation_base, scaling_base_log):
         '''Overload this method to make your own transformation'''
-        pass  # TODO: implement the transformation
+        rotation_transform = torch.nn.functional.normalize(quaternion_raw_multiply(rotation, quaternion_invert(rotation_base)))
+        # # verify rotation_transform
+        # rotation_ = quaternion_raw_multiply(rotation_transform, rotation_base)
+        # diff = rotation_ - rotation
+        scaling_transform = scale_log - scaling_base_log
+        return rotation_transform, scaling_transform
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
         gaussians = self.gaussians
@@ -88,7 +95,7 @@ class BaseMotionFuser(MotionFuser):
         # solve conv3D
         conv3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
         # # verify conv3D
-        # conv3D_true = gaussians.get_covariance()[valid_mask]
+        # conv3D_true = gaussians.covariance_activation(gaussians.get_scaling, 1, gaussians._rotation)
         # diff_conv3D = conv3D_flatten - conv3D_true
 
         # solve R and S matrix
@@ -112,11 +119,9 @@ class BaseMotionFuser(MotionFuser):
         bestorder = self.compute_best_order(R, S, R_base, S_base)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))
         S_best = torch.gather(S, 1, bestorder)
-        rotation_transform, scaling_transform = self.compute_transformation(
-            R_best, S_best,
-            R_base, S_base,
-            rotation_base,
-            scaling_base)
+        rotation_curr = matrix_to_quaternion(R_best) / torch.nn.functional.normalize(rotation_base) * rotation_base
+        scale_curr = self.gaussians.scaling_inverse_activation(S_best)
+        rotation_transform, scaling_transform = self.compute_transformation(rotation_curr, scale_curr, rotation_base, scaling_base)
         # TODO: implement the xyz transformation
         return Motion(
             rotation_quaternion=rotation_transform,
