@@ -45,9 +45,9 @@ class BaseMotionFuser(MotionFuser):
         valid_mask, weights = self.compute_valid_mask_and_weights_2d(out, motion2d, motion_alpha, motion_det, pixhit)
         assert list(valid_mask.shape) == [gaussians.get_xyz.shape[0]] and list(weights.shape) == [valid_mask.sum().item()]
         mean = gaussians.get_xyz.detach()[valid_mask]
-        conv3D = gaussians.covariance_activation(gaussians.get_scaling[valid_mask], 1., gaussians._rotation[valid_mask])
+        cov3D = gaussians.covariance_activation(gaussians.get_scaling[valid_mask], 1., gaussians._rotation[valid_mask])
         transform2d = motion2d[valid_mask]
-        X, Y = solve_transform(mean, conv3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, transform2d)
+        X, Y = solve_transform(mean, cov3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, transform2d)
         return X, Y, valid_mask, weights, pixhit
 
     def compute_valid_mask_and_weights_3d(self, v11, v12, alpha, pixhits):
@@ -92,20 +92,20 @@ class BaseMotionFuser(MotionFuser):
             pixhits += pixhit
         valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, weights, pixhits)
 
-        # solve conv3D
-        conv3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
-        # # verify conv3D
-        # conv3D_true = gaussians.covariance_activation(gaussians.get_scaling, 1, gaussians._rotation)
-        # diff_conv3D = conv3D_flatten - conv3D_true
+        # solve cov3D
+        cov3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
+        # # verify cov3D
+        # cov3D_true = gaussians.covariance_activation(gaussians.get_scaling, 1, gaussians._rotation)
+        # diff_cov3D = cov3D_flatten - cov3D_true
 
         # solve R and S matrix
-        conv3D = unflatten_symmetry_3x3(conv3D_flatten)
-        L, Q = torch.linalg.eigh(conv3D.type(torch.float32))  # ! random order
-        # # verify conv3D
-        # diff_conv3D = Q @ (L.unsqueeze(-1) * Q.transpose(1, 2)) - conv3D
+        cov3D = unflatten_symmetry_3x3(cov3D_flatten)
+        L, Q = torch.linalg.eigh(cov3D.type(torch.float32))  # ! random order
+        # # verify cov3D
+        # diff_cov3D = Q @ (L.unsqueeze(-1) * Q.transpose(1, 2)) - cov3D
         # # we can verify that the order do not influence the result
         # order = [2, 1, 0]
-        # diff_conv3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - conv3D
+        # diff_cov3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - cov3D
         negative_mask = (L < 0).any(-1)  # drop negative eigen values in L
         R = Q[~negative_mask, ...]
         S = torch.sqrt(L[~negative_mask, ...])

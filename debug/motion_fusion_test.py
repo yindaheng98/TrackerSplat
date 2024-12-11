@@ -103,18 +103,18 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         # verify exported data
         B = motion2d[valid_idx]
         # T = motion2d[..., 6:15].reshape(-1, 3, 3)[valid_idx]
-        # conv3D0 = motion2d[..., 6:12][valid_idx]
-        conv3D = gaussians.get_covariance()[valid_idx]
-        # print("conv3D", (conv3D - conv3D0).abs().max())
+        # cov3D0 = motion2d[..., 6:12][valid_idx]
+        cov3D = gaussians.get_covariance()[valid_idx]
+        # print("cov3D", (cov3D - cov3D0).abs().max())
         J = compute_Jacobian(gaussians.get_xyz.detach(), camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform)
         T = compute_T(J, camera.world_view_transform)[valid_idx]
         # print("T", (T[:, :2, :] - T0[valid_idx]).abs().max())
         A2D, b2D = B[..., :-1], B[..., -1]
-        conv2D = compute_cov2D(T, unflatten_symmetry_3x3(conv3D))
-        conv2D_transformed = transform_cov2D(A2D, conv2D)
+        cov2D = compute_cov2D(T, unflatten_symmetry_3x3(cov3D))
+        cov2D_transformed = transform_cov2D(A2D, cov2D)
 
         # solve underdetermined system of equations
-        X, Y = solve_cov3D(gaussians.get_xyz.detach()[valid_idx], camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, conv2D_transformed)
+        X, Y = solve_cov3D(gaussians.get_xyz.detach()[valid_idx], camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, cov2D_transformed)
         rank = torch.linalg.matrix_rank(X)
         valid_idx = (rank == 3)
         qr = torch.linalg.qr(X[valid_idx].transpose(1, 2))
@@ -139,8 +139,8 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         B = B[valid_idx]
         T = T[valid_idx]
         A2D, b2D = B[..., :-1], B[..., -1]
-        conv2D_transformed = conv2D_transformed[valid_idx]
-        print("T \Sigma'_{3D} T^\\top - \Sigma'_{2D}", (T.bmm(sigma).bmm(T.transpose(1, 2))[:, :2, :2] - conv2D_transformed).abs().mean())
+        cov2D_transformed = cov2D_transformed[valid_idx]
+        print("T \Sigma'_{3D} T^\\top - \Sigma'_{2D}", (T.bmm(sigma).bmm(T.transpose(1, 2))[:, :2, :2] - cov2D_transformed).abs().mean())
         pass
 
 
