@@ -3,7 +3,7 @@ from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
-from instantsplatstream.utils import quaternion_invert
+from instantsplatstream.utils import quaternion_invert, SVD, IncrementalSVD
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -50,6 +50,26 @@ class BaseMotionFuser(MotionFuser):
         X, Y, A = solve_transform(mean, cov3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, camera.full_proj_transform, transform2d)
         return X, Y, A, valid_mask, weights, pixhit
 
+    @staticmethod
+    def _compute_svd_step(A, mask, U, S, A_init, A_count):
+        '''A is the value after mask, has smaller size than other tensors'''
+        # TODO: weights
+        A_count[mask] += 1
+        # Initialize those in first step
+        A_init_masked, A_count_masked = A_init[mask, ...], A_count[mask]
+        A_init_masked[A_count_masked == 1, 0:2] = A[A_count_masked == 1, ...]
+        A_init_masked[A_count_masked == 2, 2:4] = A[A_count_masked == 2, ...]
+        A_init[mask, ...] = A_init_masked
+        # Compute first step
+        init_mask = mask & (A_count == 2)
+        if init_mask.any():
+            U[init_mask], S[init_mask] = SVD(A_init[init_mask].transpose(-2, -1))
+        # Compute incremental step
+        step_mask = mask & (A_count > 2)
+        if step_mask.any():
+            U[step_mask], S[step_mask] = IncrementalSVD(U[step_mask], S[step_mask], A[A_count[mask] > 2].transpose(-2, -1))
+        return U, S, A_init, A_count
+
     def compute_valid_mask_and_weights_3d(self, v11, v12, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
         v11_scaled = v11 / alpha.unsqueeze(-1).unsqueeze(-1)
@@ -82,8 +102,13 @@ class BaseMotionFuser(MotionFuser):
         v12 = torch.zeros((gaussians.get_xyz.shape[0], 6, 1), device=self.device, dtype=torch.float64)
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
+        U = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
+        S = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
+        A_init = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
+        A_count = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         for camera, track in zip(cameras, tracks):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
+            U, S, A_init, A_count = self._compute_svd_step(A, valid_mask, U, S, A_init, A_count)
             v11valid = X.transpose(1, 2).bmm(X)
             v12valid = X.transpose(1, 2).bmm(Y)
             v11[valid_mask] += v11valid * weight.unsqueeze(-1).unsqueeze(-1)
