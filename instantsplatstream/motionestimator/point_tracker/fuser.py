@@ -47,8 +47,8 @@ class BaseMotionFuser(MotionFuser):
         mean = gaussians.get_xyz.detach()[valid_mask]
         cov3D = gaussians.covariance_activation(gaussians.get_scaling[valid_mask], 1., gaussians._rotation[valid_mask])
         transform2d = motion2d[valid_mask]
-        X, Y = solve_transform(mean, cov3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, transform2d)
-        return X, Y, valid_mask, weights, pixhit
+        X, Y, A = solve_transform(mean, cov3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, camera.full_proj_transform, transform2d)
+        return X, Y, A, valid_mask, weights, pixhit
 
     def compute_valid_mask_and_weights_3d(self, v11, v12, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
@@ -83,7 +83,7 @@ class BaseMotionFuser(MotionFuser):
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         for camera, track in zip(cameras, tracks):
-            X, Y, valid_mask, weight, pixhit = self._compute_equations(camera, track)
+            X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
             v11valid = X.transpose(1, 2).bmm(X)
             v12valid = X.transpose(1, 2).bmm(Y)
             v11[valid_mask] += v11valid * weight.unsqueeze(-1).unsqueeze(-1)

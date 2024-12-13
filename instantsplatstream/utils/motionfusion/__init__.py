@@ -2,7 +2,7 @@ import math
 import torch
 from gaussian_splatting import Camera, GaussianModel
 from .diff_gaussian_rasterization import GaussianRasterizer, GaussianRasterizationSettings
-from .diff_gaussian_rasterization.motion_utils import compute_Jacobian, compute_T, solve_cov3D, compute_cov2D, unflatten_symmetry_3x3, transform_cov2D
+from .diff_gaussian_rasterization.motion_utils import compute_Jacobian, compute_T, solve_cov3D, compute_cov2D, unflatten_symmetry_3x3, transform_cov2D, compute_mean2D, compute_mean2D_equations
 
 
 def motion_fusion(self: GaussianModel, viewpoint_camera: Camera, motion_map: torch.Tensor, fusion_alpha_threshold: float = 0.):
@@ -70,11 +70,13 @@ def motion_fusion(self: GaussianModel, viewpoint_camera: Camera, motion_map: tor
     return out, motion2d, motion_alpha, motion_det, pixhit
 
 
-def solve_transform(mean, cov3D, fovx, fovy, width, height, view_matrix, transform2d):
+def solve_transform(mean, cov3D, fovx, fovy, width, height, view_matrix, full_proj_transform, transform2d):
     J = compute_Jacobian(mean, fovx, fovy, width, height, view_matrix)
     T = compute_T(J, view_matrix)
     A2D, b2D = transform2d[..., :-1], transform2d[..., -1]
     cov2D = compute_cov2D(T, unflatten_symmetry_3x3(cov3D))
     cov2D_transformed = transform_cov2D(A2D, cov2D)
     X, Y = solve_cov3D(mean, fovx, fovy, width, height, view_matrix, cov2D_transformed)
-    return X, Y
+    point_image = compute_mean2D(full_proj_transform, width, height, mean)
+    A = compute_mean2D_equations(full_proj_transform, width, height, point_image + b2D)
+    return X, Y, A
