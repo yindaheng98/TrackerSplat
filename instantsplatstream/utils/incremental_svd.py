@@ -38,16 +38,22 @@ def IncrementalSVD_withV(U, S, Vh, A):
 
 
 if __name__ == '__main__':
-    B = 10
-    N = 50
+    B = 3
+    N = 5
     A = torch.rand(B, 4, N)
     U_, S_, V_ = SVD_withV(A)
-    U, S, V = SVD_withV(A[..., :4])
-    for i in range(4, N):
-        U, S, V = IncrementalSVD_withV(U, S, V, A[..., i:i+1])
-    print((U @ S @ V.transpose(-2, -1) - A).abs().max())
     print((U_ @ S_ @ V_.transpose(-2, -1) - A).abs().max())
+    U, S = SVD(A[..., :4])
+    for i in range(4, N):
+        U, S = IncrementalSVD(U, S, A[..., i:i+1])
     print(U + U_)  # TODO: WTF?
-    print(S - S_)
+    print((S - S_).abs().max())
+    Uv, Sv, V = SVD_withV(A[..., :4])
+    for i in range(4, N):
+        Uv, Sv, V = IncrementalSVD_withV(U, S, V, A[..., i:i+1])
+    print((U @ S @ V.transpose(-2, -1) - A).abs().max())  # TODO: Wrong
+    print((Uv @ Sv @ V.transpose(-2, -1) - A).abs().max())  # TODO: Wrong
+    print(U - Uv)
+    print((S - Sv).abs().max())
     print(V + V_)  # TODO: WTF?
     pass
