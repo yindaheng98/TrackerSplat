@@ -39,21 +39,30 @@ def IncrementalSVD_withV(U, S, Vh, A):
 
 if __name__ == '__main__':
     B = 3
-    N = 5
+    N = 8
     A = torch.rand(B, 4, N)
     U_, S_, V_ = SVD_withV(A)
-    print((U_ @ S_ @ V_.transpose(-2, -1) - A).abs().max())
+    print("USV.T GT", (U_ @ S_ @ V_.transpose(-2, -1) - A).abs().max())
+    U, S, V = SVD_withV(A[..., :4])
+    print("USV.T step 0-4", (U @ S @ V.transpose(-2, -1) - A[..., :4]).abs().max())
+    step = 2
+    for i in range(4, N, step):
+        Ui, Si, Vi = SVD_withV(A[..., :i+step])
+        print("USV.T GT step", i, (Ui @ Si @ Vi.transpose(-2, -1) - A[..., :i+step]).abs().max())
+        U, S, V = IncrementalSVD_withV(U, S, V, A[..., i:i+step])
+        print("U abs diff step", i, (U.abs() - Ui.abs()).abs().max())  # TODO: WTF?
+        print("S diff step", i, (S - Si).abs().max())
+        print("USV.T step", i, (U @ S @ V.transpose(-2, -1) - A[..., :i+step]).abs().max())
+    print("U abs diff", (U.abs() - U_.abs()).abs().max())  # TODO: WTF?
+    print("U/U[-1] abs diff", (U[..., :-1, :]/U[..., -1:, :] - U_[..., :-1, :]/U_[..., -1:, :]).abs().max())
+    print("S diff", (S - S_).abs().max())
+    print("V abs diff", (V.abs() - V_.abs()).abs().max())  # TODO: WTF?
+    print("USV.T", (U @ S @ V.transpose(-2, -1) - A).abs().max())
+    Uv, Sv = U, S
     U, S = SVD(A[..., :4])
-    for i in range(4, N):
-        U, S = IncrementalSVD(U, S, A[..., i:i+1])
-    print(U + U_)  # TODO: WTF?
-    print((S - S_).abs().max())
-    Uv, Sv, V = SVD_withV(A[..., :4])
-    for i in range(4, N):
-        Uv, Sv, V = IncrementalSVD_withV(U, S, V, A[..., i:i+1])
-    print((U @ S @ V.transpose(-2, -1) - A).abs().max())  # TODO: Wrong
-    print((Uv @ Sv @ V.transpose(-2, -1) - A).abs().max())  # TODO: Wrong
-    print(U - Uv)
-    print((S - Sv).abs().max())
-    print(V + V_)  # TODO: WTF?
+    for i in range(4, N, step):
+        U, S = IncrementalSVD(U, S, A[..., i:i+step])
+    print("U abs diff", (U - Uv).abs().max())  # TODO: WTF?
+    print("S diff", (S - Sv).abs().max())
+    print("USV.T", (U @ S @ V.transpose(-2, -1) - A).abs().max())
     pass
