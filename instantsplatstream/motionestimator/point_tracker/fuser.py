@@ -5,7 +5,7 @@ from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
-from instantsplatstream.utils import quaternion_invert, ISVD
+from instantsplatstream.utils import quaternion_invert, ISVD, ILS
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -98,22 +98,19 @@ class BaseMotionFuser(MotionFuser):
 
     def compute_motion(self, cameras: List[Camera], tracks: List[torch.Tensor]) -> Motion:
         gaussians = self.gaussians
-        v11 = torch.zeros((gaussians.get_xyz.shape[0], 6, 6), device=self.device, dtype=torch.float64)
-        v12 = torch.zeros((gaussians.get_xyz.shape[0], 6, 1), device=self.device, dtype=torch.float64)
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         isvd = ISVD(batch_size=gaussians.get_xyz.shape[0], n=4, device=self.device)
+        ils = ILS(batch_size=gaussians.get_xyz.shape[0], n=6, device=self.device)
         for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
             isvd.update(A, valid_mask, weight)
-            v11valid = X.transpose(1, 2).bmm(X)
-            v12valid = X.transpose(1, 2).bmm(Y)
-            v11[valid_mask] += v11valid * weight.unsqueeze(-1).unsqueeze(-1)
-            v12[valid_mask] += v12valid * weight.unsqueeze(-1).unsqueeze(-1)
+            ils.update(X, Y, valid_mask, weight)
             weights[valid_mask] += weight
             pixhits += pixhit
         U, S, A_count = isvd.U, isvd.S, isvd.A_count
         S = torch.diagonal(S, dim1=-2, dim2=-1)
+        v11, v12 = ils.v11, ils.v12
         valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, U, S, weights, pixhits, A_count)
 
         # solve mean3D
@@ -125,7 +122,7 @@ class BaseMotionFuser(MotionFuser):
         cov3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
         # # verify cov3D
         # cov3D_true = gaussians.covariance_activation(gaussians.get_scaling, 1, gaussians._rotation)
-        # diff_cov3D = cov3D_flatten - cov3D_true
+        # diff_cov3D = cov3D_flatten - cov3D_true[valid_mask]
 
         # solve R and S matrix
         cov3D = unflatten_symmetry_3x3(cov3D_flatten)
