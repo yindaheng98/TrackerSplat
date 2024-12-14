@@ -15,8 +15,11 @@ parser.add_argument("--sh_degree", default=3, type=int)
 parser.add_argument("-s", "--source", required=True, type=str)
 parser.add_argument("-d", "--destination", required=True, type=str)
 parser.add_argument("-i", "--iteration", required=True, type=int)
+parser.add_argument("--iteration_init", required=True, type=str, help="iteration of the initial gaussians")
+parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--device", default="cuda", type=str)
+parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
 parser.add_argument("--tracking_rescale", default=1.0, type=float)
 
 
@@ -37,21 +40,33 @@ def init_dataset(source: str, device: str, frame_folder_fmt: str, start_frame: i
     return dataset
 
 
+def init_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fmt, frame):
+    frame_str = frame_folder_fmt % frame
+    gaussians_folder = os.path.join(destination, frame_str)
+    source_folder = os.path.join(source, frame_str)
+    os.makedirs(gaussians_folder, exist_ok=True)
+    with open(os.path.join(gaussians_folder, "cfg_args"), 'w') as cfg_log_f:
+        cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source_folder)))
+    return gaussians_folder
+
+
 def main(sh_degree: int, source: str, destination: str, iteration: int, device: str, args):
-    with open(os.path.join(destination, "cfg_args"), 'w') as cfg_log_f:
-        cfg_log_f.write(str(Namespace(sh_degree=sh_degree, source_path=source)))
+    gaussians_folder = init_cfg_args(sh_degree, source, destination, args.frame_folder_fmt, args.start_frame)
     gaussians = init_gaussians(
         sh_degree=sh_degree, device=device,
-        load_ply=os.path.join(destination, "point_cloud", "iteration_" + str(iteration), "point_cloud.ply"))
+        load_ply=os.path.join(gaussians_folder, "point_cloud", "iteration_" + str(args.iteration_init), "point_cloud.ply"))
     dataset = init_dataset(
         source=source, device=device,
-        frame_folder_fmt="frame%d", start_frame=1, n_frames=None,
+        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
     batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
     motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=3, device=device)
     motion_compensater = MotionCompensater(gaussians, motion_estimator, device=device)
-    for frame in motion_compensater:
-        print(frame)
+    for i, frame_gaussians in enumerate(motion_compensater):
+        gaussians_folder = init_cfg_args(sh_degree, source, destination, args.frame_folder_fmt, args.start_frame + i + 1)
+        save_path = os.path.join(gaussians_folder, "point_cloud", "iteration_" + str(iteration))
+        os.makedirs(save_path, exist_ok=True)
+        frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
 
 
 if __name__ == "__main__":
