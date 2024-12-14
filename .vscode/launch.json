@@ -57,7 +57,7 @@
             "name": "dot motionestimation",
             "type": "debugpy",
             "request": "launch",
-            "program": "motion_estimate.py",
+            "program": "motionestimation.py",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
