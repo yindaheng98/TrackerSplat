@@ -104,6 +104,7 @@ class FixedViewMotionEstimator(MotionEstimator):
             assert len(motions) == self.batch_size-1
             motions[-1] = motions[-1]._replace(update_baseframe=True)
             self.curr_motions = motions
+            self.curr_initframe_idx = initframe_idx
         return self.curr_motions[self.frame_idx-initframe_idx-1]
 
     def update_baseframe(self, frame: GaussianModel) -> 'FixedViewMotionEstimator':
