@@ -65,7 +65,7 @@ class BaseMotionFuser(MotionFuser):
         valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
         v11_scaled = v11 / alpha.unsqueeze(-1).unsqueeze(-1)
         det = torch.linalg.det(v11_scaled)
-        det_clamp = 1e-12
+        det_clamp = 1e-9  # ! Solve cov3D may consume a lot of memory
         valid_mask &= (det > det_clamp)
         det_log = -math.log(det_clamp)-torch.log(det[valid_mask])  # det_log\in(0, +\infty), det=1e-12->det_log=0, det=0->det_log=+\infty
         det_weights = (torch.sigmoid(det_log) - 0.5) * 2  # det_weights\in(0, 1), det=1e-12->det_weights=0, det=0->det_weights=1
@@ -76,7 +76,7 @@ class BaseMotionFuser(MotionFuser):
         '''Overload this method to make your own mask and weights'''
         valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
         S_min = S.min(-1).values
-        S_clamp = 1e-3
+        S_clamp = 1e-1
         valid_mask &= (S_min < S_clamp) & (A_count > 2)  # S_min[valid_mask]\in(0, 1e-3)
         S_min_log = -math.log(S_clamp)-torch.log(S_min[valid_mask])  # S_min_log\in(0, +\infty), S_min=1e-3->S_min_log=0, S_min=0->S_min_log=+\infty
         weights = torch.sigmoid(S_min_log)  # weights\in(0.5, 1), S_min=1e-3->weights=0.5, S_min=0->weights=1
@@ -124,7 +124,7 @@ class BaseMotionFuser(MotionFuser):
         translation_vector = mean3D - gaussians.get_xyz[valid_mask_mean]
 
         # solve R and S matrix
-        R, S, valid_positive_mask = ils.solve(valid_mask_cov)
+        R, S, valid_positive_mask = ils.solve(valid_mask_cov)  # ! Solve R,S may consume a lot of memory if this is small
         # correct the order
         rotation_base = self.gaussians._rotation[valid_positive_mask, ...]
         scaling_base = self.gaussians._scaling[valid_positive_mask, ...]
