@@ -7,8 +7,8 @@ import torchvision
 from argparse import ArgumentParser, Namespace
 from gaussian_splatting import GaussianModel
 from instantsplatstream.dataset import VideoCameraDataset, ColmapVideoCameraDataset, FixedViewColmapVideoCameraDataset_from_json
-from instantsplatstream.motionestimator import FixedViewMotionEstimator
-from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser
+from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
+from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, Cotracker3MotionEstimator, BaseMotionFuser
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)
@@ -49,8 +49,9 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         load_camera=args.load_camera)
     batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
     motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=3, device=device)
-    for motion in motion_estimator:
-        print(motion)
+    motion_compensater = MotionCompensater(gaussians, motion_estimator, device=device)
+    for frame in motion_compensater:
+        print(frame)
 
 
 if __name__ == "__main__":

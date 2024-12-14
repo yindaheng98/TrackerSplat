@@ -6,7 +6,7 @@ from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
 from instantsplatstream.utils import quaternion_invert, ISVD_Mean3D, ILS_RotationScale
-from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
+from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform
 from .abc import Motion, MotionFuser, PointTrackSequence
 
 

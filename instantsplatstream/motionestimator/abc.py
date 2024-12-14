@@ -2,6 +2,7 @@ import copy
 from typing import NamedTuple
 from abc import ABCMeta, abstractmethod
 import torch
+import torch.nn as nn
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_raw_multiply
 
@@ -36,9 +37,10 @@ class MotionEstimator(metaclass=ABCMeta):
 
 
 class MotionCompensater:
-    def __init__(self, gaussians: GaussianModel, estimator: MotionEstimator):
+    def __init__(self, gaussians: GaussianModel, estimator: MotionEstimator, device: torch.device = "cuda"):
         self.initframe = gaussians
         self.estimator = estimator
+        self.to(device)
 
     def to(self, device: torch.device) -> 'MotionCompensater':
         self.initframe = self.initframe.to(device)
@@ -53,31 +55,52 @@ class MotionCompensater:
 
     @staticmethod
     def transform_xyz(baseframe: GaussianModel, motion: Motion) -> torch.Tensor:
-        assert motion.translation_vector.shape == baseframe._xyz.shape
+        if motion.translation_vector is None:
+            return baseframe._xyz.clone()
+        if motion.motion_mask_mean is None:
+            with torch.no_grad():
+                return baseframe._xyz + motion.translation_vector
         with torch.no_grad():
-            return baseframe._xyz + motion.translation_vector
+            xyz = baseframe._xyz.clone()
+            xyz[motion.motion_mask_mean] += motion.translation_vector
+            return xyz
 
     @staticmethod
     def transform_rotation(baseframe: GaussianModel, motion: Motion) -> torch.Tensor:
-        assert motion.rotation_quaternion.shape == baseframe._rotation.shape
+        if motion.rotation_quaternion is None:
+            return baseframe._rotation.clone()
+        if motion.motion_mask_cov is None:
+            with torch.no_grad():
+                return quaternion_raw_multiply(motion.rotation_quaternion, baseframe._rotation)
         with torch.no_grad():
-            return quaternion_raw_multiply(motion.rotation_quaternion, baseframe._rotation)
+            rot = baseframe._rotation.clone()
+            rot[motion.motion_mask_cov] = quaternion_raw_multiply(motion.rotation_quaternion, baseframe._rotation[motion.motion_mask_cov])
+            return rot
 
     @staticmethod
     def transform_scaling(baseframe: GaussianModel, motion: Motion) -> torch.Tensor:
-        assert motion.scaling_modifier_log.shape == baseframe._scaling.shape
+        if motion.scaling_modifier_log is None:
+            return baseframe._scaling.clone()
+        if motion.motion_mask_cov is None:
+            with torch.no_grad():
+                return motion.scaling_modifier_log + baseframe._scaling
         with torch.no_grad():
-            return motion.scaling_modifier_log + baseframe._scaling
+            scaling = baseframe._scaling.clone()
+            scaling[motion.motion_mask_cov] = motion.scaling_modifier_log + baseframe._scaling[motion.motion_mask_cov]
+            return scaling
+
+    @staticmethod
+    def compensate(baseframe: GaussianModel, motion: Motion) -> GaussianModel:
+        '''Overload this method to make your own compensation'''
+        currframe = copy.deepcopy(baseframe)
+        currframe._xyz = nn.Parameter(MotionCompensater.transform_xyz(baseframe, motion))
+        currframe._rotation = nn.Parameter(MotionCompensater.transform_rotation(baseframe, motion))
+        currframe._scaling = nn.Parameter(MotionCompensater.transform_scaling(baseframe, motion))
+        return currframe
 
     def __next__(self) -> GaussianModel:
-        currframe = copy.copy(self.baseframe)
         motion = self.estimator.__next__()
-        if motion.translation_vector is not None:
-            currframe._xyz = self.transform_xyz(self.baseframe, motion)
-        if motion.rotation_quaternion is not None:
-            currframe._rotation = self.transform_rotation(self.baseframe, motion)
-        if motion.scaling_modifier_log is not None:
-            currframe._scaling = self.transform_scaling(self.baseframe, motion)
+        currframe = self.compensate(self.baseframe, motion)
         # TODO: Training the model
         if motion.update_baseframe:
             self.baseframe = currframe
