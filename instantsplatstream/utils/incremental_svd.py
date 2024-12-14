@@ -65,6 +65,17 @@ class ISVD:
             self.U[step_mask], self.S[step_mask] = IncrementalSVD(self.U[step_mask], self.S[step_mask], A[self.A_count[mask] > 2].transpose(-2, -1))
 
 
+class ISVD_Mean3D(ISVD):
+    def __init__(self, batch_size, device, *args, **kwargs):
+        super(ISVD_Mean3D, self).__init__(batch_size, 4, device, *args, **kwargs)
+
+    def solve(self, valid_mask):
+        S = torch.diagonal(self.S, dim1=-2, dim2=-1)
+        p_hom = torch.gather(self.U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
+        mean3D = p_hom[..., :-1] / p_hom[..., -1:]
+        return mean3D, valid_mask
+
+
 if __name__ == '__main__':
     B = 3
     N = 8

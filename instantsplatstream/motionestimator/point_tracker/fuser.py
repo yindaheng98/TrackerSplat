@@ -5,7 +5,7 @@ from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
-from instantsplatstream.utils import quaternion_invert, ISVD, ILS, ILS_RotationScale
+from instantsplatstream.utils import quaternion_invert, ISVD_Mean3D, ILS_RotationScale
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -100,8 +100,8 @@ class BaseMotionFuser(MotionFuser):
         gaussians = self.gaussians
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
-        isvd = ISVD(batch_size=gaussians.get_xyz.shape[0], n=4, device=self.device, dtype=torch.float32)
-        ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], n=3, device=self.device)
+        isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
+        ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], device=self.device)
         for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
             isvd.update(A, valid_mask, weight)
@@ -114,8 +114,7 @@ class BaseMotionFuser(MotionFuser):
         valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, U, S, weights, pixhits, A_count)
 
         # solve mean3D
-        p_hom = torch.gather(U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
-        mean3D = p_hom[..., :-1] / p_hom[..., -1:]
+        mean3D, valid_mask = isvd.solve(valid_mask)
         translation_vector = mean3D - gaussians.get_xyz[valid_mask]
 
         # solve R and S matrix

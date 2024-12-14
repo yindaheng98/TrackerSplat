@@ -25,6 +25,8 @@ class ILS_Cov3D(ILS):
 
 
 class ILS_RotationScale(ILS_Cov3D):
+    def __init__(self, batch_size: int, *args, **kwargs):
+        super(ILS_RotationScale, self).__init__(batch_size, 3, *args, **kwargs)
 
     def solve(self, valid_mask):
         cov3D, valid_mask = super(ILS_RotationScale, self).solve(valid_mask)
