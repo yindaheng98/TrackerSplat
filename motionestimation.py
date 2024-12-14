@@ -17,6 +17,8 @@ parser.add_argument("-d", "--destination", required=True, type=str)
 parser.add_argument("-i", "--iteration", required=True, type=int)
 parser.add_argument("--iteration_init", required=True, type=str, help="iteration of the initial gaussians")
 parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
+parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
+parser.add_argument("-b", "--batch_size", default=3, type=int, help="batch size of point tracking")
 parser.add_argument("--load_camera", default=None, type=str)
 parser.add_argument("--device", default="cuda", type=str)
 parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
@@ -61,7 +63,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         load_camera=args.load_camera)
     dataset[0].save_cameras(os.path.join(gaussians_folder, "cameras.json"))
     batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
-    motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=3, device=device)
+    motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=args.batch_size, device=device)
     motion_compensater = MotionCompensater(gaussians, motion_estimator, device=device)
     for i, frame_gaussians in enumerate(motion_compensater):
         gaussians_folder = init_cfg_args(sh_degree, source, destination, args.frame_folder_fmt, args.start_frame + i + 1)
@@ -69,6 +71,8 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         os.makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(gaussians_folder, "cameras.json"))
+        if not i < args.n_frames:
+            break
 
 
 if __name__ == "__main__":
