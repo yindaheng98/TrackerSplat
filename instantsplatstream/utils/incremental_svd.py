@@ -37,6 +37,33 @@ def IncrementalSVD_withV(U, S, Vh, A):
     return U, S, Vh
 
 
+class ISVD:
+    def __init__(self, batch_size, n, device):
+        self.U = torch.zeros((batch_size, n, n), device=device, dtype=torch.float32)
+        self.S = torch.zeros((batch_size, n, n), device=device, dtype=torch.float32)
+        self.A_init = torch.zeros((batch_size, n, n), device=device, dtype=torch.float32)
+        self.A_count = torch.zeros((batch_size,), device=device, dtype=torch.int)
+
+    def update(self, A, mask, weights):
+        '''A and weights are the value after mask, has smaller size than other tensors'''
+        self.A_count[mask] += 1
+        # Initialize those in first step
+        A_init_masked, A_count_masked = self.A_init[mask, ...], self.A_count[mask]
+        # TODO: take weights into account
+        A_init_masked[A_count_masked == 1, 0:2] = A[A_count_masked == 1, ...]
+        A_init_masked[A_count_masked == 2, 2:4] = A[A_count_masked == 2, ...]
+        self.A_init[mask, ...] = A_init_masked
+        # Compute first step
+        init_mask = mask & (self.A_count == 2)
+        if init_mask.any():
+            self.U[init_mask], self.S[init_mask] = SVD(self.A_init[init_mask].transpose(-2, -1))
+        # Compute incremental step
+        step_mask = mask & (self.A_count > 2)
+        if step_mask.any():
+            # TODO: take weights into account
+            self.U[step_mask], self.S[step_mask] = IncrementalSVD(self.U[step_mask], self.S[step_mask], A[self.A_count[mask] > 2].transpose(-2, -1))
+
+
 if __name__ == '__main__':
     B = 3
     N = 8

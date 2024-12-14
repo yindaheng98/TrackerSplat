@@ -5,7 +5,7 @@ from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
-from instantsplatstream.utils import quaternion_invert, SVD, IncrementalSVD
+from instantsplatstream.utils import quaternion_invert, ISVD
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform, unflatten_symmetry_3x3
 from .abc import Motion, MotionFuser, PointTrackSequence
 
@@ -51,27 +51,6 @@ class BaseMotionFuser(MotionFuser):
         transform2d = motion2d[valid_mask]
         X, Y, A = solve_transform(mean, cov3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, camera.full_proj_transform, transform2d)
         return X, Y, A, valid_mask, weights, pixhit
-
-    @staticmethod
-    def _compute_svd_step(A, weights, mask, U, S, A_init, A_count):
-        '''A and weights are the value after mask, has smaller size than other tensors'''
-        A_count[mask] += 1
-        # Initialize those in first step
-        A_init_masked, A_count_masked = A_init[mask, ...], A_count[mask]
-        # TODO: take weights into account
-        A_init_masked[A_count_masked == 1, 0:2] = A[A_count_masked == 1, ...]
-        A_init_masked[A_count_masked == 2, 2:4] = A[A_count_masked == 2, ...]
-        A_init[mask, ...] = A_init_masked
-        # Compute first step
-        init_mask = mask & (A_count == 2)
-        if init_mask.any():
-            U[init_mask], S[init_mask] = SVD(A_init[init_mask].transpose(-2, -1))
-        # Compute incremental step
-        step_mask = mask & (A_count > 2)
-        if step_mask.any():
-            # TODO: take weights into account
-            U[step_mask], S[step_mask] = IncrementalSVD(U[step_mask], S[step_mask], A[A_count[mask] > 2].transpose(-2, -1))
-        return U, S, A_init, A_count
 
     def compute_valid_mask_and_weights_3d(self, v11, v12, U, S, alpha, pixhits, A_count):
         '''Overload this method to make your own mask and weights'''
@@ -123,19 +102,17 @@ class BaseMotionFuser(MotionFuser):
         v12 = torch.zeros((gaussians.get_xyz.shape[0], 6, 1), device=self.device, dtype=torch.float64)
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
-        U = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
-        S = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
-        A_init = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
-        A_count = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
+        isvd = ISVD(batch_size=gaussians.get_xyz.shape[0], n=4, device=self.device)
         for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
-            U, S, A_init, A_count = self._compute_svd_step(A, weight, valid_mask, U, S, A_init, A_count)
+            isvd.update(A, valid_mask, weight)
             v11valid = X.transpose(1, 2).bmm(X)
             v12valid = X.transpose(1, 2).bmm(Y)
             v11[valid_mask] += v11valid * weight.unsqueeze(-1).unsqueeze(-1)
             v12[valid_mask] += v12valid * weight.unsqueeze(-1).unsqueeze(-1)
             weights[valid_mask] += weight
             pixhits += pixhit
+        U, S, A_count = isvd.U, isvd.S, isvd.A_count
         S = torch.diagonal(S, dim1=-2, dim2=-1)
         valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, U, S, weights, pixhits, A_count)
 
