@@ -38,14 +38,15 @@ def IncrementalSVD_withV(U, S, Vh, A):
 
 
 class ISVD:
-    def __init__(self, batch_size, n, device):
-        self.U = torch.zeros((batch_size, n, n), device=device, dtype=torch.float32)
-        self.S = torch.zeros((batch_size, n, n), device=device, dtype=torch.float32)
-        self.A_init = torch.zeros((batch_size, n, n), device=device, dtype=torch.float32)
+    def __init__(self, batch_size, n, device, *args, **kwargs):
+        self.U = torch.zeros((batch_size, n, n), device=device, *args, **kwargs)
+        self.S = torch.zeros((batch_size, n, n), device=device, *args, **kwargs)
+        self.A_init = torch.zeros((batch_size, n, n), device=device, *args, **kwargs)
         self.A_count = torch.zeros((batch_size,), device=device, dtype=torch.int)
 
     def update(self, A, mask, weights):
         '''A and weights are the value after mask, has smaller size than other tensors'''
+        A = A.type(self.A_init.dtype)
         self.A_count[mask] += 1
         # Initialize those in first step
         A_init_masked, A_count_masked = self.A_init[mask, ...], self.A_count[mask]

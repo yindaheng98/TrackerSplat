@@ -100,19 +100,17 @@ class BaseMotionFuser(MotionFuser):
         gaussians = self.gaussians
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
-        isvd = ISVD(batch_size=gaussians.get_xyz.shape[0], n=4, device=self.device)
-        ils_ = ILS(batch_size=gaussians.get_xyz.shape[0], n=6, dtype=torch.float64, device=self.device)
+        isvd = ISVD(batch_size=gaussians.get_xyz.shape[0], n=4, device=self.device, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], n=3, device=self.device)
         for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
             isvd.update(A, valid_mask, weight)
-            ils_.update(X, Y, valid_mask, weight)
             ils.update(X, Y, valid_mask, weight)
             weights[valid_mask] += weight
             pixhits += pixhit
         U, S, A_count = isvd.U, isvd.S, isvd.A_count
         S = torch.diagonal(S, dim1=-2, dim2=-1)
-        v11, v12 = ils_.v11, ils_.v12
+        v11, v12 = ils.v11, ils.v12
         valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, U, S, weights, pixhits, A_count)
 
         # solve mean3D
@@ -120,25 +118,7 @@ class BaseMotionFuser(MotionFuser):
         mean3D = p_hom[..., :-1] / p_hom[..., -1:]
         translation_vector = mean3D - gaussians.get_xyz[valid_mask]
 
-        # solve cov3D
-        cov3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
-        # # verify cov3D
-        # cov3D_true = gaussians.covariance_activation(gaussians.get_scaling, 1, gaussians._rotation)
-        # diff_cov3D = cov3D_flatten - cov3D_true[valid_mask]
-
         # solve R and S matrix
-        cov3D = unflatten_symmetry_3x3(cov3D_flatten)
-        L, Q = torch.linalg.eigh(cov3D.type(torch.float32))  # ! random order
-        # # verify cov3D
-        # diff_cov3D = Q @ (L.unsqueeze(-1) * Q.transpose(1, 2)) - cov3D
-        # # we can verify that the order do not influence the result
-        # order = [2, 1, 0]
-        # diff_cov3D = Q[..., order] @ (L[..., order].unsqueeze(-1) * Q[..., order].transpose(1, 2)) - cov3D
-        negative_mask = (L < 0).any(-1)  # drop negative eigen values in L
-        R_ = Q[~negative_mask, ...]
-        S_ = torch.sqrt(L[~negative_mask, ...])
-        valid_positive_mask_ = valid_mask.clone()
-        valid_positive_mask_[valid_mask] = ~negative_mask
         R, S, valid_positive_mask = ils.solve(valid_mask)
         # correct the order
         rotation_base = self.gaussians._rotation[valid_positive_mask, ...]
