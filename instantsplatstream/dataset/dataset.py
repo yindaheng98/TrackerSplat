@@ -1,8 +1,9 @@
-from typing import List, NamedTuple
+from typing import List, NamedTuple, Union
 import torch
 
-from gaussian_splatting.camera import build_camera
+from gaussian_splatting.camera import Camera, build_camera
 from torch.utils.data import Dataset
+from gaussian_splatting.dataset import CameraDataset
 
 
 class DatasetCameraMeta(NamedTuple):
@@ -14,11 +15,11 @@ class DatasetCameraMeta(NamedTuple):
     T: torch.Tensor
     image_path: str = None
 
-    def build_camera(self, device=torch.device("cuda")):
+    def build_camera(self, device=torch.device("cuda")) -> Camera:
         return build_camera(**self._asdict(), device=device)
 
 
-class FrameCameraDataset(Dataset):
+class FrameCameraDataset(CameraDataset):
     def __init__(self, DatasetCameraMetas: List[DatasetCameraMeta], device=torch.device("cuda")):
         super().__init__()
         self.DatasetCameraMetas = [DatasetCameraMeta(**camera._asdict()) for camera in DatasetCameraMetas]
@@ -28,7 +29,7 @@ class FrameCameraDataset(Dataset):
         self.cameras = [camera.build_camera(device=device) for camera in self.DatasetCameraMetas]
         return self
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Camera:
         return self.cameras[idx]
 
     def __len__(self):
@@ -48,7 +49,7 @@ class VideoCameraDataset(Dataset):
         self.device = device
         return self
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Union['VideoCameraDataset', FrameCameraDataset, Camera]:
         if isinstance(idx, tuple) and len(idx) == 1:
             idx = idx[0]
         if isinstance(idx, int):  # a frame contains multiple cameras
@@ -66,5 +67,5 @@ class VideoCameraDataset(Dataset):
     def __len__(self):
         return len(self.framemetas)
 
-    def get_metas(self):
+    def get_metas(self) -> List[List[DatasetCameraMeta]]:
         return [[DatasetCameraMeta(**camera._asdict()) for camera in frame] for frame in self.framemetas]

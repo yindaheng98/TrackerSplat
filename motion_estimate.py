@@ -59,6 +59,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         source=source, device=device,
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
+    dataset[0].save_cameras(os.path.join(gaussians_folder, "cameras.json"))
     batch_func = Cotracker3DotMotionEstimator(fuser=BaseMotionFuser(gaussians), device=device, rescale_factor=args.tracking_rescale)
     motion_estimator = FixedViewMotionEstimator(dataset, batch_func, batch_size=3, device=device)
     motion_compensater = MotionCompensater(gaussians, motion_estimator, device=device)
@@ -67,6 +68,7 @@ def main(sh_degree: int, source: str, destination: str, iteration: int, device: 
         save_path = os.path.join(gaussians_folder, "point_cloud", "iteration_" + str(iteration))
         os.makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
+        dataset[i + 1].save_cameras(os.path.join(gaussians_folder, "cameras.json"))
 
 
 if __name__ == "__main__":
