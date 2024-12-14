@@ -1,4 +1,6 @@
+import math
 import torch
+from tqdm import tqdm
 from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
@@ -51,12 +53,12 @@ class BaseMotionFuser(MotionFuser):
         return X, Y, A, valid_mask, weights, pixhit
 
     @staticmethod
-    def _compute_svd_step(A, mask, U, S, A_init, A_count):
-        '''A is the value after mask, has smaller size than other tensors'''
-        # TODO: weights
+    def _compute_svd_step(A, weights, mask, U, S, A_init, A_count):
+        '''A and weights are the value after mask, has smaller size than other tensors'''
         A_count[mask] += 1
         # Initialize those in first step
         A_init_masked, A_count_masked = A_init[mask, ...], A_count[mask]
+        # TODO: take weights into account
         A_init_masked[A_count_masked == 1, 0:2] = A[A_count_masked == 1, ...]
         A_init_masked[A_count_masked == 2, 2:4] = A[A_count_masked == 2, ...]
         A_init[mask, ...] = A_init_masked
@@ -67,15 +69,34 @@ class BaseMotionFuser(MotionFuser):
         # Compute incremental step
         step_mask = mask & (A_count > 2)
         if step_mask.any():
+            # TODO: take weights into account
             U[step_mask], S[step_mask] = IncrementalSVD(U[step_mask], S[step_mask], A[A_count[mask] > 2].transpose(-2, -1))
         return U, S, A_init, A_count
 
-    def compute_valid_mask_and_weights_3d(self, v11, v12, alpha, pixhits):
+    def compute_valid_mask_and_weights_3d(self, v11, v12, U, S, alpha, pixhits, A_count):
+        '''Overload this method to make your own mask and weights'''
+        valid_mask_cov, weights_cov = self.compute_valid_mask_and_weights_cov3D(v11, v12, alpha, pixhits)
+        valid_mask_mean, weights_mean = self.compute_valid_mask_and_weights_mean3D(U, S, A_count)
+        valid_mask = valid_mask_cov & valid_mask_mean
+        weights = weights_cov[valid_mask[valid_mask_cov]] * weights_mean[valid_mask[valid_mask_mean]]
+        return valid_mask, weights
+
+    def compute_valid_mask_and_weights_cov3D(self, v11, v12, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
         v11_scaled = v11 / alpha.unsqueeze(-1).unsqueeze(-1)
         det = torch.linalg.det(v11_scaled)
         valid_mask = (alpha > 1e-3) & (det > 1e-12)
         weights = alpha[valid_mask]
+        return valid_mask, weights
+
+    def compute_valid_mask_and_weights_mean3D(self, U, S, A_count):
+        '''Overload this method to make your own mask and weights'''
+        S_min = S.min(-1).values
+        S_clamp = 1e-3
+        valid_mask = (A_count > 3) & (S_min < S_clamp)  # S_min[valid_mask]\in(0, 1e-3)
+        S_min_log = -math.log(S_clamp)-torch.log(S_min[valid_mask])  # S_min_log\in(0, +\infty), S_min=1e-3->S_min_log=0, S_min=0->S_min_log=+\infty
+        weights = torch.sigmoid(S_min_log)  # weights\in(0.5, 1), S_min=1e-3->weights=0.5, S_min=0->weights=1
+        # TODO: add A_count into weights
         return valid_mask, weights
 
     def compute_best_order(self, R, S, R_base, S_base):
@@ -106,16 +127,22 @@ class BaseMotionFuser(MotionFuser):
         S = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
         A_init = torch.zeros((gaussians.get_xyz.shape[0], 4, 4), device=self.device, dtype=torch.float32)
         A_count = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
-        for camera, track in zip(cameras, tracks):
+        for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
-            U, S, A_init, A_count = self._compute_svd_step(A, valid_mask, U, S, A_init, A_count)
+            U, S, A_init, A_count = self._compute_svd_step(A, weight, valid_mask, U, S, A_init, A_count)
             v11valid = X.transpose(1, 2).bmm(X)
             v12valid = X.transpose(1, 2).bmm(Y)
             v11[valid_mask] += v11valid * weight.unsqueeze(-1).unsqueeze(-1)
             v12[valid_mask] += v12valid * weight.unsqueeze(-1).unsqueeze(-1)
             weights[valid_mask] += weight
             pixhits += pixhit
-        valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, weights, pixhits)
+        S = torch.diagonal(S, dim1=-2, dim2=-1)
+        valid_mask, weights = self.compute_valid_mask_and_weights_3d(v11, v12, U, S, weights, pixhits, A_count)
+
+        # solve mean3D
+        p_hom = torch.gather(U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
+        mean3D = p_hom[..., :-1] / p_hom[..., -1:]
+        translation_vector = mean3D - gaussians.get_xyz[valid_mask]
 
         # solve cov3D
         cov3D_flatten = torch.linalg.inv(v11[valid_mask]).bmm(v12[valid_mask]).squeeze(-1)
@@ -151,7 +178,7 @@ class BaseMotionFuser(MotionFuser):
             motion_mask=valid_positive_mask,
             rotation_quaternion=rotation_transform,
             scaling_modifier_log=scaling_transform,
-            translation_vector=None,  # TODO: implement the xyz transformation
+            translation_vector=translation_vector,
             confidence=None,  # TODO: implement the confidence
             update_baseframe=False
         )
