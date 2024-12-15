@@ -5,6 +5,10 @@ output
 /instantsplatstream/utils/featurefusion/diff_gaussian_rasterization
 /dot
 /dinov2
+/dust3r
+/croco
+/instantsplat
+/gaussian_splatting
 /checkpoints
 /configs/dinov2
 /configs/sam2.1
