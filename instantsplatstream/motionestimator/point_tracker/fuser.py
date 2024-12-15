@@ -6,14 +6,20 @@ from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
 from instantsplatstream.utils import quaternion_invert, ISVD_Mean3D, ILS_RotationScale
+from instantsplatstream.utils.featurefusion import feature_fusion
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform
 from .abc import Motion, MotionFuser, PointTrackSequence
 
 
 class BaseMotionFuser(MotionFuser):
-    def __init__(self, gaussians: GaussianModel, device=torch.device("cuda")):
+    def __init__(self, gaussians: GaussianModel, motion_threshold=0.2, device=torch.device("cuda")):
+        '''
+        Base class for motion fusion.
+        `motion_threshold` is the threshold for detecting static gaussians, unit is pixel.
+        '''
         super().__init__()
         self.gaussians = gaussians
+        self.motion_threshold = motion_threshold
         self.to(device)
 
     def to(self, device: torch.device) -> 'MotionFuser':
@@ -51,6 +57,24 @@ class BaseMotionFuser(MotionFuser):
         transform2d = motion2d[valid_mask]
         X, Y, A = solve_transform(mean, cov3D, camera.FoVx, camera.FoVy, camera.image_width, camera.image_height, camera.world_view_transform, camera.full_proj_transform, transform2d)
         return X, Y, A, valid_mask, weights, pixhit
+
+    def _count_fixed_pixels(self, camera: Camera, track: torch.Tensor):
+        motion_threshold = self.motion_threshold
+        x = torch.arange(camera.image_width, dtype=torch.float, device=self.device)
+        y = torch.arange(camera.image_height, dtype=torch.float, device=self.device)
+        xy = torch.stack(torch.meshgrid(x, y, indexing='xy'), dim=-1)
+        dist = torch.linalg.norm(xy - track, dim=-1)
+        is_static = (dist < motion_threshold).type(torch.float).unsqueeze(-1)
+        _, features, features_alpha, features_idx = feature_fusion(self.gaussians, camera, is_static, 0)
+        return features.squeeze(-1), features_alpha, features_idx
+
+    def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, viewhits, alpha, pixhits):
+        '''Overload this method to make your own mask and weights'''
+        valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
+        fixed_avg = fixed_sum / fixed_alpha
+        fixed_clamp = 0.9
+        valid_mask &= (fixed_avg > fixed_clamp) & (fixed_alpha > 1e-3)
+        return valid_mask, fixed_avg[valid_mask] * viewhits[valid_mask] / viewhits.max()
 
     def compute_valid_mask_and_weights_3d(self, v11, v12, U, S, A_count, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
@@ -105,6 +129,8 @@ class BaseMotionFuser(MotionFuser):
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         viewhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
+        fixed_sums = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float32)
+        fixed_alphas = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float32)
         isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], device=self.device)
         for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
@@ -114,20 +140,24 @@ class BaseMotionFuser(MotionFuser):
             weights[valid_mask] += weight
             pixhits += pixhit
             viewhits[valid_mask] += 1
+            fixed_sum, fixed_alpha, fixed_idx = self._count_fixed_pixels(camera, track)
+            fixed_sums[fixed_idx] += fixed_sum
+            fixed_alphas[fixed_idx] += fixed_alpha
         U, S, A_count = isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count
         v11, v12 = ils.v11, ils.v12
         valid_mask_cov, weights_cov = self.compute_valid_mask_and_weights_cov3D(v11, v12, viewhits, weights, pixhits)
         valid_mask_mean, weights_mean = self.compute_valid_mask_and_weights_mean3D(U, S, A_count, viewhits, weights, pixhits)
+        fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, viewhits, weights, pixhits)
 
         # solve mean3D
-        mean3D, valid_mask = isvd.solve(valid_mask_mean)
+        mean3D, valid_mask_mean = isvd.solve(valid_mask_mean & ~fixed_mask)
         translation_vector = mean3D - gaussians.get_xyz[valid_mask_mean]
 
         # solve R and S matrix
-        R, S, valid_positive_mask = ils.solve(valid_mask_cov)  # ! Solve R,S may consume a lot of memory if this is small
+        R, S, valid_mask_cov = ils.solve(valid_mask_cov & ~fixed_mask)  # ! Solve R,S may consume a lot of memory if this is small
         # correct the order
-        rotation_base = self.gaussians._rotation[valid_positive_mask, ...]
-        scaling_base = self.gaussians._scaling[valid_positive_mask, ...]
+        rotation_base = self.gaussians._rotation[valid_mask_cov, ...]
+        scaling_base = self.gaussians._scaling[valid_mask_cov, ...]
         R_base = build_rotation(rotation_base)
         S_base = self.gaussians.scaling_activation(scaling_base)
         bestorder = self.compute_best_order(R, S, R_base, S_base)
@@ -137,11 +167,13 @@ class BaseMotionFuser(MotionFuser):
         scale_curr = self.gaussians.scaling_inverse_activation(S_best)
         rotation_transform, scaling_transform = self.compute_transformation(rotation_curr, scale_curr, rotation_base, scaling_base)
         return Motion(
-            motion_mask_cov=valid_positive_mask,
+            fixed_mask=fixed_mask,
+            motion_mask_cov=valid_mask_cov,
             motion_mask_mean=valid_mask_mean,
             rotation_quaternion=rotation_transform,
             scaling_modifier_log=scaling_transform,
             translation_vector=translation_vector,
+            confidence_fix=weights_fixed,
             confidence_cov=weights_cov,
             confidence_mean=weights_mean,
             update_baseframe=False
