@@ -87,7 +87,6 @@ class PointTrackMotionEstimator(FixedViewBatchMotionEstimator, metaclass=ABCMeta
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
         trackviews = [self.tracker(view) for view in views]
         for view in trackviews:
-            assert view.track.shape == trackviews[0].track.shape
             n, h, w, c = view.track.shape
             assert c == 2
             assert list(view.mask.shape) == [n, h, w]

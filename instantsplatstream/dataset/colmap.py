@@ -63,7 +63,6 @@ def FixedViewColmapVideoCameraDataset(*args, device=torch.device("cuda"), **kwar
 
 def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=torch.device("cuda"), **kwargs) -> VideoCameraDataset:
     framemetas = read_colmap_framemetas(*args, **kwargs)
-    fixedview_validate(framemetas)
     jsoncameras = JSONCameraDataset(jsonpath)
     cam_idx_in_json = [None] * len(jsoncameras)
     assert len(framemetas[0]) == len(jsoncameras)
@@ -83,4 +82,5 @@ def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=tor
         T=jsoncameras[idx].T,
         image_path=camera.image_path
     ) for idx, camera in zip(cam_idx_in_json, framemeta)] for framemeta in framemetas]
+    fixedview_validate(framemetas)
     return VideoCameraDataset(frames=framemetas, device=device)
