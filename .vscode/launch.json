@@ -2,10 +2,26 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "train 1st frame",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "instantsplat.train",
+            "console": "integratedTerminal",
+            "args": [
+                "-s",
+                "data/coffee_martini/frame1",
+                "-d",
+                "output/coffee_martini/frame1",
+                "-i",
+                "1000",
+            ],
+            "justMyCode": false
+        },
+        {
             "name": "dot motionestimation",
             "type": "debugpy",
             "request": "launch",
-            "program": "motionestimation.py",
+            "module": "instantsplatstream.motionestimation",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -15,6 +31,8 @@
                 "output/coffee_martini",
                 "-i",
                 "1000",
+                "--estimator",
+                "dot-cotracker3",
                 "--iteration_init",
                 "1000",
                 "-n",
@@ -31,7 +49,7 @@
             "name": "sam2 featurefusion",
             "type": "debugpy",
             "request": "launch",
-            "program": "featurefusion.py",
+            "module": "instantsplatstream.featurefusion",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -62,7 +80,7 @@
             "name": "dinov2 featurefusion",
             "type": "debugpy",
             "request": "launch",
-            "program": "featurefusion.py",
+            "module": "instantsplatstream.featurefusion",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -93,7 +111,7 @@
             "name": "dinov2seg featurefusion",
             "type": "debugpy",
             "request": "launch",
-            "program": "featurefusion.py",
+            "module": "instantsplatstream.featurefusion",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
