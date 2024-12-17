@@ -1,5 +1,6 @@
 data
 output
+scripts
 *.dist-info
 /instantsplatstream/utils/motionfusion/diff_gaussian_rasterization
 /instantsplatstream/utils/featurefusion/diff_gaussian_rasterization
