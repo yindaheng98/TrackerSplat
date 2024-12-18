@@ -147,5 +147,27 @@
                 "weightedsum",
             ]
         },
+        {
+            "name": "point track debug",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "debug/point_track.py",
+            "console": "integratedTerminal",
+            "args": [
+                "-s",
+                "data/coffee_martini",
+                "-d",
+                "output/coffee_martini",
+                "--estimator",
+                "dot-cotracker3",
+                "-n",
+                "3",
+                "--tracking_rescale",
+                "0.5",
+            ],
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}"
+            }
+        },
     ]
 }
