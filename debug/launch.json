@@ -25,30 +25,6 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"
             }
-        },
-        {
-            "name": "point track test",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "debug/point_track_test.py",
-            "console": "integratedTerminal",
-            "args": [
-                "--visualization_modes",
-                "spaghetti_last_static",
-                "--data_root",
-                "data/point_track_test",
-                "--inference_mode",
-                "tracks_from_first_to_every_other_frame",
-                "--video_path",
-                "walkin",
-                "--num_tracks",
-                "1024",
-                "--sim_tracks",
-                "1024"
-            ],
-            "env": {
-                "PYTHONPATH": "${workspaceFolder}"
-            }
         }
     ]
 }
