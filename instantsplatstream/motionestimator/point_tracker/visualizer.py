@@ -13,11 +13,10 @@ from dot.utils.torch import get_grid
 
 class Visualizer(nn.Module):
     def __init__(
-            self, save_mode, result_path, overlay_factor,
+            self, save_mode, overlay_factor,
             spaghetti_radius, spaghetti_length, spaghetti_grid, spaghetti_scale, spaghetti_every, spaghetti_dropout):
         super().__init__()
         self.save_mode = save_mode
-        self.result_path = result_path
         self.overlay_factor = overlay_factor
         self.spaghetti_radius = spaghetti_radius
         self.spaghetti_length = spaghetti_length
@@ -26,14 +25,14 @@ class Visualizer(nn.Module):
         self.spaghetti_every = spaghetti_every
         self.spaghetti_dropout = spaghetti_dropout
 
-    def forward(self, data, mode):
+    def forward(self, data, mode, result_path):
         if "overlay" in mode:
             video = self.plot_overlay(data, mode)
         elif "spaghetti" in mode:
             video = self.plot_spaghetti(data, mode)
         else:
             raise ValueError(f"Unknown mode {mode}")
-        save_path = osp.join(self.result_path, mode) + ".mp4" if self.save_mode == "video" else ""
+        save_path = result_path + mode + (".mp4" if self.save_mode == "video" else "")
         write_video(video, save_path)
 
     def plot_overlay(self, data, mode):

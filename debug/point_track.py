@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-s", "--source", required=True, type=str)
     parser.add_argument("-d", "--destination", required=True, type=str)
+    parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"], default="dot-cotracker3")
     parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
@@ -43,17 +44,18 @@ if __name__ == "__main__":
     args = parser.parse_args()
     dataset = prepare_fixedview_dataset(
         source=args.source, device=args.device,
-        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=args.n_frames)
+        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=args.n_frames,
+        load_camera=args.load_camera)
     estimator = build_motion_estimator(estimator=args.estimator, fuser=FakeFuser(), device=args.device, rescale_factor=args.tracking_rescale)
     frame_dirname = args.frame_folder_fmt % args.start_frame + "-" + ((args.frame_folder_fmt % (args.start_frame + args.n_frames - 1)) if args.n_frames is not None else "")
     result_path = os.path.join(args.destination, "tracks", frame_dirname)
     visualizers = [
         Visualizer(
-            "image", result_path, 0.75,
+            "image", 0.75,
             args.spaghetti_radius, args.spaghetti_length, args.spaghetti_grid, args.spaghetti_scale, args.spaghetti_every, args.spaghetti_dropout
         ).to(args.device),
         Visualizer(
-            "video", result_path, 0.75,
+            "video", 0.75,
             args.spaghetti_radius, args.spaghetti_length, args.spaghetti_grid, args.spaghetti_scale, args.spaghetti_every, args.spaghetti_dropout
         ).to(args.device)
     ]
@@ -62,16 +64,21 @@ if __name__ == "__main__":
     for frame in cameras:
         assert len(frame) == len(cameras[0])
     views = [FixedViewFrameSequenceMeta.from_datasetcameras(frame) for frame in zip(*cameras)]
-    for view in views:
+    for idx, view in enumerate(views):
         track = estimator.tracker(view)
         n, h, w, c = track.track.shape
         x = torch.arange(w, dtype=torch.float, device=track.track.device)
         y = torch.arange(h, dtype=torch.float, device=track.track.device)
         xy = torch.stack(torch.meshgrid(x, y, indexing='xy'), dim=-1)
         track = torch.cat([
-            torch.cat([xy.unsqueeze(0), track.track], dim=0),
-            torch.cat([torch.ones((1, h, w), device=track.mask.device), track.mask], dim=0).unsqueeze(-1)
+            torch.cat([
+                xy.unsqueeze(0),
+                track.track], dim=0),
+            torch.cat([
+                torch.ones((1, h, w), device=track.mask.device),
+                track.mask], dim=0).unsqueeze(-1)
         ], dim=-1)
+        mask = torch.ones(h, w).bool().to(track.device)
         n += 1
         video = []
         for path in view.frames_path:
@@ -81,6 +88,6 @@ if __name__ == "__main__":
         for mode, visualizer in itertools.product(["overlay", "spaghetti_last_static"], visualizers):
             visualizer({
                 "video": video,
-                "tracks": track,
-                "mask": torch.ones(h, w).bool().to(track.device),
-            }, mode=mode)
+                "tracks": track.permute(0, 2, 1, 3),
+                "mask": mask.permute(1, 0),
+            }, mode=mode, result_path=os.path.join(result_path, "view_%d" % idx))
