@@ -15,7 +15,7 @@ def read_colmap_framemetas(video_folder: str, frame_folder_fmt: str = "frame%d",
     frame_idx = start_frame
     pbar = tqdm(total=n_frames, desc="Loading camera from COLMAP workspaces")
     cameras_count = 0
-    while n_frames is None or frame_idx <= n_frames:
+    while n_frames is None or frame_idx <= start_frame + n_frames:
         frame_folder = os.path.join(video_folder, frame_folder_fmt % frame_idx)
         if not os.path.exists(frame_folder):
             break
