@@ -27,7 +27,13 @@ rasterizor_sources = [
 rasterizor_packages = {
     'instantsplatstream.utils.featurefusion.diff_gaussian_rasterization': 'submodules/featurefusion/diff_gaussian_rasterization',
     'instantsplatstream.utils.motionfusion.diff_gaussian_rasterization': 'submodules/motionfusion/diff_gaussian_rasterization',
+    'instantsplatstream.utils.simple_knn': 'submodules/simple-knn/simple_knn',
 }
+simpleknn_root = "submodules/simple-knn"
+simpleknn_sources = [
+    "spatial.cu",
+    "simple_knn.cu",
+    "ext.cpp"]
 
 cxx_compiler_flags = []
 nvcc_compiler_flags = []
@@ -55,6 +61,11 @@ setup(
             name="instantsplatstream.utils.motionfusion.diff_gaussian_rasterization._C",
             sources=[os.path.join(motionfusion_root, source) for source in rasterizor_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(motionfusion_root), "third_party/glm/")]}
+        ),
+        CUDAExtension(
+            name="instantsplatstream.utils.simple_knn._C",
+            sources=[os.path.join(simpleknn_root, source) for source in simpleknn_sources],
+            extra_compile_args={"nvcc": nvcc_compiler_flags, "cxx": cxx_compiler_flags}
         ),
     ],
     cmdclass={
