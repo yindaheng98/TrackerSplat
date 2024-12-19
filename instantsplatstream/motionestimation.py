@@ -9,6 +9,7 @@ import gaussian_splatting.train
 from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
 from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_motion_estimator
+from instantsplatstream.motionestimator.compensater.base import BaseMotionCompensater
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -28,7 +29,7 @@ def save_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fm
 def build_motion_compensater(estimator: str, gaussians: GaussianModel, dataset: VideoCameraDataset, device: torch.device, batch_size: int, **kwargs) -> MotionCompensater:
     batch_func = build_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-    motion_compensater = MotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+    motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     return motion_compensater
 
 
