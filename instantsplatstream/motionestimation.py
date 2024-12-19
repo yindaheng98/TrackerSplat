@@ -2,6 +2,7 @@ import torch
 import os
 from tqdm import tqdm
 from os import makedirs
+from itertools import islice
 from functools import partial
 from gaussian_splatting import GaussianModel
 import gaussian_splatting.train
@@ -32,14 +33,12 @@ def build_motion_compensater(estimator: str, gaussians: GaussianModel, dataset: 
 
 
 def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
-    for i, frame_gaussians in enumerate(motion_compensater):
+    for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         destination_folder = save_frame_cfg_args(frame=start_frame + i + 1)
         save_path = os.path.join(destination_folder, "point_cloud", "iteration_" + str(iteration))
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(destination_folder, "cameras.json"))
-        if not i < n_frames:
-            break
 
 
 if __name__ == "__main__":
