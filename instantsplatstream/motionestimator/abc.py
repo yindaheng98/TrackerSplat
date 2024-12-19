@@ -46,10 +46,14 @@ class MotionCompensater(metaclass=ABCMeta):
         self.estimator = self.estimator.to(device)
         return self
 
+    def update_baseframe(self, frame: GaussianModel) -> 'MotionCompensater':
+        self.baseframe = frame
+        self.estimator.update_baseframe(frame)
+        return self
+
     def __iter__(self) -> 'MotionCompensater':
         self.estimator = self.estimator.__iter__()
-        self.baseframe = self.initframe
-        self.estimator.update_baseframe(self.baseframe)
+        self.update_baseframe(self.initframe)
         return self
 
     @abstractmethod
@@ -61,6 +65,5 @@ class MotionCompensater(metaclass=ABCMeta):
         currframe = self.compensate(self.baseframe, motion)
         # TODO: Training the model
         if motion.update_baseframe:
-            self.baseframe = currframe
-            self.estimator.update_baseframe(currframe)
+            self.update_baseframe(currframe)
         return currframe
