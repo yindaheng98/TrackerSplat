@@ -161,7 +161,7 @@
                 "--estimator",
                 "dot-cotracker3",
                 "-n",
-                "3",
+                "4",
                 "--tracking_rescale",
                 "0.5",
             ],
