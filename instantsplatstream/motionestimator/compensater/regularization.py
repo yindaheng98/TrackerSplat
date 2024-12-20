@@ -1,12 +1,13 @@
 import copy
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.utils import quaternion_raw_multiply
-from instantsplatstream.motionestimator import Motion, MotionCompensater
-from .base import BaseMotionCompensater
-
+from gaussian_splatting.utils import quaternion_to_matrix
+from instantsplatstream.motionestimator import Motion
 from instantsplatstream.utils.simple_knn import knn_kernel
+
+from .base import BaseMotionCompensater
 
 
 class RegularizedMotionCompensater(BaseMotionCompensater):
@@ -16,8 +17,24 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
 
     def update_knn(self, gaussians: GaussianModel, k: int) -> 'RegularizedMotionCompensater':
         xyz = gaussians.get_xyz.detach()
-        assert k <= xyz.size(0) // 2, "k should be less than half of the gaussians"
-        self.knn_idx, self.knn_dist = knn_kernel(gaussians.get_xyz.detach(), k)
+        assert k <= xyz.size(0), "k should be less than the number of points"
+
+        # k nearest neighbors of each points
+        self.neighbor_indices, dists = knn_kernel(xyz, k)
+        self.neighbor_weights = torch.exp(-F.normalize(dists))
+        self.neighbor_relative_dists_last = dists
+
+        # vector from each points to their k nearest neighbors (a.k.a. "neighbor offsets")
+        self.neighbor_offsets_last = xyz[self.neighbor_indices] - xyz.unsqueeze(-2)
+
+        # rotation matrix of each points
+        self.rotation_matrix_last = quaternion_to_matrix(gaussians.get_rotation.detach())
+        self.rotation_matrix_inv_last = self.rotation_matrix_last.transpose(2, 1)
+
+        # "neighbor offsets" in the local coordinate system of each points
+        self.neighbor_offsets_point_coord_last = (
+            self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_offsets_last.unsqueeze(-1)
+        ).squeeze(-1)
         return self
 
     def update_baseframe(self, frame) -> 'RegularizedMotionCompensater':
