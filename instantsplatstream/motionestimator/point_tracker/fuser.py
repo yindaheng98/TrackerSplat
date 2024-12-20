@@ -42,7 +42,7 @@ class BaseMotionFuser(MotionFuser):
 
     def compute_valid_mask_and_weights_2d(self, out, motion2d, motion_alpha, motion_det, pixhit):
         '''Overload this method to make your own mask and weights'''
-        valid_mask = (out['radii'] > 0) & (motion_det > 1e-12) & (motion_alpha > 1e-3) & (pixhit > 1)
+        valid_mask = (out['radii'] > 0) & (motion_det.abs() > 1e-12) & (motion_alpha > 1e-3) & (pixhit > 1)
         weights = motion_alpha[valid_mask]
         return valid_mask, weights
 
@@ -87,12 +87,13 @@ class BaseMotionFuser(MotionFuser):
     def compute_valid_mask_and_weights_cov3D(self, v11, v12, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
         valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
-        v11_scaled = v11 / alpha.unsqueeze(-1).unsqueeze(-1)
-        det = torch.linalg.det(v11_scaled)
+        v11_scaled = v11[valid_mask, ...] / alpha[valid_mask, ...].unsqueeze(-1).unsqueeze(-1)
+        det_abs = torch.linalg.det(v11_scaled).abs()
         det_clamp = 1e-9  # ! Solve cov3D may consume a lot of memory
-        valid_mask &= (det > det_clamp)
-        det_log = -math.log(det_clamp)-torch.log(det[valid_mask])  # det_log\in(0, +\infty), det=1e-12->det_log=0, det=0->det_log=+\infty
-        det_weights = (torch.sigmoid(det_log) - 0.5) * 2  # det_weights\in(0, 1), det=1e-12->det_weights=0, det=0->det_weights=1
+        valid_mask_det = (det_abs > det_clamp)
+        valid_mask[valid_mask.clone()] = valid_mask_det
+        det_log = torch.log(det_abs[valid_mask_det])-math.log(det_clamp)  # det_log\in(0, +\infty), det=1e-12->det_log=0, det=+\infty->det_log=+\infty
+        det_weights = (torch.sigmoid(det_log) - 0.5) * 2  # det_weights\in(0, 1), det=1e-12->det_weights=0, det=+\infty->det_weights=1
         weights = alpha[valid_mask] * det_weights
         return valid_mask, weights
 
