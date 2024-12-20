@@ -150,11 +150,25 @@ class BaseMotionFuser(MotionFuser):
         fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, viewhits, weights, pixhits)
 
         # solve mean3D
-        mean3D, valid_mask_mean = isvd.solve(valid_mask_mean & ~fixed_mask)
+        mean3D, valid_mask_mean_solved = isvd.solve(valid_mask_mean)
+        # re select them
+        mean3D = mean3D[(valid_mask_mean & (~fixed_mask))[valid_mask_mean_solved]]
+        # re select weights
+        weights_mean = weights_mean[(valid_mask_mean_solved & (~fixed_mask))[valid_mask_mean]]
+        valid_mask_mean &= valid_mask_mean_solved & (~fixed_mask)
+
+        # mean3D motion vector
         translation_vector = mean3D - gaussians.get_xyz[valid_mask_mean]
 
         # solve R and S matrix
-        R, S, valid_mask_cov = ils.solve(valid_mask_cov & ~fixed_mask)  # ! Solve R,S may consume a lot of memory if this is small
+        R, S, valid_mask_cov_solved = ils.solve(valid_mask_cov)  # ! Solve R,S may consume a lot of memory if this is small
+        # re select them
+        R = R[(valid_mask_cov & (~fixed_mask))[valid_mask_cov_solved]]
+        S = S[(valid_mask_cov & (~fixed_mask))[valid_mask_cov_solved]]
+        # re select weights
+        weights_cov = weights_cov[(valid_mask_cov_solved & (~fixed_mask))[valid_mask_cov]]
+        valid_mask_cov &= valid_mask_cov_solved & (~fixed_mask)
+
         # correct the order
         rotation_base = self.gaussians._rotation[valid_mask_cov, ...]
         scaling_base = self.gaussians._scaling[valid_mask_cov, ...]

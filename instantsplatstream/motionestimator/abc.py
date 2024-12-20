@@ -16,6 +16,32 @@ class Motion(NamedTuple):
     confidence_mean: torch.Tensor = None
     update_baseframe: bool = True
 
+    def validate(self):
+        if self.fixed_mask is not None:
+            assert self.fixed_mask.dtype == torch.bool and self.fixed_mask.dim() == 1
+            if self.confidence_fix is not None:
+                assert self.confidence_fix.dim() == 1 and self.confidence_fix.size(0) == self.fixed_mask.sum()
+        else:
+            assert self.confidence_fix is None
+
+        if self.motion_mask_cov is not None:
+            assert self.motion_mask_cov.dtype == torch.bool and self.motion_mask_cov.dim() == 1
+            if self.confidence_cov is not None:
+                assert self.confidence_cov.dim() == 1 and self.confidence_cov.size(0) == self.motion_mask_cov.sum()
+            assert self.rotation_quaternion.dim() == 2 and self.rotation_quaternion.size(0) == self.motion_mask_cov.sum() and self.rotation_quaternion.size(1) == 4
+            assert self.scaling_modifier_log.dim() == 2 and self.scaling_modifier_log.size(0) == self.motion_mask_cov.sum() and self.scaling_modifier_log.size(1) == 3
+        else:
+            assert self.confidence_cov is None
+
+        if self.motion_mask_mean is not None:
+            assert self.motion_mask_mean.dtype == torch.bool and self.motion_mask_mean.dim() == 1
+            if self.confidence_mean is not None:
+                assert self.confidence_mean.dtype == torch.float32 and self.confidence_mean.dim() == 1
+                assert self.confidence_mean.size(0) == self.motion_mask_mean.sum()
+            assert self.translation_vector.dim() == 2 and self.translation_vector.size(0) == self.motion_mask_mean.sum() and self.translation_vector.size(1) == 3
+        else:
+            assert self.confidence_mean is None
+
 
 class MotionEstimator(metaclass=ABCMeta):
     @abstractmethod
@@ -62,6 +88,7 @@ class MotionCompensater(metaclass=ABCMeta):
 
     def __next__(self) -> GaussianModel:
         motion = self.estimator.__next__()
+        motion.validate()
         currframe = self.compensate(self.baseframe, motion)
         # TODO: Training the model
         if motion.update_baseframe:
