@@ -54,14 +54,26 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
         rotation_quaternion = axis_angle_to_quaternion(prop_axis_angle)
         return rotation_quaternion, prop_confidence
 
+    def compute_neighbor_transformation(self, motion: Motion) -> torch.Tensor:
+        assert motion.translation_vector is not None, "Rotation quaternion is required"
+        assert motion.motion_mask_mean is not None, "Covariance motion mask is required"
+        prop_translation_vector, prop_confidence = propagate(
+            init_mask=motion.motion_mask_mean.clone(),
+            init_value_at_mask=motion.translation_vector,
+            init_weight_at_mask=motion.confidence_mean,
+            neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
+        )
+        return prop_translation_vector, prop_confidence
+
     def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
         rotation, rotation_confidence = self.compute_neighbor_rotation(motion)
+        translation, translation_confidence = self.compute_neighbor_transformation(motion)
         if motion.translation_vector is not None:
-            currframe._xyz = nn.Parameter(transform_xyz(baseframe, motion.translation_vector, motion.motion_mask_mean))
+            currframe._xyz = nn.Parameter(transform_xyz(baseframe, translation))
         if motion.rotation_quaternion is not None:
-            currframe._rotation = nn.Parameter(transform_rotation(baseframe, motion.rotation_quaternion, motion.motion_mask_cov))
+            currframe._rotation = nn.Parameter(transform_rotation(baseframe, rotation))
         if motion.scaling_modifier_log is not None:
             currframe._scaling = nn.Parameter(transform_scaling(baseframe, motion.scaling_modifier_log, motion.motion_mask_cov))
         return currframe
