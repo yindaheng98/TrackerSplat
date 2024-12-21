@@ -8,7 +8,7 @@ from instantsplatstream.motionestimator import Motion
 from instantsplatstream.utils.simple_knn import knn_kernel
 from instantsplatstream.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
 
-from .base import BaseMotionCompensater
+from .base import BaseMotionCompensater, transform_xyz, transform_rotation, transform_scaling
 
 
 class RegularizedMotionCompensater(BaseMotionCompensater):
@@ -58,7 +58,10 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
         rotation, rotation_confidence = self.compute_neighbor_rotation(motion)
-        currframe._xyz = nn.Parameter(self.transform_xyz(baseframe, motion))
-        currframe._rotation = nn.Parameter(self.transform_rotation(baseframe, motion))
-        currframe._scaling = nn.Parameter(self.transform_scaling(baseframe, motion))
+        if motion.translation_vector is not None:
+            currframe._xyz = nn.Parameter(transform_xyz(baseframe, motion.translation_vector, motion.motion_mask_mean))
+        if motion.rotation_quaternion is not None:
+            currframe._rotation = nn.Parameter(transform_rotation(baseframe, motion.rotation_quaternion, motion.motion_mask_cov))
+        if motion.scaling_modifier_log is not None:
+            currframe._scaling = nn.Parameter(transform_scaling(baseframe, motion.scaling_modifier_log, motion.motion_mask_cov))
         return currframe

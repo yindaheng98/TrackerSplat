@@ -6,48 +6,45 @@ from gaussian_splatting.utils import quaternion_raw_multiply
 from instantsplatstream.motionestimator import Motion, MotionCompensater
 
 
+def transform_xyz(baseframe: GaussianModel, translation_vector: torch.Tensor, motion_mask_mean: torch.Tensor = None) -> torch.Tensor:
+    if motion_mask_mean is None:
+        with torch.no_grad():
+            return baseframe._xyz + translation_vector
+    with torch.no_grad():
+        xyz = baseframe._xyz.clone()
+        xyz[motion_mask_mean] += translation_vector
+        return xyz
+
+
+def transform_rotation(baseframe: GaussianModel, rotation_quaternion: torch.Tensor, motion_mask_cov: torch.Tensor = None) -> torch.Tensor:
+    if motion_mask_cov is None:
+        with torch.no_grad():
+            return quaternion_raw_multiply(rotation_quaternion, baseframe._rotation)
+    with torch.no_grad():
+        rot = baseframe._rotation.clone()
+        rot[motion_mask_cov] = quaternion_raw_multiply(rotation_quaternion, baseframe._rotation[motion_mask_cov])
+        return rot
+
+
+def transform_scaling(baseframe: GaussianModel, scaling_modifier_log: torch.Tensor, motion_mask_cov: torch.Tensor = None) -> torch.Tensor:
+    if motion_mask_cov is None:
+        with torch.no_grad():
+            return scaling_modifier_log + baseframe._scaling
+    with torch.no_grad():
+        scaling = baseframe._scaling.clone()
+        scaling[motion_mask_cov] = scaling_modifier_log + baseframe._scaling[motion_mask_cov]
+        return scaling
+
+
 class BaseMotionCompensater(MotionCompensater):
-
-    @staticmethod
-    def transform_xyz(baseframe: GaussianModel, motion: Motion) -> torch.Tensor:
-        if motion.translation_vector is None:
-            return baseframe._xyz.clone()
-        if motion.motion_mask_mean is None:
-            with torch.no_grad():
-                return baseframe._xyz + motion.translation_vector
-        with torch.no_grad():
-            xyz = baseframe._xyz.clone()
-            xyz[motion.motion_mask_mean] += motion.translation_vector
-            return xyz
-
-    @staticmethod
-    def transform_rotation(baseframe: GaussianModel, motion: Motion) -> torch.Tensor:
-        if motion.rotation_quaternion is None:
-            return baseframe._rotation.clone()
-        if motion.motion_mask_cov is None:
-            with torch.no_grad():
-                return quaternion_raw_multiply(motion.rotation_quaternion, baseframe._rotation)
-        with torch.no_grad():
-            rot = baseframe._rotation.clone()
-            rot[motion.motion_mask_cov] = quaternion_raw_multiply(motion.rotation_quaternion, baseframe._rotation[motion.motion_mask_cov])
-            return rot
-
-    @staticmethod
-    def transform_scaling(baseframe: GaussianModel, motion: Motion) -> torch.Tensor:
-        if motion.scaling_modifier_log is None:
-            return baseframe._scaling.clone()
-        if motion.motion_mask_cov is None:
-            with torch.no_grad():
-                return motion.scaling_modifier_log + baseframe._scaling
-        with torch.no_grad():
-            scaling = baseframe._scaling.clone()
-            scaling[motion.motion_mask_cov] = motion.scaling_modifier_log + baseframe._scaling[motion.motion_mask_cov]
-            return scaling
 
     def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
-        currframe._xyz = nn.Parameter(self.transform_xyz(baseframe, motion))
-        currframe._rotation = nn.Parameter(self.transform_rotation(baseframe, motion))
-        currframe._scaling = nn.Parameter(self.transform_scaling(baseframe, motion))
+        if motion.translation_vector is not None:
+            currframe._xyz = nn.Parameter(transform_xyz(baseframe, motion.translation_vector, motion.motion_mask_mean))
+        if motion.rotation_quaternion is not None:
+            currframe._rotation = nn.Parameter(transform_rotation(baseframe, motion.rotation_quaternion, motion.motion_mask_cov))
+        if motion.scaling_modifier_log is not None:
+            currframe._scaling = nn.Parameter(transform_scaling(baseframe, motion.scaling_modifier_log, motion.motion_mask_cov))
         return currframe
