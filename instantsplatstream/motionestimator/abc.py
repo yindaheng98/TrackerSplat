@@ -28,17 +28,19 @@ class Motion(NamedTuple):
             assert self.motion_mask_cov.dtype == torch.bool and self.motion_mask_cov.dim() == 1
             if self.confidence_cov is not None:
                 assert self.confidence_cov.dim() == 1 and self.confidence_cov.size(0) == self.motion_mask_cov.sum()
-            assert self.rotation_quaternion.dim() == 2 and self.rotation_quaternion.size(0) == self.motion_mask_cov.sum() and self.rotation_quaternion.size(1) == 4
-            assert self.scaling_modifier_log.dim() == 2 and self.scaling_modifier_log.size(0) == self.motion_mask_cov.sum() and self.scaling_modifier_log.size(1) == 3
+            if self.rotation_quaternion is not None:
+                assert self.rotation_quaternion.dim() == 2 and self.rotation_quaternion.size(0) == self.motion_mask_cov.sum() and self.rotation_quaternion.size(1) == 4
+            elif self.scaling_modifier_log is not None:
+                assert self.scaling_modifier_log.dim() == 2 and self.scaling_modifier_log.size(0) == self.motion_mask_cov.sum() and self.scaling_modifier_log.size(1) == 3
         else:
             assert self.confidence_cov is None
 
         if self.motion_mask_mean is not None:
             assert self.motion_mask_mean.dtype == torch.bool and self.motion_mask_mean.dim() == 1
             if self.confidence_mean is not None:
-                assert self.confidence_mean.dtype == torch.float32 and self.confidence_mean.dim() == 1
-                assert self.confidence_mean.size(0) == self.motion_mask_mean.sum()
-            assert self.translation_vector.dim() == 2 and self.translation_vector.size(0) == self.motion_mask_mean.sum() and self.translation_vector.size(1) == 3
+                assert self.confidence_mean.dim() == 1 and self.confidence_mean.size(0) == self.motion_mask_mean.sum()
+            if self.translation_vector is not None:
+                assert self.translation_vector.dim() == 2 and self.translation_vector.size(0) == self.motion_mask_mean.sum() and self.translation_vector.size(1) == 3
         else:
             assert self.confidence_mean is None
 

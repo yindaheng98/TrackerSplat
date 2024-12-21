@@ -190,7 +190,7 @@ class BaseMotionFuser(MotionFuser):
             motion_mask_cov=valid_mask_cov,
             motion_mask_mean=valid_mask_mean,
             rotation_quaternion=rotation_transform,
-            scaling_modifier_log=scaling_transform,
+            # scaling_modifier_log=scaling_transform, # change scaling has no benefit but produce some thin and long gaussians, bad
             translation_vector=translation_vector,
             confidence_fix=weights_fixed,
             confidence_cov=weights_cov,

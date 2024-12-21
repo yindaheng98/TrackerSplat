@@ -30,7 +30,7 @@ def build_motion_compensater(estimator: str, gaussians: GaussianModel, dataset: 
     batch_func = build_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
     # motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
-    motion_compensater = RegularizedMotionCompensater(k=16, gaussians=gaussians, estimator=motion_estimator, device=device)
+    motion_compensater = RegularizedMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     return motion_compensater
 
 

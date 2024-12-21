@@ -12,7 +12,7 @@ from .base import BaseMotionCompensater, transform_xyz, transform_rotation, tran
 
 
 class RegularizedMotionCompensater(BaseMotionCompensater):
-    def __init__(self, k: int, *args, **kwargs):
+    def __init__(self, k: int = 16, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.k = k
 
@@ -55,8 +55,8 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
         return rotation_quaternion, prop_confidence
 
     def compute_neighbor_transformation(self, motion: Motion) -> torch.Tensor:
-        assert motion.translation_vector is not None, "Rotation quaternion is required"
-        assert motion.motion_mask_mean is not None, "Covariance motion mask is required"
+        assert motion.translation_vector is not None, "Translation vector is required"
+        assert motion.motion_mask_mean is not None, "Translation mask is required"
         prop_translation_vector, prop_confidence = propagate(
             init_mask=motion.motion_mask_mean.clone(),
             init_value_at_mask=motion.translation_vector,
@@ -73,12 +73,10 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
         rotation[motion.fixed_mask, 0] = 1
         rotation[motion.fixed_mask, 1:] = 0
         translation[motion.fixed_mask, :] = 0
-        scaling_modifier_log = motion.scaling_modifier_log
-        scaling_modifier_log[motion.fixed_mask[motion.motion_mask_cov], :] = 0
-        if motion.translation_vector is not None:
-            currframe._xyz = nn.Parameter(transform_xyz(baseframe, translation))
-        if motion.rotation_quaternion is not None:
-            currframe._rotation = nn.Parameter(transform_rotation(baseframe, rotation))
+        currframe._xyz = nn.Parameter(transform_xyz(baseframe, translation))
+        currframe._rotation = nn.Parameter(transform_rotation(baseframe, rotation))
         if motion.scaling_modifier_log is not None:
+            scaling_modifier_log = motion.scaling_modifier_log
+            scaling_modifier_log[motion.fixed_mask[motion.motion_mask_cov], :] = 0
             currframe._scaling = nn.Parameter(transform_scaling(baseframe, scaling_modifier_log, motion.motion_mask_cov))
         return currframe
