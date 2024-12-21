@@ -37,11 +37,11 @@ def IncrementalSVD_withV(U, S, Vh, A):
     return U, S, Vh
 
 
-class ISVD:
-    def __init__(self, batch_size, n, device, *args, **kwargs):
-        self.U = torch.zeros((batch_size, n, n), device=device, *args, **kwargs)
-        self.S = torch.zeros((batch_size, n, n), device=device, *args, **kwargs)
-        self.A_init = torch.zeros((batch_size, n, n), device=device, *args, **kwargs)
+class ISVD42:
+    def __init__(self, batch_size, device, *args, **kwargs):
+        self.U = torch.zeros((batch_size, 4, 4), device=device, *args, **kwargs)
+        self.S = torch.zeros((batch_size, 4, 4), device=device, *args, **kwargs)
+        self.A_init = torch.zeros((batch_size, 4, 4), device=device, *args, **kwargs)
         self.A_count = torch.zeros((batch_size,), device=device, dtype=torch.int)
 
     def update(self, A, mask, weights):
@@ -51,23 +51,26 @@ class ISVD:
         # Initialize those in first step
         A_init_masked, A_count_masked = self.A_init[mask, ...], self.A_count[mask]
         # TODO: take weights into account
-        A_init_masked[A_count_masked == 1, 0:2] = A[A_count_masked == 1, ...]
-        A_init_masked[A_count_masked == 2, 2:4] = A[A_count_masked == 2, ...]
+        A_init_masked[A_count_masked == 1, ..., 0:2] = A[A_count_masked == 1, ...]
+        A_init_masked[A_count_masked == 2, ..., 2:4] = A[A_count_masked == 2, ...]
         self.A_init[mask, ...] = A_init_masked
         # Compute first step
         init_mask = mask & (self.A_count == 2)
         if init_mask.any():
-            self.U[init_mask], self.S[init_mask] = SVD(self.A_init[init_mask].transpose(-2, -1))
+            self.U[init_mask], self.S[init_mask] = SVD(self.A_init[init_mask])
         # Compute incremental step
         step_mask = mask & (self.A_count > 2)
         if step_mask.any():
             # TODO: take weights into account
-            self.U[step_mask], self.S[step_mask] = IncrementalSVD(self.U[step_mask], self.S[step_mask], A[self.A_count[mask] > 2].transpose(-2, -1))
+            self.U[step_mask], self.S[step_mask] = IncrementalSVD(self.U[step_mask], self.S[step_mask], A[self.A_count[mask] > 2])
 
 
-class ISVD_Mean3D(ISVD):
+class ISVD_Mean3D(ISVD42):
     def __init__(self, batch_size, device, *args, **kwargs):
-        super(ISVD_Mean3D, self).__init__(batch_size, 4, device, *args, **kwargs)
+        super(ISVD_Mean3D, self).__init__(batch_size, device, *args, **kwargs)
+
+    def update(self, A, mask, weights):
+        super(ISVD_Mean3D, self).update(A.transpose(-2, -1), mask, weights)
 
     def solve(self, valid_mask):
         S = torch.diagonal(self.S, dim1=-2, dim2=-1)
@@ -77,15 +80,16 @@ class ISVD_Mean3D(ISVD):
 
 
 if __name__ == '__main__':
-    B = 3
-    N = 8
-    A = torch.rand(B, 4, N)
+    B = 100
+    n = 4
+    N = 10
+    step = 2
+    A = torch.rand(B, n, N)
     U_, S_, V_ = SVD_withV(A)
     print("USV.T GT", (U_ @ S_ @ V_.transpose(-2, -1) - A).abs().max())
-    U, S, V = SVD_withV(A[..., :4])
-    print("USV.T step 0-4", (U @ S @ V.transpose(-2, -1) - A[..., :4]).abs().max())
-    step = 2
-    for i in range(4, N, step):
+    U, S, V = SVD_withV(A[..., :n])
+    print(f"USV.T step 0-{n}", (U @ S @ V.transpose(-2, -1) - A[..., :n]).abs().max())
+    for i in range(n, N, step):
         Ui, Si, Vi = SVD_withV(A[..., :i+step])
         print("USV.T GT step", i, (Ui @ Si @ Vi.transpose(-2, -1) - A[..., :i+step]).abs().max())
         U, S, V = IncrementalSVD_withV(U, S, V, A[..., i:i+step])
@@ -98,10 +102,22 @@ if __name__ == '__main__':
     print("V abs diff", (V.abs() - V_.abs()).abs().max())  # TODO: WTF?
     print("USV.T", (U @ S @ V.transpose(-2, -1) - A).abs().max())
     Uv, Sv = U, S
-    U, S = SVD(A[..., :4])
-    for i in range(4, N, step):
+    U, S = SVD(A[..., :n])
+    for i in range(n, N, step):
         U, S = IncrementalSVD(U, S, A[..., i:i+step])
     print("U abs diff", (U - Uv).abs().max())  # TODO: WTF?
     print("S diff", (S - Sv).abs().max())
     print("USV.T", (U @ S @ V.transpose(-2, -1) - A).abs().max())
     pass
+    isvd = ISVD42(B, 'cpu')
+    isvd.update(A[..., 0:2], torch.ones(B, dtype=torch.bool, device='cpu'), None)
+    isvd.update(A[..., 2:4], torch.ones(B, dtype=torch.bool, device='cpu'), None)
+    U, S = isvd.U, isvd.S
+    _, _, Vi = SVD_withV(A[..., :4])
+    print(f"USV.T step 0-4", (U @ S @ Vi.transpose(-2, -1) - A[..., :4]).abs().max())
+    for i in range(4, N, 2):
+        isvd.update(A[..., i:i+2], torch.ones(B, dtype=torch.bool, device='cpu'), None)
+        U, S = isvd.U, isvd.S
+        Ui, Si, _ = SVD_withV(A[..., :i+2])
+        print("U abs diff step", i, (U.abs() - Ui.abs()).abs().max())  # TODO: WTF?
+        print("S diff step", i, (S - Si).abs().max())
