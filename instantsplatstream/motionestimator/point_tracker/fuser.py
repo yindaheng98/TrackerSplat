@@ -68,13 +68,15 @@ class BaseMotionFuser(MotionFuser):
         _, features, features_alpha, features_idx = feature_fusion(self.gaussians, camera, is_static, 0)
         return features.squeeze(-1), features_alpha, features_idx
 
-    def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, viewhits, alpha, pixhits):
+    def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, fixed_pixhits, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
-        valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
-        fixed_avg = fixed_sum / fixed_alpha
-        fixed_clamp = 0.9
-        valid_mask &= (fixed_avg > fixed_clamp) & (fixed_alpha > 1e-3)
-        return valid_mask, fixed_avg[valid_mask] * viewhits[valid_mask] / viewhits.max()
+        # a gaussian should be fixed if it hit by more than 6 pixels and has more than 50% of its pixels fixed in any view
+        hits_in_view_threshold, avg_in_view_threshold = 6, 0.5
+        fixed_avg = torch.zeros_like(fixed_sum)
+        hits_in_view_mask = fixed_pixhits > hits_in_view_threshold
+        fixed_avg[hits_in_view_mask] = fixed_sum[hits_in_view_mask] / fixed_alpha[hits_in_view_mask]
+        valid_mask = (hits_in_view_mask & (fixed_avg > avg_in_view_threshold)).any(dim=-1)
+        return valid_mask, fixed_avg.sum(-1)[valid_mask] * viewhits[valid_mask] / viewhits.max()
 
     def compute_valid_mask_and_weights_3d(self, v11, v12, U, S, A_count, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
@@ -130,11 +132,12 @@ class BaseMotionFuser(MotionFuser):
         weights = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float64)
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         viewhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
-        fixed_sums = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float32)
-        fixed_alphas = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.float32)
+        fixed_sums = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
+        fixed_alphas = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
+        fixed_pixhits = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.int)
         isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], device=self.device)
-        for camera, track in zip(tqdm(cameras, desc="Computing motion"), tracks):
+        for i, (camera, track) in enumerate(zip(tqdm(cameras, desc="Computing motion"), tracks)):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
             isvd.update(A, valid_mask, weight)
             ils.update(X, Y, valid_mask, weight)
@@ -142,13 +145,14 @@ class BaseMotionFuser(MotionFuser):
             pixhits += pixhit
             viewhits[valid_mask] += 1
             fixed_sum, fixed_alpha, fixed_idx = self._count_fixed_pixels(camera, track)
-            fixed_sums[fixed_idx] += fixed_sum
-            fixed_alphas[fixed_idx] += fixed_alpha
+            fixed_sums[fixed_idx, i] = fixed_sum
+            fixed_alphas[fixed_idx, i] = fixed_alpha
+            fixed_pixhits[:, i] = pixhit
         U, S, A_count = isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count
         v11, v12 = ils.v11, ils.v12
         valid_mask_cov, weights_cov = self.compute_valid_mask_and_weights_cov3D(v11, v12, viewhits, weights, pixhits)
         valid_mask_mean, weights_mean = self.compute_valid_mask_and_weights_mean3D(U, S, A_count, viewhits, weights, pixhits)
-        fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, viewhits, weights, pixhits)
+        fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, fixed_pixhits, viewhits, weights, pixhits)
 
         # solve mean3D
         mean3D, valid_mask_mean_solved = isvd.solve(valid_mask_mean)
