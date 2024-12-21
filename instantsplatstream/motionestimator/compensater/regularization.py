@@ -70,10 +70,15 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
         currframe = copy.deepcopy(baseframe)
         rotation, rotation_confidence = self.compute_neighbor_rotation(motion)
         translation, translation_confidence = self.compute_neighbor_transformation(motion)
+        rotation[motion.fixed_mask, 0] = 1
+        rotation[motion.fixed_mask, 1:] = 0
+        translation[motion.fixed_mask, :] = 0
+        scaling_modifier_log = motion.scaling_modifier_log
+        scaling_modifier_log[motion.fixed_mask[motion.motion_mask_cov], :] = 0
         if motion.translation_vector is not None:
             currframe._xyz = nn.Parameter(transform_xyz(baseframe, translation))
         if motion.rotation_quaternion is not None:
             currframe._rotation = nn.Parameter(transform_rotation(baseframe, rotation))
         if motion.scaling_modifier_log is not None:
-            currframe._scaling = nn.Parameter(transform_scaling(baseframe, motion.scaling_modifier_log, motion.motion_mask_cov))
+            currframe._scaling = nn.Parameter(transform_scaling(baseframe, scaling_modifier_log, motion.motion_mask_cov))
         return currframe
