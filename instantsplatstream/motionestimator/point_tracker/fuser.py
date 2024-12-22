@@ -70,12 +70,15 @@ class BaseMotionFuser(MotionFuser):
 
     def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, fixed_pixhits, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
-        # a gaussian should be fixed if it hit by more than 6 pixels and has more than 50% of its pixels fixed in any view
-        hits_in_view_threshold, avg_in_view_threshold = 6, 0.5
-        fixed_avg = torch.zeros_like(fixed_sum)
+        # a gaussian should be fixed if it hit by more than 6 pixels and has more than 90% of its pixels fixed in any view
+        hits_in_view_threshold, avg_in_view_threshold, alpha_rel_threshold, alpha_abs_threshold = 4*4, 0.9, 0.8, 0.9
         hits_in_view_mask = fixed_pixhits > hits_in_view_threshold
-        fixed_avg[hits_in_view_mask] = fixed_sum[hits_in_view_mask] / fixed_alpha[hits_in_view_mask]
-        valid_mask = (hits_in_view_mask & (fixed_avg > avg_in_view_threshold)).any(dim=-1) & (viewhits > 0)
+        fixed_avg = torch.zeros_like(fixed_sum)
+        fixed_avg[fixed_alpha > 1e-12] = fixed_sum[fixed_alpha > 1e-12] / fixed_alpha[fixed_alpha > 1e-12]
+        fixed_avg_mask = fixed_avg > avg_in_view_threshold
+        alpha_mask = fixed_alpha >= (fixed_alpha.max(-1).values.unsqueeze(-1) * alpha_rel_threshold)
+        alpha_mask |= fixed_alpha > alpha_abs_threshold
+        valid_mask = (hits_in_view_mask & fixed_avg_mask & alpha_mask).any(dim=-1) & (viewhits > 0)
         return valid_mask, fixed_avg.sum(-1)[valid_mask] / viewhits[valid_mask]
 
     def precompute_valid_mask_and_weights_cov3D(self, v11, v12, viewhits, alpha, pixhits):
