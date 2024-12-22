@@ -31,7 +31,8 @@ def motion_fusion(self: GaussianModel, viewpoint_camera: Camera, motion_map: tor
         campos=viewpoint_camera.camera_center,
         prefiltered=False,
         debug=self.debug,
-        antialiasing=self.antialiasing
+        antialiasing=self.antialiasing,
+        fusion_alpha_threshold=fusion_alpha_threshold,
     )
 
     rasterizer = GaussianRasterizer(raster_settings=raster_settings)
