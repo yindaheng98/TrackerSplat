@@ -75,8 +75,8 @@ class BaseMotionFuser(MotionFuser):
         fixed_avg = torch.zeros_like(fixed_sum)
         hits_in_view_mask = fixed_pixhits > hits_in_view_threshold
         fixed_avg[hits_in_view_mask] = fixed_sum[hits_in_view_mask] / fixed_alpha[hits_in_view_mask]
-        valid_mask = (hits_in_view_mask & (fixed_avg > avg_in_view_threshold)).any(dim=-1)
-        return valid_mask, fixed_avg.sum(-1)[valid_mask] * viewhits[valid_mask] / viewhits.max()
+        valid_mask = (hits_in_view_mask & (fixed_avg > avg_in_view_threshold)).any(dim=-1) & (viewhits > 0)
+        return valid_mask, fixed_avg.sum(-1)[valid_mask] / viewhits[valid_mask]
 
     def precompute_valid_mask_and_weights_cov3D(self, v11, v12, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
@@ -88,7 +88,7 @@ class BaseMotionFuser(MotionFuser):
         valid_mask[valid_mask.clone()] = valid_mask_det
         det_log = torch.log(det_abs[valid_mask_det])-math.log(det_clamp)  # det_log\in(0, +\infty), det=1e-12->det_log=0, det=+\infty->det_log=+\infty
         det_weights = (torch.sigmoid(det_log) - 0.5) * 2  # det_weights\in(0, 1), det=1e-12->det_weights=0, det=+\infty->det_weights=1
-        weights = alpha[valid_mask] * det_weights
+        weights = torch.sigmoid(torch.log(alpha[valid_mask])) * det_weights
         return valid_mask, weights
 
     def postcompute_valid_mask_and_weights_cov3D(self, R, S, error, weight, mask, viewhits, alpha, pixhits):
@@ -147,6 +147,7 @@ class BaseMotionFuser(MotionFuser):
         fixed_sums = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
         fixed_alphas = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
         fixed_pixhits = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.int)
+        fixed_viewhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, k=len(tracks), dtype=torch.float32)
         # isvd = ISVDSelectK_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], k=len(tracks), device=self.device)
@@ -161,6 +162,7 @@ class BaseMotionFuser(MotionFuser):
             fixed_sum, fixed_alpha, fixed_idx = self._count_fixed_pixels(camera, track)
             fixed_sums[fixed_idx, i] = fixed_sum
             fixed_alphas[fixed_idx, i] = fixed_alpha
+            fixed_viewhits[fixed_idx] += 1
             fixed_pixhits[:, i] = pixhit
 
         # solve cov and mean mask
@@ -170,7 +172,7 @@ class BaseMotionFuser(MotionFuser):
         valid_mask_mean, weights_mean = self.precompute_valid_mask_and_weights_mean3D(U, S, A_count, viewhits, weights, pixhits)
 
         # solve fixed mask
-        fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, fixed_pixhits, viewhits, weights, pixhits)
+        fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, fixed_pixhits, fixed_viewhits, weights, pixhits)
         weights_cov = weights_cov[(~fixed_mask)[valid_mask_cov]]
         valid_mask_cov &= ~fixed_mask
         weights_mean = weights_mean[(~fixed_mask)[valid_mask_mean]]
