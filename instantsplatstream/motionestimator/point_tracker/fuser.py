@@ -127,7 +127,7 @@ class BaseMotionFuser(MotionFuser):
         fixed_sums = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
         fixed_alphas = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
         fixed_pixhits = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.int)
-        isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
+        isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, k=len(tracks), dtype=torch.float32)
         # isvd = ISVDSelectK_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], device=self.device)
         for i, (camera, track) in enumerate(zip(tqdm(cameras, desc="Computing motion"), tracks)):
@@ -148,7 +148,7 @@ class BaseMotionFuser(MotionFuser):
         fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, fixed_pixhits, viewhits, weights, pixhits)
 
         # solve mean3D
-        mean3D, valid_mask_mean_solved = isvd.solve(valid_mask_mean)
+        mean3D, mean3Derror, valid_mask_mean_solved = isvd.solve(valid_mask_mean)
         # re select them
         mean3D = mean3D[(valid_mask_mean & (~fixed_mask))[valid_mask_mean_solved]]
         # re select weights

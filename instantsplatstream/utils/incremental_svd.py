@@ -38,11 +38,15 @@ def IncrementalSVD_withV(U, S, Vh, A):
 
 
 class ISVD42:
-    def __init__(self, batch_size, device, *args, **kwargs):
+    def __init__(self, batch_size, device, k=None, *args, **kwargs):
         self.U = torch.zeros((batch_size, 4, 4), device=device, *args, **kwargs)
         self.S = torch.zeros((batch_size, 4, 4), device=device, *args, **kwargs)
         self.A_init = torch.zeros((batch_size, 4, 4), device=device, *args, **kwargs)
         self.A_count = torch.zeros((batch_size,), device=device, dtype=torch.int)
+        self.A_saved = None
+        if k is not None:
+            self.A_saved = torch.zeros((batch_size, 4, k*2), device=device, *args, **kwargs)
+            self.k = k
 
     def update(self, A, mask, weights):
         '''A and weights are the value after mask, has smaller size than other tensors'''
@@ -53,6 +57,11 @@ class ISVD42:
         # TODO: take weights into account
         A_init_masked[A_count_masked == 1, ..., 0:2] = A[A_count_masked == 1, ...]
         A_init_masked[A_count_masked == 2, ..., 2:4] = A[A_count_masked == 2, ...]
+        if self.A_saved is not None:
+            A_saved_masked = self.A_saved[mask, ...]
+            for k in range(self.k):
+                A_saved_masked[A_count_masked == (k + 1), ..., 2*k:2*(k + 1)] = A[A_count_masked == (k + 1), ...]
+            self.A_saved[mask, ...] = A_saved_masked
         self.A_init[mask, ...] = A_init_masked
         # Compute first step
         init_mask = mask & (self.A_count == 2)
@@ -75,6 +84,9 @@ class ISVD_Mean3D(ISVD42):
         S = torch.diagonal(self.S, dim1=-2, dim2=-1)
         p_hom = torch.gather(self.U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
         mean3D = p_hom / p_hom[..., -1:]
+        if self.A_saved is not None:
+            error = (mean3D.unsqueeze(-2) @ self.A_saved[valid_mask]).abs().mean(-1).squeeze(-1)
+            return mean3D[..., :-1], error, valid_mask
         return mean3D[..., :-1], valid_mask
 
 
