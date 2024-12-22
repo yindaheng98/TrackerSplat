@@ -9,9 +9,9 @@
             "console": "integratedTerminal",
             "args": [
                 "-d",
-                "data/coffee_martini/frame1",
+                "data/walking/frame1",
                 "--initializer",
-                "dust3r",
+                "colmap-dense",
             ]
         },
         {
@@ -22,9 +22,9 @@
             "console": "integratedTerminal",
             "args": [
                 "-s",
-                "data/coffee_martini/frame1",
+                "data/walking/frame1",
                 "-d",
-                "output/coffee_martini/frame1",
+                "output/walking/frame1",
                 "-i",
                 "1000",
             ],
