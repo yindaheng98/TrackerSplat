@@ -114,7 +114,7 @@ class BaseMotionFuser(MotionFuser):
     def postcompute_valid_mask_and_weights_mean3D(self, mean3D, error, weight, mask, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
         # return mean3D, mask, weight
-        error_avg = error.abs().sum(-1)/alpha[mask]
+        error_avg = error.abs().sum(-1)  # /alpha[mask] # do not use weight for mean3D
         error_clamp = 0.5
         small_mask = error_avg < error_clamp
         mask = mask.clone()
@@ -152,7 +152,8 @@ class BaseMotionFuser(MotionFuser):
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], k=len(tracks), device=self.device)
         for i, (camera, track) in enumerate(zip(tqdm(cameras, desc="Computing motion"), tracks)):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
-            isvd.update(A, valid_mask, weight)
+            # isvd.update(A, valid_mask, weight) # do not use weight for mean3D
+            isvd.update(A, valid_mask, torch.ones_like(weight))
             ils.update(X, Y, valid_mask, weight)
             weights[valid_mask] += weight
             pixhits += pixhit
