@@ -70,15 +70,16 @@ class BaseMotionFuser(MotionFuser):
 
     def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, fixed_pixhits, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
-        # a gaussian should be fixed if it hit by more than 6 pixels and has more than 90% of its pixels fixed in any view
-        hits_in_view_threshold, avg_in_view_threshold, alpha_rel_threshold, alpha_abs_threshold = 4*4, 0.9, 0.8, 0.9
+        # a gaussian should be fixed if it hit by more than 6 pixels and has more than 90% of its pixels fixed in at least 2 views
+        hits_in_view_threshold, n_views_threshold, avg_in_view_threshold, alpha_rel_threshold, alpha_abs_threshold = 4*4, 2, 0.9, 0.9, 0.9
         hits_in_view_mask = fixed_pixhits > hits_in_view_threshold
         fixed_avg = torch.zeros_like(fixed_sum)
         fixed_avg[fixed_alpha > 1e-12] = fixed_sum[fixed_alpha > 1e-12] / fixed_alpha[fixed_alpha > 1e-12]
         fixed_avg_mask = fixed_avg > avg_in_view_threshold
         alpha_mask = fixed_alpha >= (fixed_alpha.max(-1).values.unsqueeze(-1) * alpha_rel_threshold)
         alpha_mask |= fixed_alpha > alpha_abs_threshold
-        valid_mask = (hits_in_view_mask & fixed_avg_mask & alpha_mask).any(dim=-1) & (viewhits > 0)
+        n_views_mask = (hits_in_view_mask & fixed_avg_mask & alpha_mask).sum(-1) > n_views_threshold
+        valid_mask = n_views_mask
         return valid_mask, fixed_avg.sum(-1)[valid_mask] / viewhits[valid_mask]
 
     def precompute_valid_mask_and_weights_cov3D(self, v11, v12, viewhits, alpha, pixhits):
@@ -108,7 +109,7 @@ class BaseMotionFuser(MotionFuser):
         '''Overload this method to make your own mask and weights'''
         valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
         S_min = S.min(-1).values
-        S_clamp = 1e-1
+        S_clamp = 1
         valid_mask &= (S_min < S_clamp) & (A_count > 2)  # S_min[valid_mask]\in(0, 1e-3)
         S_min_log = -math.log(S_clamp)-torch.log(S_min[valid_mask])  # S_min_log\in(0, +\infty), S_min=1e-3->S_min_log=0, S_min=0->S_min_log=+\infty
         weights = torch.sigmoid(S_min_log)  # weights\in(0.5, 1), S_min=1e-3->weights=0.5, S_min=0->weights=1
@@ -118,7 +119,7 @@ class BaseMotionFuser(MotionFuser):
         '''Overload this method to make your own mask and weights'''
         # return mean3D, mask, weight
         error_avg = error.abs().sum(-1)  # /alpha[mask] # do not use weight for mean3D
-        error_clamp = 0.5
+        error_clamp = 8
         small_mask = error_avg < error_clamp
         mask = mask.clone()
         mask[mask.clone()] = small_mask
