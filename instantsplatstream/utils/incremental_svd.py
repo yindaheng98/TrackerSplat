@@ -66,13 +66,78 @@ class ISVD42:
 
 
 class ISVD_Mean3D(ISVD42):
-    def __init__(self, batch_size, device, *args, **kwargs):
-        super(ISVD_Mean3D, self).__init__(batch_size, device, *args, **kwargs)
 
     def update(self, A, mask, weights):
         super(ISVD_Mean3D, self).update(A.transpose(-2, -1), mask, weights)
 
     def solve(self, valid_mask):
+        valid_mask &= self.A_count >= 2
+        S = torch.diagonal(self.S, dim1=-2, dim2=-1)
+        p_hom = torch.gather(self.U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
+        mean3D = p_hom[..., :-1] / p_hom[..., -1:]
+        return mean3D, valid_mask
+
+
+class ISVD4SelectK2:
+    """Keep only the K sets of equations with the smallest solving error"""
+
+    def __init__(self, batch_size, device, k=3, *args, **kwargs):
+        assert k >= 2
+        self.k = k
+        self.A_selected = torch.zeros((batch_size, 4, k*2), device=device, *args, **kwargs)
+        self.A_count = torch.zeros((batch_size,), device=device, dtype=torch.int)
+
+    def update(self, A, mask, weights):
+        A = A.type(self.A_selected.dtype)
+        self.A_count[mask] += 1
+        # Initialize those in first step
+        A_selected_masked, A_count_masked = self.A_selected[mask, ...], self.A_count[mask]
+        # TODO: take weights into account
+        for k in range(self.k):
+            A_selected_masked[A_count_masked == (k + 1), ..., 2*k:2*(k + 1)] = A[A_count_masked == (k + 1), ...]
+        self.A_selected[mask, ...] = A_selected_masked
+        # Compute incremental step
+        step_mask = mask & (self.A_count > self.k)
+        if not step_mask.any():
+            return
+        A_selected = self.A_selected[step_mask, ...]
+        A_new = A[self.A_count[mask] > self.k, ...]
+        error_min = ISVD4SelectK2.compute_error(A_selected)  # TODO: time consuming
+        error_min_idx = torch.zeros((A_selected.shape[0]), dtype=torch.int, device=step_mask.device) + self.k
+        for k in range(self.k):
+            A_selected_ = A_selected.clone()
+            A_selected_[..., 2*k:2*(k + 1)] = A_new
+            error = ISVD4SelectK2.compute_error(A_selected_)  # TODO: time consuming
+            less_mask = error < error_min
+            error_min[less_mask] = error[less_mask]
+            error_min_idx[less_mask] = k
+        for k in range(self.k):
+            assign_mask = error_min_idx == k
+            A_selected[assign_mask, ..., 2*k:2*(k + 1)] = A_new[assign_mask, ...]
+        self.A_selected[step_mask, ...] = A_selected
+        self.U, self.S = SVD(self.A_selected)
+
+    @staticmethod
+    def solve_p_hom(A):
+        U, S = SVD(A)
+        S = torch.diagonal(S, dim1=-2, dim2=-1)
+        p_hom = torch.gather(U, 2, S.min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
+        return p_hom
+
+    @staticmethod
+    def compute_error(A):
+        p_hom = ISVD4SelectK2.solve_p_hom(A)
+        mean3D = p_hom / p_hom[..., -1:]
+        return (mean3D.unsqueeze(-2) @ A).abs().mean(-1).squeeze(-1)
+
+
+class ISVDSelectK_Mean3D(ISVD4SelectK2):
+
+    def update(self, A, mask, weights):
+        super(ISVDSelectK_Mean3D, self).update(A.transpose(-2, -1), mask, weights)
+
+    def solve(self, valid_mask):
+        valid_mask &= self.A_count >= 2
         S = torch.diagonal(self.S, dim1=-2, dim2=-1)
         p_hom = torch.gather(self.U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
         mean3D = p_hom[..., :-1] / p_hom[..., -1:]
@@ -121,3 +186,9 @@ if __name__ == '__main__':
         Ui, Si, _ = SVD_withV(A[..., :i+2])
         print("U abs diff step", i, (U.abs() - Ui.abs()).abs().max())  # TODO: WTF?
         print("S diff step", i, (S - Si).abs().max())
+    pass
+    isvd = ISVD4SelectK2(4, B, 'cpu')
+    isvd.update(A[..., 0:2], torch.ones(B, dtype=torch.bool, device='cpu'), None)
+    isvd.update(A[..., 2:4], torch.ones(B, dtype=torch.bool, device='cpu'), None)
+    for i in range(4, N, 2):
+        isvd.update(A[..., i:i+2], torch.ones(B, dtype=torch.bool, device='cpu'), None)

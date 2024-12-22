@@ -5,7 +5,7 @@ from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
-from instantsplatstream.utils import quaternion_invert, ISVD_Mean3D, ILS_RotationScale
+from instantsplatstream.utils import quaternion_invert, ILS_RotationScale, ISVD_Mean3D, ISVDSelectK_Mean3D
 from instantsplatstream.utils.featurefusion import feature_fusion
 from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform
 from .abc import Motion, MotionFuser, PointTrackSequence
@@ -78,14 +78,6 @@ class BaseMotionFuser(MotionFuser):
         valid_mask = (hits_in_view_mask & (fixed_avg > avg_in_view_threshold)).any(dim=-1)
         return valid_mask, fixed_avg.sum(-1)[valid_mask] * viewhits[valid_mask] / viewhits.max()
 
-    def compute_valid_mask_and_weights_3d(self, v11, v12, U, S, A_count, viewhits, alpha, pixhits):
-        '''Overload this method to make your own mask and weights'''
-        valid_mask_cov, weights_cov = self.compute_valid_mask_and_weights_cov3D(v11, v12, viewhits, alpha, pixhits)
-        valid_mask_mean, weights_mean = self.compute_valid_mask_and_weights_mean3D(U, S, A_count, viewhits, alpha, pixhits)
-        valid_mask = valid_mask_cov & valid_mask_mean
-        weights = weights_cov[valid_mask[valid_mask_cov]] * weights_mean[valid_mask[valid_mask_mean]]
-        return valid_mask, weights
-
     def compute_valid_mask_and_weights_cov3D(self, v11, v12, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
         valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
@@ -136,6 +128,7 @@ class BaseMotionFuser(MotionFuser):
         fixed_alphas = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.float32)
         fixed_pixhits = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.int)
         isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
+        # isvd = ISVDSelectK_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], device=self.device)
         for i, (camera, track) in enumerate(zip(tqdm(cameras, desc="Computing motion"), tracks)):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
