@@ -25,7 +25,12 @@ class Cotracker3PointTracker(PointTracker):
         return self
 
     def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
-        return int(frames.image_height * self.rescale_factor) // 8 * 8, int(frames.image_width * self.rescale_factor) // 8 * 8
+        grid_size = 80
+        W, H = int(frames.image_width * self.rescale_factor), int(frames.image_height * self.rescale_factor)
+        grid_step = W // grid_size
+        grid_width = W // grid_step
+        grid_height = H // grid_step
+        return grid_height * grid_step, grid_width * grid_step
 
     def track(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> PointTrackSequence:
         video = []
