@@ -12,7 +12,7 @@ from .base import BaseMotionCompensater, transform_xyz, transform_rotation, tran
 
 
 class RegularizedMotionCompensater(BaseMotionCompensater):
-    def __init__(self, k: int = 16, *args, **kwargs):
+    def __init__(self, k: int = 8, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.k = k
 
