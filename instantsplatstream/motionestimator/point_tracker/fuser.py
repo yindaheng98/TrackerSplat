@@ -83,7 +83,7 @@ class BaseMotionFuser(MotionFuser):
         valid_mask = (viewhits > 2) & (alpha > 1e-3) & (pixhits > 3)
         v11_scaled = v11[valid_mask, ...] / alpha[valid_mask, ...].unsqueeze(-1).unsqueeze(-1)
         det_abs = torch.linalg.det(v11_scaled).abs()
-        det_clamp = 1e-9  # ! Solve cov3D may consume a lot of memory
+        det_clamp = 1e-9  # ! Solve cov3D may consume a lot of memory if this is small
         valid_mask_det = (det_abs > det_clamp)
         valid_mask[valid_mask.clone()] = valid_mask_det
         det_log = torch.log(det_abs[valid_mask_det])-math.log(det_clamp)  # det_log\in(0, +\infty), det=1e-12->det_log=0, det=+\infty->det_log=+\infty
@@ -129,7 +129,7 @@ class BaseMotionFuser(MotionFuser):
         fixed_pixhits = torch.zeros((gaussians.get_xyz.shape[0], len(tracks)), device=self.device, dtype=torch.int)
         isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, k=len(tracks), dtype=torch.float32)
         # isvd = ISVDSelectK_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
-        ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], device=self.device)
+        ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], k=len(tracks), device=self.device)
         for i, (camera, track) in enumerate(zip(tqdm(cameras, desc="Computing motion"), tracks)):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
             isvd.update(A, valid_mask, weight)
@@ -148,7 +148,7 @@ class BaseMotionFuser(MotionFuser):
         fixed_mask, weights_fixed = self.compute_fixed_mask_and_weights(fixed_sums, fixed_alphas, fixed_pixhits, viewhits, weights, pixhits)
 
         # solve mean3D
-        mean3D, mean3Derror, valid_mask_mean_solved = isvd.solve(valid_mask_mean)
+        mean3D, mean3Derror, valid_mask_mean_solved = isvd.solve(valid_mask_mean & (~fixed_mask))  # ! Solve mean3D may be time consuming
         # re select them
         mean3D = mean3D[(valid_mask_mean & (~fixed_mask))[valid_mask_mean_solved]]
         # re select weights
@@ -159,7 +159,7 @@ class BaseMotionFuser(MotionFuser):
         translation_vector = mean3D - gaussians.get_xyz[valid_mask_mean]
 
         # solve R and S matrix
-        R, S, valid_mask_cov_solved = ils.solve(valid_mask_cov)  # ! Solve R,S may consume a lot of memory if this is small
+        R, S, coverror, valid_mask_cov_solved = ils.solve(valid_mask_cov & (~fixed_mask))  # ! Solve R,S may consume a lot of memory
         # re select them
         R = R[(valid_mask_cov & (~fixed_mask))[valid_mask_cov_solved]]
         S = S[(valid_mask_cov & (~fixed_mask))[valid_mask_cov_solved]]
