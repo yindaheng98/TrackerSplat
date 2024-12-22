@@ -41,7 +41,7 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
     def update_baseframe(self, frame) -> 'RegularizedMotionCompensater':
         return super().update_baseframe(frame).update_knn(frame, self.k)
 
-    def compute_neighbor_rotation(self, motion: Motion) -> torch.Tensor:
+    def compute_neighbor_rotation(self, motion: Motion, fix_confidence) -> torch.Tensor:
         assert motion.rotation_quaternion is not None, "Rotation quaternion is required"
         assert motion.motion_mask_cov is not None, "Covariance motion mask is required"
         rotation_axis_angle = quaternion_to_axis_angle(motion.rotation_quaternion)
@@ -51,10 +51,11 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
             init_weight_at_mask=motion.confidence_cov,
             neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
         )
+        # prop_axis_angle *= (prop_confidence / (prop_confidence + fix_confidence)).unsqueeze(-1) # TODO: fix 0 division
         rotation_quaternion = axis_angle_to_quaternion(prop_axis_angle)
-        return rotation_quaternion, prop_confidence
+        return rotation_quaternion
 
-    def compute_neighbor_transformation(self, motion: Motion) -> torch.Tensor:
+    def compute_neighbor_transformation(self, motion: Motion, fix_confidence) -> torch.Tensor:
         assert motion.translation_vector is not None, "Translation vector is required"
         assert motion.motion_mask_mean is not None, "Translation mask is required"
         prop_translation_vector, prop_confidence = propagate(
@@ -63,13 +64,26 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
             init_weight_at_mask=motion.confidence_mean,
             neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
         )
-        return prop_translation_vector, prop_confidence
+        # prop_translation_vector *= (prop_confidence / (prop_confidence + fix_confidence)).unsqueeze(-1) # TODO: fix 0 division
+        return prop_translation_vector
+
+    def compute_neighbor_fix(self, motion: Motion) -> torch.Tensor:
+        assert motion.confidence_fix is not None, "Fix confidence is required"
+        assert motion.fixed_mask is not None, "Fixed mask is required"
+        prop_fix, prop_confidence = propagate(
+            init_mask=motion.fixed_mask.clone(),
+            init_value_at_mask=torch.ones_like(motion.confidence_fix).unsqueeze(-1),
+            init_weight_at_mask=motion.confidence_fix,
+            neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
+        )
+        return prop_fix, prop_confidence
 
     def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
-        rotation, rotation_confidence = self.compute_neighbor_rotation(motion)
-        translation, translation_confidence = self.compute_neighbor_transformation(motion)
+        _, fix_confidence = self.compute_neighbor_fix(motion)
+        rotation = self.compute_neighbor_rotation(motion, fix_confidence)
+        translation = self.compute_neighbor_transformation(motion, fix_confidence)
         rotation[motion.fixed_mask, 0] = 1
         rotation[motion.fixed_mask, 1:] = 0
         translation[motion.fixed_mask, :] = 0
