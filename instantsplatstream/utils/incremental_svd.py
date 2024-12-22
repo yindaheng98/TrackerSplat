@@ -74,8 +74,8 @@ class ISVD_Mean3D(ISVD42):
         valid_mask &= self.A_count >= 2
         S = torch.diagonal(self.S, dim1=-2, dim2=-1)
         p_hom = torch.gather(self.U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
-        mean3D = p_hom[..., :-1] / p_hom[..., -1:]
-        return mean3D, valid_mask
+        mean3D = p_hom / p_hom[..., -1:]
+        return mean3D[..., :-1], valid_mask
 
 
 class ISVD4SelectK2:
@@ -102,12 +102,12 @@ class ISVD4SelectK2:
             return
         A_selected = self.A_selected[step_mask, ...]
         A_new = A[self.A_count[mask] > self.k, ...]
-        error_min = ISVD4SelectK2.compute_error(A_selected)  # TODO: time consuming
+        _, error_min = ISVD4SelectK2.solve(A_selected)  # TODO: time consuming
         error_min_idx = torch.zeros((A_selected.shape[0]), dtype=torch.int, device=step_mask.device) + self.k
         for k in range(self.k):
             A_selected_ = A_selected.clone()
             A_selected_[..., 2*k:2*(k + 1)] = A_new
-            error = ISVD4SelectK2.compute_error(A_selected_)  # TODO: time consuming
+            _, error = ISVD4SelectK2.solve(A_selected_)  # TODO: time consuming
             less_mask = error < error_min
             error_min[less_mask] = error[less_mask]
             error_min_idx[less_mask] = k
@@ -118,17 +118,13 @@ class ISVD4SelectK2:
         self.U, self.S = SVD(self.A_selected)
 
     @staticmethod
-    def solve_p_hom(A):
+    def solve(A):
         U, S = SVD(A)
         S = torch.diagonal(S, dim1=-2, dim2=-1)
         p_hom = torch.gather(U, 2, S.min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
-        return p_hom
-
-    @staticmethod
-    def compute_error(A):
-        p_hom = ISVD4SelectK2.solve_p_hom(A)
         mean3D = p_hom / p_hom[..., -1:]
-        return (mean3D.unsqueeze(-2) @ A).abs().mean(-1).squeeze(-1)
+        error = (mean3D.unsqueeze(-2) @ A).abs().mean(-1).squeeze(-1)
+        return mean3D[..., :-1], error
 
 
 class ISVDSelectK_Mean3D(ISVD4SelectK2):
@@ -138,10 +134,8 @@ class ISVDSelectK_Mean3D(ISVD4SelectK2):
 
     def solve(self, valid_mask):
         valid_mask &= self.A_count >= 2
-        S = torch.diagonal(self.S, dim1=-2, dim2=-1)
-        p_hom = torch.gather(self.U[valid_mask], 2, S[valid_mask].min(-1).indices.unsqueeze(-1).unsqueeze(-1).expand(-1, 4, -1)).squeeze(-1)
-        mean3D = p_hom[..., :-1] / p_hom[..., -1:]
-        return mean3D, valid_mask
+        mean3D, error = super().solve(self.A_selected[valid_mask])
+        return mean3D, error, valid_mask
 
 
 if __name__ == '__main__':
