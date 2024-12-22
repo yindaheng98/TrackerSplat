@@ -48,13 +48,12 @@ class ISVD42:
             self.A_saved = torch.zeros((batch_size, 4, k*2), device=device, *args, **kwargs)
             self.k = k
 
-    def update(self, A, mask, weights):
+    def update(self, A, mask):
         '''A and weights are the value after mask, has smaller size than other tensors'''
         A = A.type(self.A_init.dtype)
         self.A_count[mask] += 1
         # Initialize those in first step
         A_init_masked, A_count_masked = self.A_init[mask, ...], self.A_count[mask]
-        # TODO: take weights into account
         A_init_masked[A_count_masked == 1, ..., 0:2] = A[A_count_masked == 1, ...]
         A_init_masked[A_count_masked == 2, ..., 2:4] = A[A_count_masked == 2, ...]
         if self.A_saved is not None:
@@ -70,14 +69,13 @@ class ISVD42:
         # Compute incremental step
         step_mask = mask & (self.A_count > 2)
         if step_mask.any():
-            # TODO: take weights into account
             self.U[step_mask], self.S[step_mask] = IncrementalSVD(self.U[step_mask], self.S[step_mask], A[self.A_count[mask] > 2])
 
 
 class ISVD_Mean3D(ISVD42):
 
     def update(self, A, mask, weights):
-        super(ISVD_Mean3D, self).update(A.transpose(-2, -1), mask, weights)
+        super(ISVD_Mean3D, self).update(A.transpose(-2, -1) * weights.unsqueeze(-1).unsqueeze(-1), mask)
 
     def solve(self, valid_mask):
         valid_mask &= self.A_count >= 2
@@ -99,12 +97,11 @@ class ISVD4SelectK2:
         self.A_selected = torch.zeros((batch_size, 4, k*2), device=device, *args, **kwargs)
         self.A_count = torch.zeros((batch_size,), device=device, dtype=torch.int)
 
-    def update(self, A, mask, weights):
+    def update(self, A, mask):
         A = A.type(self.A_selected.dtype)
         self.A_count[mask] += 1
         # Initialize those in first step
         A_selected_masked, A_count_masked = self.A_selected[mask, ...], self.A_count[mask]
-        # TODO: take weights into account
         for k in range(self.k):
             A_selected_masked[A_count_masked == (k + 1), ..., 2*k:2*(k + 1)] = A[A_count_masked == (k + 1), ...]
         self.A_selected[mask, ...] = A_selected_masked
@@ -144,7 +141,7 @@ class ISVD4SelectK2:
 class ISVDSelectK_Mean3D(ISVD4SelectK2):
 
     def update(self, A, mask, weights):
-        super(ISVDSelectK_Mean3D, self).update(A.transpose(-2, -1), mask, weights)
+        super(ISVDSelectK_Mean3D, self).update(A.transpose(-2, -1) * weights.unsqueeze(-1).unsqueeze(-1), mask)
 
     def solve(self, valid_mask):
         valid_mask &= self.A_count >= 2
