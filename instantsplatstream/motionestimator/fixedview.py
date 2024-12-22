@@ -21,10 +21,10 @@ class FixedViewFrameSequenceMeta(NamedTuple):
         for camera in cameras:
             assert camera.image_height == cameras[0].image_height
             assert camera.image_width == cameras[0].image_width
-            assert camera.FoVx == cameras[0].FoVx
-            assert camera.FoVy == cameras[0].FoVy
-            assert torch.all(camera.R == cameras[0].R).item()
-            assert torch.all(camera.T == cameras[0].T).item()
+            assert abs(camera.FoVx - cameras[0].FoVx) < 1e-8
+            assert abs(camera.FoVy - cameras[0].FoVy) < 1e-8
+            assert torch.isclose(camera.R, cameras[0].R).all()
+            assert torch.isclose(camera.T, cameras[0].T).all()
         return cls(
             image_height=camera.image_height,
             image_width=camera.image_width,

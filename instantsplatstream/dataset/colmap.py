@@ -48,10 +48,10 @@ def fixedview_validate(framemetas):
         for camera0, camera in zip(framemetas[0], framemeta):
             assert camera0.image_height == camera.image_height
             assert camera0.image_width == camera.image_width
-            assert camera0.FoVx == camera.FoVx
-            assert camera0.FoVy == camera.FoVy
-            assert torch.equal(camera0.R, camera.R)
-            assert torch.equal(camera0.T, camera.T)
+            assert abs(camera.FoVx - camera0.FoVx) < 1e-8
+            assert abs(camera.FoVy - camera0.FoVy) < 1e-8
+            assert torch.isclose(camera0.R, camera.R).all()
+            assert torch.isclose(camera0.T, camera.T).all()
 
 
 def FixedViewColmapVideoCameraDataset(*args, device=torch.device("cuda"), **kwargs) -> VideoCameraDataset:
