@@ -4,7 +4,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import TrainerWrapper
 from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, MotionCompensater, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 
-from .base import training, compare, IncrementalTrainingMotionEstimator
+from .abc import training, compare, IncrementalTrainingMotionEstimator
 
 
 class MaskedTrainer(TrainerWrapper):
