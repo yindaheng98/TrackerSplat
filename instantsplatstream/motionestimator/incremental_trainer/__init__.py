@@ -1,1 +1,1 @@
-from .base import IncrementalTrainingMotionEstimator, TrainerFactory, FrameCameraDataset
+from .base import IncrementalTrainingMotionEstimator, TrainerFactory

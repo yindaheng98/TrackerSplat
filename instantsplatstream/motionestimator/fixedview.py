@@ -2,6 +2,8 @@ from typing import List, NamedTuple, Union
 from abc import ABCMeta, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
+from gaussian_splatting.camera import build_camera
+from gaussian_splatting.dataset import CameraDataset
 from .abc import Motion, MotionEstimator
 
 from instantsplatstream.dataset import DatasetCameraMeta, VideoCameraDataset
@@ -34,6 +36,30 @@ class FixedViewFrameSequenceMeta(NamedTuple):
             T=camera.T,
             frames_path=[camera.image_path for camera in cameras]
         )
+
+
+class FixedViewFrameSequenceMetaDataset(CameraDataset):
+    def __init__(self, views: List[FixedViewFrameSequenceMeta], frame_idx: int, device):
+        super().__init__()
+        self.raw_cameras = views
+        self.frame_idx = frame_idx
+        self.to(device)
+
+    def to(self, device):
+        self.cameras = [build_camera(
+            image_height=cam.image_height, image_width=cam.image_width,
+            FoVx=cam.FoVx, FoVy=cam.FoVy,
+            R=cam.R.to(device), T=cam.T.to(device),
+            image_path=cam.frames_path[self.frame_idx],
+            device=device
+        ) for cam in self.raw_cameras]
+        return self
+
+    def __len__(self):
+        return len(self.cameras)
+
+    def __getitem__(self, idx):
+        return self.cameras[idx]
 
 
 class FixedViewBatchMotionEstimator(metaclass=ABCMeta):

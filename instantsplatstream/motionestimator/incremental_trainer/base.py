@@ -5,37 +5,12 @@ from abc import ABCMeta, abstractmethod
 import torch
 from tqdm import tqdm
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.camera import build_camera
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.utils import psnr
-from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
+from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 from gaussian_splatting.utils import quaternion_raw_multiply
 from instantsplatstream.utils import quaternion_invert
-
-
-class FrameCameraDataset(CameraDataset):
-    def __init__(self, views: List[FixedViewFrameSequenceMeta], frame_idx: int, device):
-        super().__init__()
-        self.raw_cameras = views
-        self.frame_idx = frame_idx
-        self.to(device)
-
-    def to(self, device):
-        self.cameras = [build_camera(
-            image_height=cam.image_height, image_width=cam.image_width,
-            FoVx=cam.FoVx, FoVy=cam.FoVy,
-            R=cam.R.to(device), T=cam.T.to(device),
-            image_path=cam.frames_path[self.frame_idx],
-            device=device
-        ) for cam in self.raw_cameras]
-        return self
-
-    def __len__(self):
-        return len(self.cameras)
-
-    def __getitem__(self, idx):
-        return self.cameras[idx]
 
 
 def training(dataset: CameraDataset, trainer: AbstractTrainer, iteration: int):
@@ -70,7 +45,7 @@ def compare(baseframe: GaussianModel, curframe: GaussianModel) -> Motion:
 
 class TrainerFactory(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, model: GaussianModel, dataset: FrameCameraDataset) -> AbstractTrainer:
+    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> AbstractTrainer:
         raise NotImplementedError
 
 
@@ -91,7 +66,7 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator, metaclas
         motions = []
         for i in range(1, len(views[0].frames_path)):
             curr_frame = copy.deepcopy(self.baseframe)
-            dataset = FrameCameraDataset(views, i, self.device)
+            dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
             trainer = self.trainer_factory(curr_frame, dataset)
             training(dataset, trainer, self.iteration)
             motions.append(compare(self.baseframe, curr_frame))
