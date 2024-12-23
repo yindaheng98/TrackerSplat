@@ -1,9 +1,26 @@
 import copy
 from typing import List
 from gaussian_splatting import GaussianModel
+from gaussian_splatting.trainer import TrainerWrapper
 from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, MotionCompensater, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 
 from .base import training, compare, IncrementalTrainingMotionEstimator
+
+
+class MaskedTrainer(TrainerWrapper):
+    def __init__(self, trainer, mask):
+        super().__init__(trainer)
+        self.mask = mask
+
+    def optim_step(self):
+        if self.mask is not None:
+            self.model._xyz.grad[self.mask] = 0
+            self.model._features_dc.grad[self.mask] = 0
+            self.model._features_rest.grad[self.mask] = 0
+            self.model._scaling.grad[self.mask] = 0
+            self.model._rotation.grad[self.mask] = 0
+            self.model._opacity.grad[self.mask] = 0
+        return super().optim_step()
 
 
 class IncrementalTrainingRefiner(IncrementalTrainingMotionEstimator):
@@ -18,7 +35,7 @@ class IncrementalTrainingRefiner(IncrementalTrainingMotionEstimator):
             motion.validate()
             curr_frame = copy.deepcopy(self.base_compensater.compensate(self.baseframe, motion))
             dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
-            trainer = self.trainer_factory(curr_frame, dataset)
+            trainer = MaskedTrainer(self.trainer_factory(curr_frame, dataset), motion.fixed_mask)
             training(dataset, trainer, self.iteration)
             motions.append(compare(self.baseframe, curr_frame))
         return motions
