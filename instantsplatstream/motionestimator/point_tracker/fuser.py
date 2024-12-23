@@ -36,7 +36,8 @@ class BaseMotionFuser(MotionFuser):
         cameras = [camera.build_camera(device=self.device) for camera in trackviews]
         for frame_idx in range(0, trackviews[0].track.shape[0]):
             tracks = [camera.track[frame_idx, ...] for camera in trackviews]
-            motion = self.compute_motion(cameras, tracks)
+            with torch.no_grad():
+                motion = self.compute_motion(cameras, tracks)
             motions.append(motion)
         return motions
 
