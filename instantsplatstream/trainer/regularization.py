@@ -3,8 +3,9 @@ import torch.nn.functional as F
 from gaussian_splatting.utils import quaternion_to_matrix
 from gaussian_splatting import GaussianModel, Camera
 from gaussian_splatting.trainer import BaseTrainer
+from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
 from instantsplatstream.utils.simple_knn import knn_kernel
-from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory, FrameCameraDataset
+from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory
 
 
 def quaternion_mult(q1, q2):
@@ -59,31 +60,8 @@ class RegularizedTrainer(BaseTrainer):
         self.neighbor_offsets_point_coord_last = (
             self.rotation_matrix_inv_last.unsqueeze(1) @ self.neighbor_offsets_last.unsqueeze(-1)
         ).squeeze(-1)
-        self._scaling_last = last_gaussian._scaling.detach()
-        # for shrink the scaling
-        shrink_start = self.stretch_shrink_start
-        # (-inf->+inf)->(shrink_start->shrink_start+1)
-        shrink_coeff = torch.clamp(self._scaling_last, min=shrink_start, max=shrink_start+1)
-        # (shrink_start->shrink_start+1)->(0->1)
-        shrink_coeff = shrink_coeff - shrink_start
-        # (0->1)->(1->0) by cosine
-        shrink_coeff = torch.cos(shrink_coeff * torch.pi / 2)
-        # reshape
-        self.shrink_coeff = shrink_coeff
-        self.shrink_index = self.shrink_coeff < (1.-1e-20)
-        self.shrink_coeff_expand = self.shrink_coeff.unsqueeze(1).expand(-1, self.neighbors, -1)
-        self.shrink_index_expand = self.shrink_index.unsqueeze(1).expand(-1, self.neighbors, -1)
+        self._scaling_last = last_gaussian._scaling.detach().clone()
         return self
-
-    def shrinked_weighted_l2_loss(self, relative_scaling, neighbor_relative_scaling, w):  # for shrink the scaling
-        # shrink this to prevent large value:
-        diff = relative_scaling - neighbor_relative_scaling
-        # if some neighbor is larger than this point,
-        # this point would be pulled to bigger,
-        should_shrink_idx = neighbor_relative_scaling > relative_scaling
-        # so its regularization value on this point should be shrink.
-        diff[should_shrink_idx & self.shrink_index_expand] *= self.shrink_coeff_expand[should_shrink_idx & self.shrink_index_expand]
-        return torch.sqrt((diff ** 2).sum(-1) * w + 1e-20).mean()
 
     def incremental_reg(self):
         loss = {}
@@ -113,10 +91,10 @@ class RegularizedTrainer(BaseTrainer):
 
         relative_scaling = self.model._scaling - self._scaling_last
         neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
-        loss['stretch'] = self.shrinked_weighted_l2_loss(
+        loss['stretch'] = weighted_l2_loss(
             relative_scaling.unsqueeze(1),
             neighbor_relative_scaling,
-            self.neighbor_weights)
+            self.neighbor_weights) + relative_scaling.abs().mean()
 
         loss['color'] = color_l2_loss(
             self.model._features_dc,
@@ -135,5 +113,5 @@ class RegularizedTrainerFactory(TrainerFactory):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, model: GaussianModel, dataset: FrameCameraDataset) -> BaseTrainer:
+    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
         return RegularizedTrainer(model, dataset.scene_extent(), *self.args, **self.kwargs)
