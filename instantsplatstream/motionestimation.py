@@ -1,3 +1,4 @@
+import itertools
 import torch
 import os
 from tqdm import tqdm
@@ -8,10 +9,11 @@ from gaussian_splatting import GaussianModel
 import gaussian_splatting.train
 from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
-from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_motion_estimator
+from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
 from instantsplatstream.motionestimator.compensater import BaseMotionCompensater, RegularizedMotionCompensater
 from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator
 from instantsplatstream.trainer import build_trainer_factory
+from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingRefiner
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -30,11 +32,20 @@ def save_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fm
 
 def build_motion_compensater(estimator: str, gaussians: GaussianModel, dataset: VideoCameraDataset, device: torch.device, batch_size: int, **kwargs) -> MotionCompensater:
     if estimator.startswith("it-"):
-        batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(estimator.split("-", 1)[1]), iteration=1000, device=device)
+        trainer = estimator.split("-", 1)[1]
+        batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer), iteration=1000, device=device)
+        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+        motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+    elif estimator.startswith("refine-"):
+        _, trainer, estimator = estimator.split("-", 2)
+        batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
+        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+        motion_compensater = RegularizedMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+        batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer), iteration=1000, device=device)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     else:
-        batch_func = build_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
+        batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         # motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
         motion_compensater = RegularizedMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
@@ -60,7 +71,11 @@ if __name__ == "__main__":
     parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--device", default="cuda", type=str)
 
-    parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3", "it-base", "it-regularized"], default="dot-cotracker3")
+    estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
+    incremental_choices = ["base", "regularized"]
+    refiner_choices = ["refine-" + incremental + "-" + estimator for incremental, estimator in itertools.product(incremental_choices, estimator_choices)]
+    all_choices = estimator_choices + ["it-" + incremental for incremental in incremental_choices] + refiner_choices
+    parser.add_argument("--estimator", choices=all_choices, default="dot-cotracker3")
     parser.add_argument("--iteration_init", required=True, type=str, help="iteration of the initial gaussians")
     parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")

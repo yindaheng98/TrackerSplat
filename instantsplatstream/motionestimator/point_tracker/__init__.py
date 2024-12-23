@@ -4,7 +4,7 @@ from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimator
 from .fuser import BaseMotionFuser
 
 
-def build_motion_estimator(estimator: str, fuser: MotionFuser, device="cuda", *args, **kwargs) -> PointTrackMotionEstimator:
+def build_point_track_batch_motion_estimator(estimator: str, fuser: MotionFuser, device="cuda", *args, **kwargs) -> PointTrackMotionEstimator:
     return {
         "dot": DotMotionEstimator,
         "dot-tapir": TapirDotMotionEstimator,

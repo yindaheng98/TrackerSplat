@@ -6,7 +6,7 @@ from typing import List
 from dot.utils.io import read_frame
 from instantsplatstream.dataset import prepare_fixedview_dataset
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from instantsplatstream.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_motion_estimator
+from instantsplatstream.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_point_track_batch_motion_estimator
 from instantsplatstream.motionestimator.point_tracker.visualizer import Visualizer
 
 
@@ -46,7 +46,7 @@ if __name__ == "__main__":
         source=args.source, device=args.device,
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=args.n_frames,
         load_camera=args.load_camera)
-    estimator = build_motion_estimator(estimator=args.estimator, fuser=FakeFuser(), device=args.device, rescale_factor=args.tracking_rescale)
+    estimator = build_point_track_batch_motion_estimator(estimator=args.estimator, fuser=FakeFuser(), device=args.device, rescale_factor=args.tracking_rescale)
     frame_dirname = args.frame_folder_fmt % args.start_frame + "-" + ((args.frame_folder_fmt % (args.start_frame + args.n_frames - 1)) if args.n_frames is not None else "")
     result_path = os.path.join(args.destination, "tracks", frame_dirname)
     visualizers = [
