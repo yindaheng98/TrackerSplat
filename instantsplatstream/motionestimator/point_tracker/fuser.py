@@ -119,7 +119,7 @@ class BaseMotionFuser(MotionFuser):
         '''Overload this method to make your own mask and weights'''
         # return mean3D, mask, weight
         error_avg = error.abs().sum(-1)  # /alpha[mask] # do not use weight for mean3D
-        error_clamp = 8
+        error_clamp = 2
         small_mask = error_avg < error_clamp
         mask = mask.clone()
         mask[mask.clone()] = small_mask
