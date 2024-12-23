@@ -5,7 +5,7 @@ from gaussian_splatting import GaussianModel, Camera
 from gaussian_splatting.trainer import BaseTrainer
 from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
 from instantsplatstream.utils.simple_knn import knn_kernel
-from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory
+from .abc import TrainerFactory
 
 
 def quaternion_mult(q1, q2):
