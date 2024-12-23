@@ -9,5 +9,5 @@ class BaseTrainerFactory(TrainerFactory):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
+    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
         return BaseTrainer(model, dataset.scene_extent(), *self.args, **self.kwargs)

@@ -45,7 +45,7 @@ def compare(baseframe: GaussianModel, curframe: GaussianModel) -> Motion:
 
 class TrainerFactory(metaclass=ABCMeta):
     @abstractmethod
-    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> AbstractTrainer:
+    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> AbstractTrainer:
         raise NotImplementedError
 
 
@@ -67,7 +67,7 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator, metaclas
         for i in range(1, len(views[0].frames_path)):
             curr_frame = copy.deepcopy(self.baseframe)
             dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
-            trainer = self.trainer_factory(curr_frame, dataset)
+            trainer = self.trainer_factory(curr_frame, self.baseframe, dataset)
             training(dataset, trainer, self.iteration)
             motions.append(compare(self.baseframe, curr_frame))
         return motions

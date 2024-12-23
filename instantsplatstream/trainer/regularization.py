@@ -30,6 +30,7 @@ class RegularizedTrainer(BaseTrainer):
 
     def __init__(
             self, model: GaussianModel,
+            basemodel: GaussianModel,
             spatial_lr_scale: float,
             neighbors=8,
             stretch_shrink_start=4,
@@ -43,7 +44,7 @@ class RegularizedTrainer(BaseTrainer):
         self.scaling_max = scaling_max
         self.loss_weight_overall = loss_weight_overall
         self.loss_weights = loss_weights
-        self.update_knn(model)
+        self.update_knn(basemodel)
 
     def update_knn(self, last_gaussian: GaussianModel) -> 'RegularizedTrainer':
         self._features_dc_last = last_gaussian._features_dc.detach()
@@ -113,5 +114,5 @@ class RegularizedTrainerFactory(TrainerFactory):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
-        return RegularizedTrainer(model, dataset.scene_extent(), *self.args, **self.kwargs)
+    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
+        return RegularizedTrainer(model, basemodel, dataset.scene_extent(), *self.args, **self.kwargs)
