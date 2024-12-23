@@ -10,6 +10,8 @@ from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDat
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
 from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_motion_estimator
 from instantsplatstream.motionestimator.compensater import BaseMotionCompensater, RegularizedMotionCompensater
+from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator
+from instantsplatstream.trainer import build_trainer_factory
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -31,6 +33,13 @@ def build_motion_compensater(estimator: str, gaussians: GaussianModel, dataset: 
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
     # motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     motion_compensater = RegularizedMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+    return motion_compensater
+
+
+def build_incremental_trainer(trainer: str, gaussians: GaussianModel, dataset: VideoCameraDataset, device: torch.device, batch_size: int, **kwargs) -> MotionCompensater:
+    batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory("base"), iteration=100, device=device)
+    motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+    motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     return motion_compensater
 
 
@@ -63,13 +72,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
     save_frame_cfg_args = partial(save_cfg_args, sh_degree=args.sh_degree, source=args.source, destination=args.destination, frame_folder_fmt=args.frame_folder_fmt)
     load_ply = os.path.join(args.destination, args.frame_folder_fmt % args.start_frame, "point_cloud", "iteration_" + str(args.iteration_init), "point_cloud.ply")
-    with torch.no_grad():
-        gaussians = prepare_gaussians(
-            sh_degree=args.sh_degree, device=args.device,
-            load_ply=load_ply)
-        dataset = prepare_fixedview_dataset(
-            source=args.source, device=args.device,
-            frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
-            load_camera=args.load_camera)
-        motion_compensater = build_motion_compensater(args.estimator, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
-        motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
+    gaussians = prepare_gaussians(
+        sh_degree=args.sh_degree, device=args.device,
+        load_ply=load_ply)
+    dataset = prepare_fixedview_dataset(
+        source=args.source, device=args.device,
+        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
+        load_camera=args.load_camera)
+    motion_compensater = build_motion_compensater(args.estimator, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
+    # motion_compensater = build_incremental_trainer(args.estimator, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
+    motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
