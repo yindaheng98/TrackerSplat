@@ -29,17 +29,15 @@ def save_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fm
 
 
 def build_motion_compensater(estimator: str, gaussians: GaussianModel, dataset: VideoCameraDataset, device: torch.device, batch_size: int, **kwargs) -> MotionCompensater:
-    batch_func = build_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
-    motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-    # motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
-    motion_compensater = RegularizedMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
-    return motion_compensater
-
-
-def build_incremental_trainer(trainer: str, gaussians: GaussianModel, dataset: VideoCameraDataset, device: torch.device, batch_size: int, **kwargs) -> MotionCompensater:
-    batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory("base"), iteration=100, device=device)
-    motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-    motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+    if estimator.startswith("it-"):
+        batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(estimator.split("-", 1)[1]), iteration=1000, device=device)
+        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+        motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+    else:
+        batch_func = build_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
+        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+        # motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+        motion_compensater = RegularizedMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     return motion_compensater
 
 
@@ -62,7 +60,7 @@ if __name__ == "__main__":
     parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--device", default="cuda", type=str)
 
-    parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"], default="dot-cotracker3")
+    parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3", "it-base", "it-regularized"], default="dot-cotracker3")
     parser.add_argument("--iteration_init", required=True, type=str, help="iteration of the initial gaussians")
     parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
@@ -80,5 +78,4 @@ if __name__ == "__main__":
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
     motion_compensater = build_motion_compensater(args.estimator, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
-    # motion_compensater = build_incremental_trainer(args.estimator, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
