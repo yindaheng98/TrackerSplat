@@ -58,7 +58,7 @@ if __name__ == "__main__":
     for frame in cameras:
         assert len(frame) == len(cameras[0])
     views = [FixedViewFrameSequenceMeta.from_datasetcameras(frame) for frame in zip(*cameras)]
-    for idx, view in enumerate(views):
+    for view in views:
         track = estimator.tracker(view)
         n, h, w, c = track.track.shape
         x = torch.arange(w, dtype=torch.float, device=track.track.device)
@@ -79,11 +79,12 @@ if __name__ == "__main__":
             frame = read_frame(path, resolution=estimator.tracker.compute_rescale(view))
             video.append(frame)
         video = torch.stack(video).to(track.device)
+        idx = os.path.splitext(os.path.basename(view.frames_path[0]))[0]
         for mode in ["overlay", "spaghetti_last_static"]:
             visualizer({
                 "video": video,
                 "tracks": track.permute(0, 2, 1, 3),
                 "mask": mask.permute(1, 0),
-            }, mode=mode, result_path=os.path.join(result_path, "view_%d" % idx))
-        torch.save(track, os.path.join(result_path, "view_%dtrack.pt" % idx))
-        write_video(video, os.path.join(result_path, "view_%dvideo" % idx))
+            }, mode=mode, result_path=os.path.join(result_path, idx))
+        torch.save(track, os.path.join(result_path, "%strack.pt" % idx))
+        write_video(video, os.path.join(result_path, "%svideo" % idx))
