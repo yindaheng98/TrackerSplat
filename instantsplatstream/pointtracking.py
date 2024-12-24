@@ -1,4 +1,3 @@
-import itertools
 import os
 import torch
 from typing import List
@@ -8,6 +7,7 @@ from instantsplatstream.dataset import prepare_fixedview_dataset
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
 from instantsplatstream.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_point_track_batch_motion_estimator
 from instantsplatstream.motionestimator.point_tracker.visualizer import Visualizer
+from dot.utils.io import write_video
 
 
 class FakeFuser(MotionFuser):
@@ -49,16 +49,10 @@ if __name__ == "__main__":
     estimator = build_point_track_batch_motion_estimator(estimator=args.estimator, fuser=FakeFuser(), device=args.device, rescale_factor=args.tracking_rescale)
     frame_dirname = args.frame_folder_fmt % args.start_frame + "-" + ((args.frame_folder_fmt % (args.start_frame + args.n_frames - 1)) if args.n_frames is not None else "")
     result_path = os.path.join(args.destination, "tracks", frame_dirname)
-    visualizers = [
-        Visualizer(
-            "image", 0.75,
-            args.spaghetti_radius, args.spaghetti_length, args.spaghetti_grid, args.spaghetti_scale, args.spaghetti_every, args.spaghetti_dropout
-        ).to(args.device),
-        Visualizer(
-            "video", 0.75,
-            args.spaghetti_radius, args.spaghetti_length, args.spaghetti_grid, args.spaghetti_scale, args.spaghetti_every, args.spaghetti_dropout
-        ).to(args.device)
-    ]
+    visualizer = Visualizer(
+        "image", 0.75,
+        args.spaghetti_radius, args.spaghetti_length, args.spaghetti_grid, args.spaghetti_scale, args.spaghetti_every, args.spaghetti_dropout
+    ).to(args.device)
 
     cameras = dataset.get_metas()
     for frame in cameras:
@@ -85,9 +79,11 @@ if __name__ == "__main__":
             frame = read_frame(path, resolution=estimator.tracker.compute_rescale(view))
             video.append(frame)
         video = torch.stack(video).to(track.device)
-        for mode, visualizer in itertools.product(["overlay", "spaghetti_last_static"], visualizers):
+        for mode in ["overlay", "spaghetti_last_static"]:
             visualizer({
                 "video": video,
                 "tracks": track.permute(0, 2, 1, 3),
                 "mask": mask.permute(1, 0),
             }, mode=mode, result_path=os.path.join(result_path, "view_%d" % idx))
+        torch.save(track, os.path.join(result_path, "view_%dtrack.pt" % idx))
+        write_video(video, os.path.join(result_path, "view_%dvideo" % idx))
