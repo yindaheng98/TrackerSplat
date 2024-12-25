@@ -71,8 +71,8 @@ class BaseMotionFuser(MotionFuser):
 
     def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, fixed_pixhits, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
-        # a gaussian should be fixed if it hit by more than 6 pixels and has more than 90% of its pixels fixed in at least 2 views
-        hits_in_view_threshold, n_views_threshold, avg_in_view_threshold, alpha_rel_threshold, alpha_abs_threshold = 4*4, 2, 0.9, 0.9, 0.9
+        # a gaussian should be fixed if it hit by more than 9 pixels and has more than 90% of its pixels fixed in at least 2 views
+        hits_in_view_threshold, n_views_threshold, avg_in_view_threshold, alpha_rel_threshold, alpha_abs_threshold = 3*3, 2, 0.9, 0.5, 1.0
         hits_in_view_mask = fixed_pixhits > hits_in_view_threshold
         fixed_avg = torch.zeros_like(fixed_sum)
         fixed_avg[fixed_alpha > 1e-12] = fixed_sum[fixed_alpha > 1e-12] / fixed_alpha[fixed_alpha > 1e-12]
