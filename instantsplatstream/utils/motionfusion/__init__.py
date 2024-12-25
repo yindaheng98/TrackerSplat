@@ -79,5 +79,5 @@ def solve_transform(mean, cov3D, fovx, fovy, width, height, view_matrix, full_pr
     cov2D_transformed = transform_cov2D(A2D, cov2D)
     X, Y = solve_cov3D(mean, fovx, fovy, width, height, view_matrix, cov2D_transformed)
     point_image = compute_mean2D(full_proj_transform, width, height, mean)
-    A = compute_mean2D_equations(full_proj_transform, width, height, point_image + b2D)
+    A = compute_mean2D_equations(full_proj_transform, width, height, (A2D @ point_image.unsqueeze(-1)).squeeze(-1) + b2D)
     return X, Y, A

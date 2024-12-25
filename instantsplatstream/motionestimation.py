@@ -11,9 +11,7 @@ from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDat
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
 from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
 from instantsplatstream.motionestimator.compensater import BaseMotionCompensater, RegularizedMotionCompensater
-from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator
-from instantsplatstream.trainer import build_trainer_factory
-from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingRefiner
+from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
