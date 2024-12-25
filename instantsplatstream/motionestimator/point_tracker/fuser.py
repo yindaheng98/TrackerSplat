@@ -66,8 +66,8 @@ class BaseMotionFuser(MotionFuser):
         xy = torch.stack(torch.meshgrid(x, y, indexing='xy'), dim=-1)
         dist = torch.linalg.norm(xy - track, dim=-1)
         is_static = (dist < motion_threshold).type(torch.float).unsqueeze(-1)
-        _, features, features_alpha, features_idx = feature_fusion(self.gaussians, camera, is_static, 0)
-        return features.squeeze(-1), features_alpha, features_idx
+        _, features, features_alpha, pixhit, features_idx = feature_fusion(self.gaussians, camera, is_static, 0)
+        return features.squeeze(-1), features_alpha, pixhit, features_idx
 
     def compute_fixed_mask_and_weights(self, fixed_sum, fixed_alpha, fixed_pixhits, viewhits, alpha, pixhits):
         '''Overload this method to make your own mask and weights'''
@@ -164,11 +164,11 @@ class BaseMotionFuser(MotionFuser):
             weights[valid_mask] += weight
             pixhits += pixhit
             viewhits[valid_mask] += 1
-            fixed_sum, fixed_alpha, fixed_idx = self._count_fixed_pixels(camera, track)
+            fixed_sum, fixed_alpha, fixed_pixhit, fixed_idx = self._count_fixed_pixels(camera, track)
             fixed_sums[fixed_idx, i] = fixed_sum
             fixed_alphas[fixed_idx, i] = fixed_alpha
             fixed_viewhits[fixed_idx] += 1
-            fixed_pixhits[:, i] = pixhit
+            fixed_pixhits[fixed_idx, i] = fixed_pixhit
 
         # solve cov and mean mask
         U, S, A_count = isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count
