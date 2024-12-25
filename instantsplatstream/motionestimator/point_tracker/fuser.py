@@ -163,7 +163,7 @@ class BaseMotionFuser(MotionFuser):
         pixhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         viewhits = torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.int)
         isvd = ISVD_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, k=len(tracks), dtype=torch.float32)
-        # isvd = ISVDSelectK_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, dtype=torch.float32)
+        # isvd = ISVDSelectK_Mean3D(batch_size=gaussians.get_xyz.shape[0], device=self.device, k=3, dtype=torch.float32)
         ils = ILS_RotationScale(batch_size=gaussians.get_xyz.shape[0], k=len(tracks), device=self.device)
         for i, (camera, track) in enumerate(zip(tqdm(cameras, desc="Computing motion"), tracks)):
             X, Y, A, valid_mask, weight, pixhit = self._compute_equations(camera, track)
