@@ -11,61 +11,36 @@ from .filter import FilteredMotionCompensater
 
 class PropagatedMotionCompensater(FilteredMotionCompensater):
 
-    def compute_neighbor_rotation(self, motion: Motion, fix_confidence) -> torch.Tensor:
-        assert motion.rotation_quaternion is not None, "Rotation quaternion is required"
-        assert motion.motion_mask_cov is not None, "Covariance motion mask is required"
-        rotation_axis_angle = quaternion_to_axis_angle(motion.rotation_quaternion)
+    def compute_neighbor_rotation(self, rotation_quaternion: torch.Tensor, motion_mask_cov: torch.Tensor, confidence_cov: torch.Tensor, fixed_mask: torch.Tensor) -> torch.Tensor:
+        assert rotation_quaternion is not None, "Rotation quaternion is required"
+        assert motion_mask_cov is not None, "Covariance motion mask is required"
+        rotation_axis_angle = quaternion_to_axis_angle(rotation_quaternion)
         prop_axis_angle, prop_confidence = propagate(
-            init_mask=motion.motion_mask_cov.clone(),
+            init_mask=motion_mask_cov.clone(),
             init_value_at_mask=rotation_axis_angle,
-            init_weight_at_mask=motion.confidence_cov,
+            init_weight_at_mask=confidence_cov,
             neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
         )
         # prop_axis_angle *= (prop_confidence / (prop_confidence + fix_confidence)).unsqueeze(-1) # TODO: fix 0 division
         rotation_quaternion = axis_angle_to_quaternion(prop_axis_angle)
         return rotation_quaternion
 
-    def compute_neighbor_transformation(self, motion: Motion, fix_confidence) -> torch.Tensor:
-        assert motion.translation_vector is not None, "Translation vector is required"
-        assert motion.motion_mask_mean is not None, "Translation mask is required"
+    def compute_neighbor_transformation(self, translation_vector: torch.Tensor, motion_mask_mean: torch.Tensor, confidence_mean: torch.Tensor, fixed_mask: torch.Tensor) -> torch.Tensor:
         prop_translation_vector, prop_confidence = propagate(
-            init_mask=motion.motion_mask_mean.clone(),
-            init_value_at_mask=motion.translation_vector,
-            init_weight_at_mask=motion.confidence_mean,
+            init_mask=motion_mask_mean.clone(),
+            init_value_at_mask=translation_vector,
+            init_weight_at_mask=confidence_mean,
             neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
         )
         # prop_translation_vector *= (prop_confidence / (prop_confidence + fix_confidence)).unsqueeze(-1) # TODO: fix 0 division
         return prop_translation_vector
 
-    def median_neighbor_transformation(self, motion: Motion) -> torch.Tensor:
-        assert motion.translation_vector is not None, "Translation vector is required"
-        assert motion.motion_mask_mean is not None, "Translation mask is required"
-        median_translation_vector = motion_median_filter(
-            mask=motion.motion_mask_mean.clone(),
-            motion=motion.translation_vector,
-            neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
-        )
-        return median_translation_vector
-
-    def compute_neighbor_fix(self, motion: Motion) -> torch.Tensor:
-        assert motion.confidence_fix is not None, "Fix confidence is required"
-        assert motion.fixed_mask is not None, "Fixed mask is required"
-        prop_fix, prop_confidence = propagate(
-            init_mask=motion.fixed_mask.clone(),
-            init_value_at_mask=torch.ones_like(motion.confidence_fix).unsqueeze(-1),
-            init_weight_at_mask=motion.confidence_fix,
-            neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
-        )
-        return prop_fix, prop_confidence
-
     def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
-        median_translation_vector = self.median_neighbor_transformation(motion)
-        motion = motion._replace(translation_vector=median_translation_vector)
-        _, fix_confidence = self.compute_neighbor_fix(motion)
-        rotation = self.compute_neighbor_rotation(motion, fix_confidence)
-        translation = self.compute_neighbor_transformation(motion, fix_confidence)
+        median_translation_vector = self.median_filter_neighbor_transformation(motion.translation_vector, motion.motion_mask_mean)
+        rotation = self.compute_neighbor_rotation(motion.rotation_quaternion, motion.motion_mask_cov, motion.confidence_cov, motion.fixed_mask)
+        translation = self.compute_neighbor_transformation(median_translation_vector, motion.motion_mask_mean, motion.confidence_mean, motion.fixed_mask)
         rotation[motion.fixed_mask, 0] = 1
         rotation[motion.fixed_mask, 1:] = 0
         translation[motion.fixed_mask, :] = 0
