@@ -6,7 +6,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_to_matrix
 from instantsplatstream.motionestimator import Motion
 from instantsplatstream.utils.simple_knn import knn_kernel
-from instantsplatstream.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
+from instantsplatstream.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate, motion_median_filter
 
 from .base import BaseMotionCompensater, transform_xyz, transform_rotation, transform_scaling
 
@@ -67,6 +67,16 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
         # prop_translation_vector *= (prop_confidence / (prop_confidence + fix_confidence)).unsqueeze(-1) # TODO: fix 0 division
         return prop_translation_vector
 
+    def median_neighbor_transformation(self, motion: Motion) -> torch.Tensor:
+        assert motion.translation_vector is not None, "Translation vector is required"
+        assert motion.motion_mask_mean is not None, "Translation mask is required"
+        median_translation_vector = motion_median_filter(
+            mask=motion.motion_mask_mean.clone(),
+            motion=motion.translation_vector,
+            neighbor_indices=self.neighbor_indices, neighbor_weights=self.neighbor_weights
+        )
+        return median_translation_vector
+
     def compute_neighbor_fix(self, motion: Motion) -> torch.Tensor:
         assert motion.confidence_fix is not None, "Fix confidence is required"
         assert motion.fixed_mask is not None, "Fixed mask is required"
@@ -81,6 +91,8 @@ class RegularizedMotionCompensater(BaseMotionCompensater):
     def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
+        median_translation_vector = self.median_neighbor_transformation(motion)
+        motion = motion._replace(translation_vector=median_translation_vector)
         _, fix_confidence = self.compute_neighbor_fix(motion)
         rotation = self.compute_neighbor_rotation(motion, fix_confidence)
         translation = self.compute_neighbor_transformation(motion, fix_confidence)
