@@ -2,10 +2,10 @@ import torch
 import torch.nn.functional as F
 from gaussian_splatting.utils import quaternion_to_matrix
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer import BaseTrainer
 from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
 from instantsplatstream.utils.simple_knn import knn_kernel
 from .abc import TrainerFactory
+from .base import BaseTrainerNoScale
 
 
 def quaternion_mult(q1, q2):
@@ -26,7 +26,7 @@ def color_l2_loss(x, y):
     return torch.sqrt((torch.flatten(x - y, start_dim=1) ** 2).sum(-1) + 1e-20).mean()
 
 
-class RegularizedTrainer(BaseTrainer):
+class RegularizedTrainer(BaseTrainerNoScale):
 
     def __init__(
             self, model: GaussianModel,
@@ -114,5 +114,5 @@ class RegularizedTrainerFactory(TrainerFactory):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
+    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> RegularizedTrainer:
         return RegularizedTrainer(model, basemodel, dataset.scene_extent(), *self.args, **self.kwargs)
