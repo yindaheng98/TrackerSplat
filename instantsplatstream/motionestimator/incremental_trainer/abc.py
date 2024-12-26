@@ -13,27 +13,6 @@ from gaussian_splatting.utils import quaternion_raw_multiply
 from instantsplatstream.utils import quaternion_invert
 
 
-def training(dataset: CameraDataset, trainer: AbstractTrainer, iteration: int):
-    pbar = tqdm(range(1, iteration+1))
-    epoch = list(range(len(dataset)))
-    epoch_psnr = torch.empty(3, 0)
-    ema_loss_for_log = 0.0
-    avg_psnr_for_log = 0.0
-    for step in pbar:
-        epoch_idx = step % len(dataset)
-        if epoch_idx == 0:
-            avg_psnr_for_log = epoch_psnr.mean().item()
-            epoch_psnr = torch.empty(3, 0)
-            random.shuffle(epoch)
-        idx = epoch[epoch_idx]
-        loss, out = trainer.step(dataset[idx])
-        with torch.no_grad():
-            ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-            epoch_psnr = torch.concat([epoch_psnr.to(out["render"].device), psnr(out["render"], dataset[idx].ground_truth_image)], dim=1)
-            if step % 10 == 0:
-                pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log})
-
-
 def compare(baseframe: GaussianModel, curframe: GaussianModel) -> Motion:
     with torch.no_grad():
         return Motion(
@@ -62,13 +41,35 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator, metaclas
         self.device = device
         return self
 
+    @staticmethod
+    def training(dataset: CameraDataset, trainer: AbstractTrainer, iteration: int):
+        '''Overload this method to make your own training'''
+        pbar = tqdm(range(1, iteration+1))
+        epoch = list(range(len(dataset)))
+        epoch_psnr = torch.empty(3, 0)
+        ema_loss_for_log = 0.0
+        avg_psnr_for_log = 0.0
+        for step in pbar:
+            epoch_idx = step % len(dataset)
+            if epoch_idx == 0:
+                avg_psnr_for_log = epoch_psnr.mean().item()
+                epoch_psnr = torch.empty(3, 0)
+                random.shuffle(epoch)
+            idx = epoch[epoch_idx]
+            loss, out = trainer.step(dataset[idx])
+            with torch.no_grad():
+                ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+                epoch_psnr = torch.concat([epoch_psnr.to(out["render"].device), psnr(out["render"], dataset[idx].ground_truth_image)], dim=1)
+                if step % 10 == 0:
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log})
+
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
         motions = []
         for i in range(1, len(views[0].frames_path)):
             curr_frame = copy.deepcopy(self.baseframe)
             dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
             trainer = self.trainer_factory(curr_frame, self.baseframe, dataset)
-            training(dataset, trainer, self.iteration)
+            self.training(dataset, trainer, self.iteration)
             motions.append(compare(self.baseframe, curr_frame))
         return motions
 
