@@ -16,6 +16,10 @@ class Motion(NamedTuple):
     confidence_mean: torch.Tensor = None
     update_baseframe: bool = True
 
+    opacity_modifier_log: torch.Tensor = None
+    features_dc_modifier: torch.Tensor = None
+    features_rest_modifier: torch.Tensor = None
+
     def validate(self):
         if self.fixed_mask is not None:
             assert self.fixed_mask.dtype == torch.bool and self.fixed_mask.dim() == 1
@@ -92,7 +96,6 @@ class MotionCompensater(metaclass=ABCMeta):
         motion = self.estimator.__next__()
         motion.validate()
         currframe = self.compensate(self.baseframe, motion)
-        # TODO: Training the model
         if motion.update_baseframe:
             self.update_baseframe(currframe)
         return currframe

@@ -47,4 +47,13 @@ class BaseMotionCompensater(MotionCompensater):
             currframe._rotation = nn.Parameter(transform_rotation(baseframe, motion.rotation_quaternion, motion.motion_mask_cov))
         if motion.scaling_modifier_log is not None:
             currframe._scaling = nn.Parameter(transform_scaling(baseframe, motion.scaling_modifier_log, motion.motion_mask_cov))
+        if motion.opacity_modifier_log is not None:
+            with torch.no_grad():
+                currframe._opacity = nn.Parameter(motion.opacity_modifier_log + baseframe._opacity)
+        if motion.features_dc_modifier is not None:
+            with torch.no_grad():
+                currframe._features_dc = nn.Parameter(motion.features_dc_modifier + baseframe._features_dc)
+        if motion.features_rest_modifier is not None:
+            with torch.no_grad():
+                currframe._features_rest = nn.Parameter(motion.features_rest_modifier + baseframe._features_rest)
         return currframe

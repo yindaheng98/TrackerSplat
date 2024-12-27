@@ -63,4 +63,13 @@ class PropagatedMotionCompensater(FilteredMotionCompensater):
             currframe._scaling = nn.Parameter(transform_scaling(baseframe, scaling_modifier_log, motion.motion_mask_cov))
         # with torch.no_grad():
         #     currframe._opacity[fixed_mask] += currframe.inverse_opacity_activation(torch.tensor(0.05, device=currframe._opacity.device))  # debug
+        if motion.opacity_modifier_log is not None:
+            with torch.no_grad():
+                currframe._opacity = nn.Parameter(motion.opacity_modifier_log + baseframe._opacity)
+        if motion.features_dc_modifier is not None:
+            with torch.no_grad():
+                currframe._features_dc = nn.Parameter(motion.features_dc_modifier + baseframe._features_dc)
+        if motion.features_rest_modifier is not None:
+            with torch.no_grad():
+                currframe._features_rest = nn.Parameter(motion.features_rest_modifier + baseframe._features_rest)
         return currframe
