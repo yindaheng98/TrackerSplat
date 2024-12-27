@@ -42,27 +42,18 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
         os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
         with open(self.log_path, "w") as f:
             f.write(f"step,psnr,ssim,lpips\n")
-        pbar = tqdm(range(1, iteration+1))
+        pbar = tqdm(range(iteration))
         epoch = list(range(len(dataset)))
+        random.shuffle(epoch)
+        avg_psnr_for_log = 0.0
+        avg_ssim_for_log = 0.0
+        avg_lpips_for_log = 0.0
         epoch_psnr = torch.zeros(len(dataset), 3)
         epoch_ssim = torch.zeros(len(dataset))
         epoch_lpips = torch.zeros(len(dataset))
         ema_loss_for_log = 0.0
-        avg_psnr_for_log = 0.0
-        avg_ssim_for_log = 0.0
-        avg_lpips_for_log = 0.0
         for step in pbar:
             epoch_idx = step % len(dataset)
-            if epoch_idx == 0:
-                avg_psnr_for_log = epoch_psnr.mean().item()
-                avg_ssim_for_log = epoch_ssim.mean().item()
-                avg_lpips_for_log = epoch_lpips.mean().item()
-                with open(self.log_path, "a") as f:
-                    f.write(f"{step // len(dataset)},{avg_psnr_for_log},{avg_ssim_for_log},{avg_lpips_for_log}\n")
-                epoch_psnr = torch.zeros(len(dataset), 3)
-                epoch_ssim = torch.zeros(len(dataset))
-                epoch_lpips = torch.zeros(len(dataset))
-                random.shuffle(epoch)
             idx = epoch[epoch_idx]
             loss, out = trainer.step(dataset[idx])
             with torch.no_grad():
@@ -72,6 +63,16 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
                 epoch_lpips[epoch_idx] = lpips(out["render"], dataset[idx].ground_truth_image).to(epoch_psnr.device)
                 if step % 10 == 0:
                     pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log})
+            if epoch_idx + 1 == len(dataset):
+                random.shuffle(epoch)
+                avg_psnr_for_log = epoch_psnr.mean().item()
+                avg_ssim_for_log = epoch_ssim.mean().item()
+                avg_lpips_for_log = epoch_lpips.mean().item()
+                with open(self.log_path, "a") as f:
+                    f.write(f"{step // len(dataset)},{avg_psnr_for_log},{avg_ssim_for_log},{avg_lpips_for_log}\n")
+                epoch_psnr = torch.zeros(len(dataset), 3)
+                epoch_ssim = torch.zeros(len(dataset))
+                epoch_lpips = torch.zeros(len(dataset))
 
     def update_log_path(self, log_path: str) -> 'ITLogger':
         self.log_path = log_path
