@@ -39,7 +39,7 @@ def motion_median_filter(
     assert motion.size(1) == 3
 
     motions_median = motion.clone()
-    sorting_space = torch.zeros(valid_points, knns, 3, device=mask.device, dtype=motion.dtype) + float('inf')
+    sorting_space = motion.unsqueeze(1).repeat(1, knns, 1).clone()
     masked_neighbor_indices = torch.full((points,), -1, device=mask.device, dtype=torch.int32)
     masked_neighbor_indices[mask] = torch.arange(valid_points, device=mask.device, dtype=torch.int32)
     motion_median_filter_kernel(valid_points, knns, neighbor_indices[mask], mask, masked_neighbor_indices, motion, motions_median, sorting_space)
