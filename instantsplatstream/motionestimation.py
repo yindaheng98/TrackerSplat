@@ -9,7 +9,8 @@ from functools import partial
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer
-from gaussian_splatting.utils import psnr
+from gaussian_splatting.utils import psnr, ssim
+from gaussian_splatting.utils.lpipsPyTorch import lpips
 import gaussian_splatting.train
 from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
@@ -40,27 +41,37 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
         '''Overload this method to make your own training'''
         os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
         with open(self.log_path, "w") as f:
-            f.write(f"step,psnr\n")
+            f.write(f"step,psnr,ssim,lpips\n")
         pbar = tqdm(range(1, iteration+1))
         epoch = list(range(len(dataset)))
-        epoch_psnr = torch.empty(3, 0)
+        epoch_psnr = torch.zeros(len(dataset), 3)
+        epoch_ssim = torch.zeros(len(dataset))
+        epoch_lpips = torch.zeros(len(dataset))
         ema_loss_for_log = 0.0
         avg_psnr_for_log = 0.0
+        avg_ssim_for_log = 0.0
+        avg_lpips_for_log = 0.0
         for step in pbar:
             epoch_idx = step % len(dataset)
             if epoch_idx == 0:
                 avg_psnr_for_log = epoch_psnr.mean().item()
+                avg_ssim_for_log = epoch_ssim.mean().item()
+                avg_lpips_for_log = epoch_lpips.mean().item()
                 with open(self.log_path, "a") as f:
-                    f.write(f"{step // len(dataset)},{avg_psnr_for_log}\n")
-                epoch_psnr = torch.empty(3, 0)
+                    f.write(f"{step // len(dataset)},{avg_psnr_for_log},{avg_ssim_for_log},{avg_lpips_for_log}\n")
+                epoch_psnr = torch.zeros(len(dataset), 3)
+                epoch_ssim = torch.zeros(len(dataset))
+                epoch_lpips = torch.zeros(len(dataset))
                 random.shuffle(epoch)
             idx = epoch[epoch_idx]
             loss, out = trainer.step(dataset[idx])
             with torch.no_grad():
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-                epoch_psnr = torch.concat([epoch_psnr.to(out["render"].device), psnr(out["render"], dataset[idx].ground_truth_image)], dim=1)
+                epoch_psnr[epoch_idx] = psnr(out["render"], dataset[idx].ground_truth_image).squeeze(-1).to(epoch_psnr.device)
+                epoch_ssim[epoch_idx] = ssim(out["render"], dataset[idx].ground_truth_image).to(epoch_psnr.device)
+                epoch_lpips[epoch_idx] = lpips(out["render"], dataset[idx].ground_truth_image).to(epoch_psnr.device)
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log})
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log})
 
     def update_log_path(self, log_path: str) -> 'ITLogger':
         self.log_path = log_path
@@ -108,14 +119,16 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
 
 def motion_compensate(motion_compensater: MotionCompensater, itlogger: ITLogger, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
     log_subpath = os.path.join("log", "iteration_" + str(iteration), "log.csv")
-    itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + 1), log_subpath))
+    if itlogger is not None:
+        itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + 1), log_subpath))
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         destination_folder = save_frame_cfg_args(frame=start_frame + i + 1)
         save_path = os.path.join(destination_folder, "point_cloud", "iteration_" + str(iteration))
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(destination_folder, "cameras.json"))
-        itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + i + 2), log_subpath))
+        if itlogger is not None:
+            itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + i + 2), log_subpath))
 
 
 if __name__ == "__main__":
