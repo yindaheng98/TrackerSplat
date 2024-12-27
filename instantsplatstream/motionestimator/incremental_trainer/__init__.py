@@ -1,7 +1,7 @@
 from .abc import IncrementalTrainingMotionEstimator, TrainerFactory
 from .refiner import IncrementalTrainingRefiner
 from .abc import TrainerFactory
-from .base import BaseTrainerFactory
+from .base import BaseTrainerNoScale, BaseTrainerFactory
 from .regularization import RegularizedTrainerFactory, RegularizedTrainer
 
 

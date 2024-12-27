@@ -8,7 +8,7 @@ from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
 from gaussian_splatting.train import save_cfg_args, training
-from instantsplatstream.motionestimator.incremental_trainer import RegularizedTrainer
+from instantsplatstream.motionestimator.incremental_trainer import BaseTrainerNoScale, RegularizedTrainer
 
 
 def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
@@ -17,7 +17,7 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
     dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
     match mode:
         case "base":
-            trainer = BaseTrainer(
+            trainer = BaseTrainerNoScale(
                 gaussians,
                 spatial_lr_scale=dataset.scene_extent(),
                 **configs
