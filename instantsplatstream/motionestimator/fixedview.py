@@ -128,6 +128,7 @@ class FixedViewMotionEstimator(MotionEstimator):
         if initframe_idx != self.curr_initframe_idx:
             motions = self.batch_func(self.frames[initframe_idx:initframe_idx + self.batch_size])
             assert len(motions) == self.batch_size-1
+            motions = [motion._replace(update_baseframe=False) for motion in motions]
             motions[-1] = motions[-1]._replace(update_baseframe=True)
             self.curr_motions = motions
             self.curr_initframe_idx = initframe_idx

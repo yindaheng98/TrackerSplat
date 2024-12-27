@@ -223,5 +223,4 @@ class BaseMotionFuser(MotionFuser):
             confidence_fix=weights_fixed,
             confidence_cov=weights_cov,
             confidence_mean=weights_mean,
-            update_baseframe=False
         )

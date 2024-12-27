@@ -14,7 +14,7 @@ class Motion(NamedTuple):
     confidence_fix: torch.Tensor = None
     confidence_cov: torch.Tensor = None
     confidence_mean: torch.Tensor = None
-    update_baseframe: bool = True
+    update_baseframe: bool = False
 
     opacity_modifier_log: torch.Tensor = None
     features_dc_modifier: torch.Tensor = None
