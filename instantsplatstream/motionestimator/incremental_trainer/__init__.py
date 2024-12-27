@@ -1,4 +1,4 @@
-from .abc import IncrementalTrainingMotionEstimator, TrainerFactory
+from .abc import IncrementalTrainingMotionEstimator, IncrementalTrainingMotionEstimatorWrapper, TrainerFactory
 from .refiner import IncrementalTrainingRefiner
 from .abc import TrainerFactory
 from .base import BaseTrainerNoScale, BaseTrainerFactory

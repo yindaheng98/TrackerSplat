@@ -1,17 +1,21 @@
 import itertools
 import torch
 import os
+import random
 from tqdm import tqdm
 from os import makedirs
 from itertools import islice
 from functools import partial
 from gaussian_splatting import GaussianModel
+from gaussian_splatting.dataset import CameraDataset
+from gaussian_splatting.trainer import AbstractTrainer
+from gaussian_splatting.utils import psnr
 import gaussian_splatting.train
 from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
 from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
 from instantsplatstream.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
-from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory
+from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, IncrementalTrainingMotionEstimatorWrapper
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -28,6 +32,41 @@ def save_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fm
     return destination_folder
 
 
+class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
+    def __init__(self, base: IncrementalTrainingMotionEstimator):
+        self.base = base
+
+    def training(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int):
+        '''Overload this method to make your own training'''
+        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+        with open(self.log_path, "w") as f:
+            f.write(f"step,psnr\n")
+        pbar = tqdm(range(1, iteration+1))
+        epoch = list(range(len(dataset)))
+        epoch_psnr = torch.empty(3, 0)
+        ema_loss_for_log = 0.0
+        avg_psnr_for_log = 0.0
+        for step in pbar:
+            epoch_idx = step % len(dataset)
+            if epoch_idx == 0:
+                avg_psnr_for_log = epoch_psnr.mean().item()
+                with open(self.log_path, "a") as f:
+                    f.write(f"{step // len(dataset)},{avg_psnr_for_log}\n")
+                epoch_psnr = torch.empty(3, 0)
+                random.shuffle(epoch)
+            idx = epoch[epoch_idx]
+            loss, out = trainer.step(dataset[idx])
+            with torch.no_grad():
+                ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+                epoch_psnr = torch.concat([epoch_psnr.to(out["render"].device), psnr(out["render"], dataset[idx].ground_truth_image)], dim=1)
+                if step % 10 == 0:
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log})
+
+    def update_log_path(self, log_path: str) -> 'ITLogger':
+        self.log_path = log_path
+        return self
+
+
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
 compensater_choices = ["base", "propagate", "filter"]
 trainer_choices = ["base", "regularized"]
@@ -41,10 +80,12 @@ pipeline_choices = train_choices + refine_choices + track_choices
 
 def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCameraDataset, device: torch.device, batch_size: int, **kwargs) -> MotionCompensater:
     mode, estimator = pipeline.split("/", 1)
+    itlogger = None
     if mode == "train":
         trainer = estimator
         batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer), iteration=1000, device=device)
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+        itlogger = ITLogger(batch_func)
+        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=itlogger, device=device, batch_size=batch_size)
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "track":
         compensater, estimator = estimator.split("-", 1)
@@ -57,20 +98,24 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
         batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer), iteration=1000, device=device)
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+        itlogger = ITLogger(batch_func)
+        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=itlogger, device=device, batch_size=batch_size)
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     else:
         ValueError(f"Unknown estimator: {estimator}")
-    return motion_compensater
+    return motion_compensater, itlogger
 
 
-def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
+def motion_compensate(motion_compensater: MotionCompensater, itlogger: ITLogger, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
+    log_subpath = os.path.join("log", "iteration_" + str(iteration), "log.csv")
+    itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + 1), log_subpath))
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         destination_folder = save_frame_cfg_args(frame=start_frame + i + 1)
         save_path = os.path.join(destination_folder, "point_cloud", "iteration_" + str(iteration))
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(destination_folder, "cameras.json"))
+        itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + i + 2), log_subpath))
 
 
 if __name__ == "__main__":
@@ -100,5 +145,5 @@ if __name__ == "__main__":
         source=args.source, device=args.device,
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
-    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
-    motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
+    motion_compensater, itlogger = build_pipeline(args.pipeline, gaussians, dataset, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
+    motion_compensate(motion_compensater, itlogger, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)

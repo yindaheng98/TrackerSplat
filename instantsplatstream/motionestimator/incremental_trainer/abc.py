@@ -31,7 +31,7 @@ class TrainerFactory(metaclass=ABCMeta):
         raise NotImplementedError
 
 
-class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator, metaclass=ABCMeta):
+class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator):
     def __init__(
             self,
             trainer_factory: TrainerFactory,
@@ -78,4 +78,46 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator, metaclas
 
     def update_baseframe(self, frame: GaussianModel) -> 'IncrementalTrainingMotionEstimator':
         self.baseframe = frame
+        return self
+
+
+class IncrementalTrainingMotionEstimatorWrapper(FixedViewBatchMotionEstimator):
+    def __init__(self, base: IncrementalTrainingMotionEstimator):
+        self.base = base
+
+    @property
+    def baseframe(self) -> GaussianModel:
+        return self.base.baseframe
+
+    @property
+    def device(self) -> torch.device:
+        return self.base.device
+
+    @property
+    def trainer_factory(self) -> TrainerFactory:
+        return self.base.trainer_factory
+
+    @property
+    def iteration(self) -> int:
+        return self.base.iteration
+
+    def to(self, device: torch.device) -> 'IncrementalTrainingMotionEstimatorWrapper':
+        self.base.to(device)
+        return self
+
+    def training(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int):
+        self.base.training(dataset, trainer, iteration)
+
+    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
+        motions = []
+        for i in range(1, len(views[0].frames_path)):
+            curr_frame = copy.deepcopy(self.baseframe)
+            dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
+            trainer = self.trainer_factory(curr_frame, self.baseframe, dataset)
+            self.training(dataset, trainer, self.iteration)
+            motions.append(compare(self.baseframe, curr_frame))
+        return motions
+
+    def update_baseframe(self, frame: GaussianModel) -> 'IncrementalTrainingMotionEstimatorWrapper':
+        self.base.update_baseframe(frame)
         return self
