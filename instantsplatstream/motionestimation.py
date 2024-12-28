@@ -6,6 +6,7 @@ from tqdm import tqdm
 from os import makedirs
 from itertools import islice
 from functools import partial
+from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer
@@ -34,13 +35,19 @@ def save_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fm
 
 
 class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
-    def __init__(self, base: IncrementalTrainingMotionEstimator):
-        self.base = base
+    def __init__(self, base: IncrementalTrainingMotionEstimator, log_path: Callable[[int], str] = None):
+        super().__init__(base)
+        if log_path is None:
+            def log_path(_):
+                raise ValueError("log_path is not set")
+        self.log_path = log_path
+        self.frame = 0
 
     def training(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int):
         '''Overload this method to make your own training'''
-        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
-        with open(self.log_path, "w") as f:
+        log_path = self.log_path(self.frame)
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        with open(log_path, "w") as f:
             f.write(f"step,psnr,ssim,lpips\n")
         pbar = tqdm(range(iteration))
         epoch = list(range(len(dataset)))
@@ -68,15 +75,12 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
                 avg_psnr_for_log = epoch_psnr.mean().item()
                 avg_ssim_for_log = epoch_ssim.mean().item()
                 avg_lpips_for_log = epoch_lpips.mean().item()
-                with open(self.log_path, "a") as f:
+                with open(log_path, "a") as f:
                     f.write(f"{step // len(dataset)},{avg_psnr_for_log},{avg_ssim_for_log},{avg_lpips_for_log}\n")
                 epoch_psnr = torch.zeros(len(dataset), 3)
                 epoch_ssim = torch.zeros(len(dataset))
                 epoch_lpips = torch.zeros(len(dataset))
-
-    def update_log_path(self, log_path: str) -> 'ITLogger':
-        self.log_path = log_path
-        return self
+        self.frame += 1
 
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
@@ -121,15 +125,13 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
 def motion_compensate(motion_compensater: MotionCompensater, itlogger: ITLogger, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
     log_subpath = os.path.join("log", "iteration_" + str(iteration), "log.csv")
     if itlogger is not None:
-        itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + 1), log_subpath))
+        itlogger.log_path = lambda frame: os.path.join(save_frame_cfg_args(frame=start_frame + frame + 1), log_subpath)
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         destination_folder = save_frame_cfg_args(frame=start_frame + i + 1)
         save_path = os.path.join(destination_folder, "point_cloud", "iteration_" + str(iteration))
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(destination_folder, "cameras.json"))
-        if itlogger is not None:
-            itlogger.update_log_path(os.path.join(save_frame_cfg_args(frame=start_frame + i + 2), log_subpath))
 
 
 if __name__ == "__main__":
