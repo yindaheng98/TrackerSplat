@@ -49,22 +49,17 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator):
         '''Overload this method to make your own training'''
         pbar = tqdm(range(1, iteration+1))
         epoch = list(range(len(dataset)))
-        epoch_psnr = torch.empty(3, 0)
         ema_loss_for_log = 0.0
-        avg_psnr_for_log = 0.0
         for step in pbar:
             epoch_idx = step % len(dataset)
             if epoch_idx == 0:
-                avg_psnr_for_log = epoch_psnr.mean().item()
-                epoch_psnr = torch.empty(3, 0)
                 random.shuffle(epoch)
             idx = epoch[epoch_idx]
             loss, out = trainer.step(dataset[idx])
             with torch.no_grad():
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-                epoch_psnr = torch.concat([epoch_psnr.to(out["render"].device), psnr(out["render"], dataset[idx].ground_truth_image)], dim=1)
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log})
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log})
 
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
         motions = []
