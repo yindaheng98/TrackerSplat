@@ -27,13 +27,6 @@ initialize_dynamic3dgs() {
         --path data/$1 \
         --colmap_executable $COLMAP_EXECUTABLE \
         --n_frames $2
-    for i in $(seq 1 $2); do
-        # echo \
-        python -m instantsplat.initialize \
-            -d data/$1/frame$i \
-            --initializer colmap-sparse \
-            -o "colmap_executable='$COLMAP_EXECUTABLE'"
-    done
 }
 
 initialize_dynamic3dgs basketball 150

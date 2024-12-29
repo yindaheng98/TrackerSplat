@@ -124,8 +124,8 @@ def execute(cmd):
 def feature_extractor(args, folder):
     cmd = [
         args.colmap_executable, "feature_extractor",
-        "--database_path", os.path.join(folder, "database.db"),
-        "--image_path", os.path.join(folder, "images"),
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--image_path", os.path.join(folder, "input"),
         "--ImageReader.camera_model", "PINHOLE",
         "--SiftExtraction.use_gpu", args.use_gpu,
         "--ImageReader.single_camera_per_image", "1",
@@ -136,7 +136,7 @@ def feature_extractor(args, folder):
 def exhaustive_matcher(args, folder):
     cmd = [
         args.colmap_executable, "exhaustive_matcher",
-        "--database_path", os.path.join(folder, "database.db"),
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
         "--SiftMatching.use_gpu", args.use_gpu,
     ]
     return execute(cmd)
@@ -145,29 +145,29 @@ def exhaustive_matcher(args, folder):
 def point_triangulator(args, folder, mapper_input_path):
     cmd = [
         args.colmap_executable, "point_triangulator",
-        "--database_path", os.path.join(folder, "database.db"),
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
         "--input_path", mapper_input_path,
         "--output_path", mapper_input_path,
-        "--image_path", os.path.join(folder, "images")
+        "--image_path", os.path.join(folder, "input")
     ]
     return execute(cmd)
 
 
 def mapper(args, folder, mapper_input_path):
-    os.makedirs(os.path.join(folder, "sparse"), exist_ok=True)
+    os.makedirs(os.path.join(folder, "distorted", "sparse", "0"), exist_ok=True)
     cmd = [
         args.colmap_executable, "mapper",
-        "--database_path", os.path.join(folder, "database.db"),
-        "--image_path", os.path.join(folder, "images"),
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--image_path", os.path.join(folder, "input"),
         "--Mapper.ba_global_function_tolerance=0.000001",
         "--input_path", mapper_input_path,
-        "--output_path", os.path.join(folder, "sparse")
+        "--output_path", os.path.join(folder, "distorted", "sparse", "0")
     ]
     return execute(cmd)
 
 
 def model_converter_txt(folder, colmap_executable):
-    mapper_input_path = os.path.join(folder, "sparse")
+    mapper_input_path = os.path.join(folder, "distorted", "sparse", "0")
     os.makedirs(mapper_input_path, exist_ok=True)
     cmd = [
         colmap_executable, "model_converter",
@@ -179,7 +179,7 @@ def model_converter_txt(folder, colmap_executable):
 
 
 def model_converter_bin(folder, colmap_executable):
-    mapper_input_path = os.path.join(folder, "sparse")
+    mapper_input_path = os.path.join(folder, "distorted", "sparse", "0")
     os.makedirs(mapper_input_path, exist_ok=True)
     cmd = [
         colmap_executable, "model_converter",
@@ -190,12 +190,23 @@ def model_converter_bin(folder, colmap_executable):
     return execute(cmd)
 
 
+def image_undistorter(args, folder):
+    cmd = [
+        args.colmap_executable, "image_undistorter",
+        "--image_path", os.path.join(folder, "input"),
+        "--input_path", os.path.join(folder, "distorted", "sparse", "0"),
+        "--output_path", folder,
+        "--output_type=COLMAP",
+    ]
+    return execute(cmd)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     camera_meta = read_camera_meta(os.path.join(args.path, "train_meta.json"))
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
-        os.makedirs(os.path.join(folder, "images"), exist_ok=True)
+        os.makedirs(os.path.join(folder, "input"), exist_ok=True)
         width, height = camera_meta["w"], camera_meta["h"]
         cameras, images = [], []
         for i, (k, w2c, fn) in enumerate(zip(camera_meta["k"][frame], camera_meta["w2c"][frame], camera_meta["fn"][frame])):
@@ -209,13 +220,13 @@ if __name__ == "__main__":
             q, t = matrix_to_quaternion(R), T
             img_name = f"cam%02d{os.path.splitext(fn)[1]}" % (i+1)
             img_src = os.path.join(args.path, "ims", fn)
-            img_dst = os.path.join(folder, "images", img_name)
+            img_dst = os.path.join(folder, "input", img_name)
             images.append(f"{cam_id} {q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]} {cam_id} {img_name}")
             if os.path.isfile(img_dst):
                 os.remove(img_dst)
             os.link(img_src, img_dst)
 
-        mapper_input_path = os.path.join(folder, "sparse", "loading")
+        mapper_input_path = os.path.join(folder, "distorted", "sparse", "loading")
         os.makedirs(mapper_input_path, exist_ok=True)
         with open(os.path.join(mapper_input_path, "cameras.txt"), "w") as f:
             f.write("\n".join(cameras))
@@ -236,25 +247,12 @@ if __name__ == "__main__":
         # Fixed: wrong number of cameras in images.txt
         if model_converter_txt(folder, args.colmap_executable) != 0:
             raise RuntimeError("Model conversion failed")
-        os.remove(os.path.join(folder, "sparse", "cameras.bin"))
-        os.remove(os.path.join(folder, "sparse", "images.bin"))
-        os.remove(os.path.join(folder, "sparse", "points3D.bin"))
+        os.remove(os.path.join(folder, "distorted", "sparse", "0", "cameras.bin"))
+        os.remove(os.path.join(folder, "distorted", "sparse", "0", "images.bin"))
+        os.remove(os.path.join(folder, "distorted", "sparse", "0", "points3D.bin"))
         if model_converter_bin(folder, args.colmap_executable) != 0:
             raise RuntimeError("Model conversion failed")
 
         # To fit sparse init in instantsplat
-        distorted_folder = os.path.join(folder, "distorted")
-        if os.path.isdir(distorted_folder):
-            shutil.rmtree(distorted_folder)
-        distorted_sparse_folder = os.path.join(distorted_folder, "sparse", "0")
-        os.makedirs(distorted_sparse_folder, exist_ok=True)
-        os.link(os.path.join(folder, "sparse", "cameras.bin"), os.path.join(distorted_sparse_folder, "cameras.bin"))
-        os.link(os.path.join(folder, "sparse", "images.bin"), os.path.join(distorted_sparse_folder, "images.bin"))
-        os.link(os.path.join(folder, "sparse", "points3D.bin"), os.path.join(distorted_sparse_folder, "points3D.bin"))
-        shutil.copy(os.path.join(folder, "database.db"), os.path.join(folder, "distorted", "database.db"))
-        input_folder = os.path.join(folder, "input")
-        if os.path.isdir(input_folder):
-            shutil.rmtree(input_folder)
-        os.makedirs(input_folder, exist_ok=True)
-        for entry in os.scandir(os.path.join(folder, "images")):
-            os.link(entry.path, os.path.join(input_folder, entry.name))
+        if image_undistorter(args, folder) != 0:
+            raise RuntimeError("Image undistortion failed")
