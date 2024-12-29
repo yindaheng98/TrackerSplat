@@ -1,0 +1,73 @@
+from typing import Tuple
+import torch
+import os
+from tqdm import tqdm
+from os import makedirs
+import torchvision
+from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
+from gaussian_splatting.dataset import CameraDataset
+from gaussian_splatting.utils import psnr
+from gaussian_splatting.utils.lpipsPyTorch import lpips
+from gaussian_splatting.render import prepare_rendering
+from instantsplatstream.utils.motionfusion import compute_mean2D
+
+
+def prepare_base(sh_degree: int, device: str, mode: str, load_ply: str) -> Tuple[CameraDataset, GaussianModel]:
+    match mode:
+        case "pure" | "densify":
+            gaussians = GaussianModel(sh_degree).to(device)
+            gaussians.load_ply(load_ply)
+        case "camera":
+            gaussians = CameraTrainableGaussianModel(sh_degree).to(device)
+            gaussians.load_ply(load_ply)
+        case _:
+            raise ValueError(f"Unknown mode: {mode}")
+    return gaussians
+
+
+def draw_motion(rendering, point_image, point_image_after, save_path):
+    pass
+
+
+def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: GaussianModel, save: str):
+    render_path = os.path.join(save, "renders")
+    gt_path = os.path.join(save, "gt")
+    makedirs(render_path, exist_ok=True)
+    makedirs(gt_path, exist_ok=True)
+    pbar = tqdm(dataset, desc="Rendering progress")
+    for idx, camera in enumerate(pbar):
+        out = gaussians(camera)
+        rendering = out["render"]
+        gt = camera.ground_truth_image
+        pbar.set_postfix({"PSNR": psnr(rendering, gt).mean().item(), "LPIPS": lpips(rendering, gt).mean().item()})
+        torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
+        torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
+        point_image_base = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians_base.get_xyz.detach())
+        point_image = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians.get_xyz.detach())
+        valid_mask = (out['radii'] > 0) & (0 < point_image).all(-1) & (point_image[:, 0] < camera.image_width) & (point_image[:, 1] < camera.image_height)
+        draw_motion(rendering, point_image[valid_mask], point_image_base[valid_mask], os.path.join(render_path, '{0:05d}'.format(idx) + "_motion.png"))
+
+
+if __name__ == "__main__":
+    from argparse import ArgumentParser
+    parser = ArgumentParser()
+    parser.add_argument("--sh_degree", default=3, type=int)
+    parser.add_argument("-s", "--source", required=True, type=str)
+    parser.add_argument("-d", "--destination", required=True, type=str)
+    parser.add_argument("-i", "--iteration", required=True, type=int)
+    parser.add_argument("--load_camera", default=None, type=str)
+    parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
+    parser.add_argument("--device", default="cuda", type=str)
+    parser.add_argument("--destination_base", required=True, type=str)
+    parser.add_argument("--iteration_base", default=None, type=int)
+    args = parser.parse_args()
+    args.iteration_base = args.iteration_base or args.iteration
+    load_ply = os.path.join(args.destination, "point_cloud", "iteration_" + str(args.iteration), "point_cloud.ply")
+    load_ply_base = os.path.join(args.destination_base, "point_cloud", "iteration_" + str(args.iteration_base), "point_cloud.ply")
+    save = os.path.join(args.destination, "ours_{}".format(args.iteration))
+    with torch.no_grad():
+        dataset, gaussians = prepare_rendering(
+            sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
+            load_ply=load_ply, load_camera=args.load_camera)
+        gaussians_base = prepare_base(sh_degree=args.sh_degree, device=args.device, mode=args.mode, load_ply=load_ply_base)
+        rendering(dataset, gaussians, gaussians_base, save)

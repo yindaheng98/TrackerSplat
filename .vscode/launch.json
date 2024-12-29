@@ -195,8 +195,6 @@
                 // "output/walking/frame69",
                 "-i",
                 "1000",
-                "--mode",
-                "pure",
             ]
         },
         {
@@ -217,6 +215,26 @@
                 "regularized",
                 "--load_ply",
                 "output/walking/frame60/point_cloud/iteration_1000/point_cloud.ply",
+            ]
+        },
+        {
+            "name": "incremental rendering",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "instantsplatstream.incrementalrender",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-s",
+                "data/walking/frame69",
+                "-d",
+                "output/walking/frame69",
+                "-i",
+                "1000",
+                "--destination_base",
+                "output/walking/frame60",
+                "--iteration_base",
+                "1000",
             ]
         },
     ]
