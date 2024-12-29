@@ -1,3 +1,4 @@
+import shutil
 import subprocess
 import os
 from tqdm import tqdm
@@ -207,3 +208,20 @@ if __name__ == "__main__":
             raise RuntimeError("Triangulation failed")
         if mapper(args, folder, mapper_input_path) != 0:
             raise RuntimeError("Mapping failed")
+
+        # To fit sparse init in instantsplat
+        distorted_folder = os.path.join(folder, "distorted")
+        if os.path.isdir(distorted_folder):
+            shutil.rmtree(distorted_folder)
+        distorted_sparse_folder = os.path.join(distorted_folder, "sparse", "0")
+        os.makedirs(distorted_sparse_folder, exist_ok=True)
+        os.link(os.path.join(folder, "sparse", "cameras.bin"), os.path.join(distorted_sparse_folder, "cameras.bin"))
+        os.link(os.path.join(folder, "sparse", "images.bin"), os.path.join(distorted_sparse_folder, "images.bin"))
+        os.link(os.path.join(folder, "sparse", "points3D.bin"), os.path.join(distorted_sparse_folder, "points3D.bin"))
+        shutil.copy(os.path.join(folder, "database.db"), os.path.join(folder, "distorted", "database.db"))
+        input_folder = os.path.join(folder, "input")
+        if os.path.isdir(input_folder):
+            shutil.rmtree(input_folder)
+        os.makedirs(input_folder, exist_ok=True)
+        for entry in os.scandir(os.path.join(folder, "images")):
+            os.link(entry.path, os.path.join(input_folder, entry.name))
