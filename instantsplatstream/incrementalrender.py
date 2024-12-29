@@ -51,8 +51,10 @@ def draw_motion(rendering, point_image, point_image_after, save_path, threshold=
 def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: GaussianModel, save: str):
     render_path = os.path.join(save, "renders")
     gt_path = os.path.join(save, "gt")
+    motion_path = os.path.join(save, "motion")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
+    makedirs(motion_path, exist_ok=True)
     pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
         out = gaussians(camera)
@@ -64,7 +66,7 @@ def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: 
         point_image_base = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians_base.get_xyz.detach())
         point_image = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians.get_xyz.detach())
         valid_mask = (out['radii'] > 0) & (0 < point_image).all(-1) & (point_image[:, 0] < camera.image_width) & (point_image[:, 1] < camera.image_height)
-        draw_motion(rendering, point_image_base[valid_mask], point_image[valid_mask], os.path.join(render_path, '{0:05d}'.format(idx) + "_motion.png"))
+        draw_motion(rendering, point_image_base[valid_mask], point_image[valid_mask], os.path.join(motion_path, '{0:05d}'.format(idx) + ".png"))
 
 
 if __name__ == "__main__":
