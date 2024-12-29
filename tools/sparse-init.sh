@@ -1,31 +1,32 @@
 #!/bin/bash
+# COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
+COLMAP_EXECUTABLE=$(which colmap)
 initialize() {
     # echo \
     python -m instantsplat.initialize \
         -d data/$1/frame1 \
         --initializer colmap-sparse \
-        -o "colmap_executable='$(which colmap)'"
-    # -o "colmap_executable='./data/colmap/COLMAP.bat'"
+        -o "colmap_executable='$COLMAP_EXECUTABLE'"
     for i in $(seq 2 $2); do
         # echo \
         python -m instantsplat.initialize \
             -d data/$1/frame$i \
             --initializer colmap-sparse \
             -o "load_camera='./data/$1/frame1'" \
-            -o "colmap_executable='$(which colmap)'"
-        # -o "colmap_executable='./data/colmap/COLMAP.bat'"
+            -o "colmap_executable='$COLMAP_EXECUTABLE'"
     done
 }
 
 # Meeting room datasets
 # initialize "stepin" 300
-# initialize "walking" 75
+initialize "walking" 75
 
 initialize_dynamic3dgs() {
     python tools/dynamic3dgs.py \
         --path data/$1 \
-        --colmap_executable ./data/colmap/COLMAP.bat \
+        --colmap_executable $COLMAP_EXECUTABLE \
         --n_frames $2
+    initialize $1 $2
 }
 
 initialize_dynamic3dgs basketball 150
