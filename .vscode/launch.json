@@ -180,24 +180,6 @@
             }
         },
         {
-            "name": "render",
-            "type": "debugpy",
-            "request": "launch",
-            "module": "gaussian_splatting.render",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "-s",
-                "data/walking/frame69",
-                "-d",
-                "output/walking/refine/regularized-propagate-dot-cotracker3/frame69",
-                // "output/walking/train/regularized/frame69",
-                // "output/walking/frame69",
-                "-i",
-                "1000",
-            ]
-        },
-        {
             "name": "incremental training",
             "type": "debugpy",
             "request": "launch",
@@ -213,8 +195,10 @@
                 "1000",
                 "--mode",
                 "regularized",
-                "--load_ply",
-                "output/walking/frame60/point_cloud/iteration_1000/point_cloud.ply",
+                "--destination_base",
+                "output/walking/frame60",
+                "--iteration_base",
+                "1000",
             ]
         },
         {

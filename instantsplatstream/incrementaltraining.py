@@ -44,19 +44,21 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--source", required=True, type=str)
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", default=1000, type=int)
-    parser.add_argument("-l", "--load_ply", required=True, type=str)
     parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--mode", choices=["base", "regularized"], default="pure")
     parser.add_argument("--device", default="cuda", type=str)
+    parser.add_argument("--destination_base", required=True, type=str)
+    parser.add_argument("--iteration_base", default=None, type=int)
     parser.add_argument("-o", "--option", default=[], action='append', type=str)
     args = parser.parse_args()
     save_cfg_args(args.destination, args.sh_degree, args.source)
     torch.autograd.set_detect_anomaly(False)
 
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
+    load_ply_base = os.path.join(args.destination_base, "point_cloud", "iteration_" + str(args.iteration_base), "point_cloud.ply")
     dataset, gaussians, trainer = prepare_training(
         sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
-        load_ply=args.load_ply, load_camera=args.load_camera, configs=configs)
+        load_ply=load_ply_base, load_camera=args.load_camera, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
     training(
         dataset=dataset, gaussians=gaussians, trainer=trainer,
