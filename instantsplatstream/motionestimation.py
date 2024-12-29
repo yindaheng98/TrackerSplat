@@ -49,7 +49,7 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, "w") as f:
             f.write(f"step,psnr,ssim,lpips\n")
-        pbar = tqdm(range(iteration))
+        pbar = tqdm(range(iteration), desc=f"Training frame {self.frame + 1}")
         epoch = list(range(len(dataset)))
         random.shuffle(epoch)
         avg_psnr_for_log = 0.0
