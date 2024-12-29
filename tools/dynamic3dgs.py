@@ -166,6 +166,30 @@ def mapper(args, folder, mapper_input_path):
     return execute(cmd)
 
 
+def model_converter_txt(folder, colmap_executable):
+    mapper_input_path = os.path.join(folder, "sparse")
+    os.makedirs(mapper_input_path, exist_ok=True)
+    cmd = [
+        colmap_executable, "model_converter",
+        "--input_path", mapper_input_path,
+        "--output_path", mapper_input_path,
+        "--output_type=TXT",
+    ]
+    return execute(cmd)
+
+
+def model_converter_bin(folder, colmap_executable):
+    mapper_input_path = os.path.join(folder, "sparse")
+    os.makedirs(mapper_input_path, exist_ok=True)
+    cmd = [
+        colmap_executable, "model_converter",
+        "--input_path", mapper_input_path,
+        "--output_path", mapper_input_path,
+        "--output_type=BIN",
+    ]
+    return execute(cmd)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     camera_meta = read_camera_meta(os.path.join(args.path, "train_meta.json"))
@@ -208,6 +232,15 @@ if __name__ == "__main__":
             raise RuntimeError("Triangulation failed")
         if mapper(args, folder, mapper_input_path) != 0:
             raise RuntimeError("Mapping failed")
+
+        # Fixed: wrong number of cameras in images.txt
+        if model_converter_txt(folder, args.colmap_executable) != 0:
+            raise RuntimeError("Model conversion failed")
+        os.remove(os.path.join(folder, "sparse", "cameras.bin"))
+        os.remove(os.path.join(folder, "sparse", "images.bin"))
+        os.remove(os.path.join(folder, "sparse", "points3D.bin"))
+        if model_converter_bin(folder, args.colmap_executable) != 0:
+            raise RuntimeError("Model conversion failed")
 
         # To fit sparse init in instantsplat
         distorted_folder = os.path.join(folder, "distorted")
