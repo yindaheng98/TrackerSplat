@@ -1,4 +1,4 @@
-import shutil
+import sqlite3
 import subprocess
 import os
 from tqdm import tqdm
@@ -122,6 +122,7 @@ def execute(cmd):
 
 
 def feature_extractor(args, folder):
+    os.makedirs(os.path.join(folder, "distorted"), exist_ok=True)
     cmd = [
         args.colmap_executable, "feature_extractor",
         "--database_path", os.path.join(folder, "distorted", "database.db"),
@@ -140,6 +141,18 @@ def exhaustive_matcher(args, folder):
         "--SiftMatching.use_gpu", args.use_gpu,
     ]
     return execute(cmd)
+
+
+def read_db(folder):
+    conn = sqlite3.connect(os.path.join(folder, "distorted", "database.db"))
+    c = conn.cursor()
+    c.execute(f"SELECT camera_id,image_id,name FROM main.images")
+    camera_ids, image_ids = {}, {}
+    for camera_id, image_id, name in c.fetchall():
+        camera_ids[name] = camera_id
+        image_ids[name] = image_id
+    conn.close()
+    return camera_ids, image_ids
 
 
 def point_triangulator(args, folder, mapper_input_path):
@@ -167,24 +180,24 @@ def mapper(args, folder, mapper_input_path):
 
 
 def model_converter_txt(folder, colmap_executable):
-    mapper_input_path = os.path.join(folder, "distorted", "sparse", "0")
-    os.makedirs(mapper_input_path, exist_ok=True)
+    mapper_output_path = os.path.join(folder, "distorted", "sparse", "0")
+    os.makedirs(mapper_output_path, exist_ok=True)
     cmd = [
         colmap_executable, "model_converter",
-        "--input_path", mapper_input_path,
-        "--output_path", mapper_input_path,
+        "--input_path", mapper_output_path,
+        "--output_path", mapper_output_path,
         "--output_type=TXT",
     ]
     return execute(cmd)
 
 
 def model_converter_bin(folder, colmap_executable):
-    mapper_input_path = os.path.join(folder, "distorted", "sparse", "0")
-    os.makedirs(mapper_input_path, exist_ok=True)
+    mapper_output_path = os.path.join(folder, "distorted", "sparse", "0")
+    os.makedirs(mapper_output_path, exist_ok=True)
     cmd = [
         colmap_executable, "model_converter",
-        "--input_path", mapper_input_path,
-        "--output_path", mapper_input_path,
+        "--input_path", mapper_output_path,
+        "--output_path", mapper_output_path,
         "--output_type=BIN",
     ]
     return execute(cmd)
@@ -208,50 +221,46 @@ if __name__ == "__main__":
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
         os.makedirs(os.path.join(folder, "input"), exist_ok=True)
         width, height = camera_meta["w"], camera_meta["h"]
-        cameras, images = [], []
+        cameras, images = {}, {}
         for i, (k, w2c, fn) in enumerate(zip(camera_meta["k"][frame], camera_meta["w2c"][frame], camera_meta["fn"][frame])):
-            cam_id = i + 1
+            img_name = f"cam%02d{os.path.splitext(fn)[1]}" % (i+1)
 
             fx, fy = k[0][0], k[1][1]
             cx, cy = k[0][2], k[1][2]
-            cameras.append(f"{cam_id} PINHOLE {width} {height} {fx} {fy} {cx} {cy}")
+            cameras[img_name] = f"PINHOLE {width} {height} {fx} {fy} {cx} {cy}"
 
             R, T = torch.tensor(w2c)[:3, :3], torch.tensor(w2c)[:3, 3]
             q, t = matrix_to_quaternion(R), T
-            img_name = f"cam%02d{os.path.splitext(fn)[1]}" % (i+1)
+            images[img_name] = f"{q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]}"
+
             img_src = os.path.join(args.path, "ims", fn)
             img_dst = os.path.join(folder, "input", img_name)
-            images.append(f"{cam_id} {q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]} {cam_id} {img_name}")
             if os.path.isfile(img_dst):
                 os.remove(img_dst)
             os.link(img_src, img_dst)
-
-        mapper_input_path = os.path.join(folder, "distorted", "sparse", "loading")
-        os.makedirs(mapper_input_path, exist_ok=True)
-        with open(os.path.join(mapper_input_path, "cameras.txt"), "w") as f:
-            f.write("\n".join(cameras))
-        with open(os.path.join(mapper_input_path, "images.txt"), "w") as f:
-            f.write("\n\n".join(images))
-        open(os.path.join(mapper_input_path, "points3D.txt"), "w").close()
 
         args.colmap_executable = os.path.abspath(args.colmap_executable)
         if feature_extractor(args, folder) != 0:
             raise RuntimeError("Feature extraction failed")
         if exhaustive_matcher(args, folder) != 0:
             raise RuntimeError("Feature matching failed")
+
+        cam_ids, image_ids = read_db(folder)
+
+        mapper_input_path = os.path.join(folder, "distorted", "sparse", "loading")
+        os.makedirs(mapper_input_path, exist_ok=True)
+        with open(os.path.join(mapper_input_path, "cameras.txt"), "w") as f:
+            for img_name, cam_id in sorted(cam_ids.items(), key=lambda i: i[1]):
+                f.write(f"{cam_id} {cameras[img_name]}\n")
+        with open(os.path.join(mapper_input_path, "images.txt"), "w") as f:
+            for img_name, image_id in sorted(image_ids.items(), key=lambda i: i[1]):
+                f.write(f"{image_id} {images[img_name]} {cam_ids[img_name]} {img_name}\n\n")
+        open(os.path.join(mapper_input_path, "points3D.txt"), "w").close()
+
         if point_triangulator(args, folder, mapper_input_path) != 0:
             raise RuntimeError("Triangulation failed")
         if mapper(args, folder, mapper_input_path) != 0:
             raise RuntimeError("Mapping failed")
-
-        # Fixed: wrong number of cameras in images.txt
-        if model_converter_txt(folder, args.colmap_executable) != 0:
-            raise RuntimeError("Model conversion failed")
-        os.remove(os.path.join(folder, "distorted", "sparse", "0", "cameras.bin"))
-        os.remove(os.path.join(folder, "distorted", "sparse", "0", "images.bin"))
-        os.remove(os.path.join(folder, "distorted", "sparse", "0", "points3D.bin"))
-        if model_converter_bin(folder, args.colmap_executable) != 0:
-            raise RuntimeError("Model conversion failed")
 
         # To fit sparse init in instantsplat
         if image_undistorter(args, folder) != 0:
