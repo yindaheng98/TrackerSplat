@@ -43,22 +43,3 @@ convert_stnerf() {
 
 convert_stnerf taekwondo 101
 convert_stnerf walking 75
-
-convert_dynamic3dgs() {
-    rm -rf "data/$1/seg" "data/$1/init_pt_cld.npz" "data/$1/test_meta.json" "data/$1/train_meta.json"
-    for ((i = 1; i <= $2; ++i)); do
-        if [ ! -e "data/$1/frame$i/input" ]; then
-            mkdir -p "data/$1/frame$i/input"
-            for j in $(seq 0 30); do
-                mv "data/$1/ims/$j/$(printf %06d $(expr $i - 1)).jpg" "data/$1/frame$i/input/cam$(printf %02d $j).jpg"
-            done
-        fi
-    done
-}
-
-convert_dynamic3dgs basketball 150
-convert_dynamic3dgs "boxes" 150
-convert_dynamic3dgs "football" 150
-convert_dynamic3dgs "juggle" 150
-convert_dynamic3dgs "softball" 150
-convert_dynamic3dgs "tennis" 150

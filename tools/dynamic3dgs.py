@@ -114,22 +114,6 @@ def read_camera_meta(path):
         return json.load(f)
 
 
-def convert_colmap_cameras(camera_meta, frame):
-    width, height = camera_meta["w"], camera_meta["h"]
-    cameras, images = [], []
-    for k, w2c, fn, cam_id in zip(camera_meta["k"][frame], camera_meta["w2c"][frame], camera_meta["fn"][frame], camera_meta["cam_id"][frame]):
-
-        fx, fy = k[0][0], k[1][1]
-        cx, cy = k[0][2], k[1][2]
-        cameras.append(f"{cam_id} PINHOLE {width} {height} {fx} {fy} {cx} {cy}")
-
-        R, T = torch.tensor(w2c)[:3, :3], torch.tensor(w2c)[:3, 3]
-        q, t = matrix_to_quaternion(R), T
-        cam_name, ext = int(os.path.dirname(fn)), os.path.splitext(fn)[1]
-        images.append(f"{cam_id} {q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]} {cam_id} {'cam%02d' % cam_name}{ext}")
-    return cameras, images
-
-
 def execute(cmd):
     proc = subprocess.Popen(cmd, shell=False)
     proc.communicate()
@@ -137,10 +121,9 @@ def execute(cmd):
 
 
 def feature_extractor(args, folder):
-    os.makedirs(os.path.join(folder, "distorted"), exist_ok=True)
     cmd = [
         args.colmap_executable, "feature_extractor",
-        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--database_path", os.path.join(folder, "database.db"),
         "--image_path", os.path.join(folder, "images"),
         "--ImageReader.camera_model", "PINHOLE",
         "--SiftExtraction.use_gpu", args.use_gpu,
@@ -152,7 +135,7 @@ def feature_extractor(args, folder):
 def exhaustive_matcher(args, folder):
     cmd = [
         args.colmap_executable, "exhaustive_matcher",
-        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--database_path", os.path.join(folder, "database.db"),
         "--SiftMatching.use_gpu", args.use_gpu,
     ]
     return execute(cmd)
@@ -161,7 +144,7 @@ def exhaustive_matcher(args, folder):
 def point_triangulator(args, folder, mapper_input_path):
     cmd = [
         args.colmap_executable, "point_triangulator",
-        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--database_path", os.path.join(folder, "database.db"),
         "--input_path", mapper_input_path,
         "--output_path", mapper_input_path,
         "--image_path", os.path.join(folder, "images")
@@ -170,14 +153,14 @@ def point_triangulator(args, folder, mapper_input_path):
 
 
 def mapper(args, folder, mapper_input_path):
-    os.makedirs(os.path.join(folder, "distorted", "sparse", "0"), exist_ok=True)
+    os.makedirs(os.path.join(folder, "sparse"), exist_ok=True)
     cmd = [
         args.colmap_executable, "mapper",
-        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--database_path", os.path.join(folder, "database.db"),
         "--image_path", os.path.join(folder, "images"),
         "--Mapper.ba_global_function_tolerance=0.000001",
         "--input_path", mapper_input_path,
-        "--output_path", os.path.join(folder, "distorted", "sparse", "0")
+        "--output_path", os.path.join(folder, "sparse")
     ]
     return execute(cmd)
 
@@ -188,15 +171,26 @@ if __name__ == "__main__":
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
         os.makedirs(os.path.join(folder, "images"), exist_ok=True)
-        for camera in range(31):
-            img_src = os.path.join(args.path, "ims/%d/%06d.jpg" % (camera, frame))
-            img_dst = os.path.join(folder, "images/cam%02d.jpg" % camera)
+        width, height = camera_meta["w"], camera_meta["h"]
+        cameras, images = [], []
+        for i, (k, w2c, fn) in enumerate(zip(camera_meta["k"][frame], camera_meta["w2c"][frame], camera_meta["fn"][frame])):
+            cam_id = i + 1
+
+            fx, fy = k[0][0], k[1][1]
+            cx, cy = k[0][2], k[1][2]
+            cameras.append(f"{cam_id} PINHOLE {width} {height} {fx} {fy} {cx} {cy}")
+
+            R, T = torch.tensor(w2c)[:3, :3], torch.tensor(w2c)[:3, 3]
+            q, t = matrix_to_quaternion(R), T
+            img_name = f"cam%02d{os.path.splitext(fn)[1]}" % (i+1)
+            img_src = os.path.join(args.path, "ims", fn)
+            img_dst = os.path.join(folder, "images", img_name)
+            images.append(f"{cam_id} {q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]} {cam_id} {img_name}")
             if os.path.isfile(img_dst):
                 os.remove(img_dst)
             os.link(img_src, img_dst)
 
-        cameras, images = convert_colmap_cameras(camera_meta, frame)
-        mapper_input_path = os.path.join(folder, "distorted/sparse/loading")
+        mapper_input_path = os.path.join(folder, "sparse", "loading")
         os.makedirs(mapper_input_path, exist_ok=True)
         with open(os.path.join(mapper_input_path, "cameras.txt"), "w") as f:
             f.write("\n".join(cameras))
