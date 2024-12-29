@@ -57,3 +57,8 @@ convert_dynamic3dgs() {
 }
 
 convert_dynamic3dgs basketball 150
+convert_dynamic3dgs "boxes" 150
+convert_dynamic3dgs "football" 150
+convert_dynamic3dgs "juggle" 150
+convert_dynamic3dgs "softball" 150
+convert_dynamic3dgs "tennis" 150
