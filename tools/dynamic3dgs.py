@@ -1,3 +1,4 @@
+import subprocess
 import os
 from tqdm import tqdm
 import argparse
@@ -102,8 +103,10 @@ def matrix_to_quaternion(matrix: torch.Tensor) -> torch.Tensor:
 
 
 parser = argparse.ArgumentParser()
+parser.add_argument("--colmap_executable", type=str, required=True, help="path to colmap executable")
 parser.add_argument("--path", type=str, required=True, help="path to the video folder")
 parser.add_argument("--n_frames", type=int, default=150, help="number of frames")
+parser.add_argument("--use_gpu", type=str, default="1", help="path to colmap executable")
 
 
 def read_camera_meta(path):
@@ -127,20 +130,86 @@ def convert_colmap_cameras(camera_meta, frame):
     return cameras, images
 
 
+def execute(cmd):
+    proc = subprocess.Popen(cmd, shell=False)
+    proc.communicate()
+    return proc.returncode
+
+
+def feature_extractor(args, folder):
+    os.makedirs(os.path.join(folder, "distorted"), exist_ok=True)
+    cmd = [
+        args.colmap_executable, "feature_extractor",
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--image_path", os.path.join(folder, "images"),
+        "--ImageReader.camera_model", "PINHOLE",
+        "--SiftExtraction.use_gpu", args.use_gpu,
+        "--ImageReader.single_camera_per_image", "1",
+    ]
+    return execute(cmd)
+
+
+def exhaustive_matcher(args, folder):
+    cmd = [
+        args.colmap_executable, "exhaustive_matcher",
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--SiftMatching.use_gpu", args.use_gpu,
+    ]
+    return execute(cmd)
+
+
+def point_triangulator(args, folder, mapper_input_path):
+    cmd = [
+        args.colmap_executable, "point_triangulator",
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--input_path", mapper_input_path,
+        "--output_path", mapper_input_path,
+        "--image_path", os.path.join(folder, "images")
+    ]
+    return execute(cmd)
+
+
+def mapper(args, folder, mapper_input_path):
+    os.makedirs(os.path.join(folder, "distorted", "sparse", "0"), exist_ok=True)
+    cmd = [
+        args.colmap_executable, "mapper",
+        "--database_path", os.path.join(folder, "distorted", "database.db"),
+        "--image_path", os.path.join(folder, "images"),
+        "--Mapper.ba_global_function_tolerance=0.000001",
+        "--input_path", mapper_input_path,
+        "--output_path", os.path.join(folder, "distorted", "sparse", "0")
+    ]
+    return execute(cmd)
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     camera_meta = read_camera_meta(os.path.join(args.path, "train_meta.json"))
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
-        os.makedirs(os.path.join(args.path, "frame%d/images" % (frame + 1)), exist_ok=True)
+        folder = os.path.join(args.path, "frame%d" % (frame + 1))
+        os.makedirs(os.path.join(folder, "images"), exist_ok=True)
         for camera in range(31):
             img_src = os.path.join(args.path, "ims/%d/%06d.jpg" % (camera, frame))
-            img_dst = os.path.join(args.path, "frame%d/images/cam%02d.jpg" % (frame + 1, camera))
+            img_dst = os.path.join(folder, "images/cam%02d.jpg" % camera)
             if os.path.isfile(img_dst):
                 os.remove(img_dst)
             os.link(img_src, img_dst)
+
         cameras, images = convert_colmap_cameras(camera_meta, frame)
-        os.makedirs(os.path.join(args.path, "frame%d/sparse/0" % (frame + 1)), exist_ok=True)
-        with open(os.path.join(args.path, "frame%d/sparse/0/cameras.txt" % (frame + 1)), "w") as f:
+        mapper_input_path = os.path.join(folder, "distorted/sparse/loading")
+        os.makedirs(mapper_input_path, exist_ok=True)
+        with open(os.path.join(mapper_input_path, "cameras.txt"), "w") as f:
             f.write("\n".join(cameras))
-        with open(os.path.join(args.path, "frame%d/sparse/0/images.txt" % (frame + 1)), "w") as f:
+        with open(os.path.join(mapper_input_path, "images.txt"), "w") as f:
             f.write("\n\n".join(images))
+        open(os.path.join(mapper_input_path, "points3D.txt"), "w").close()
+
+        args.colmap_executable = os.path.abspath(args.colmap_executable)
+        if feature_extractor(args, folder) != 0:
+            raise RuntimeError("Feature extraction failed")
+        if exhaustive_matcher(args, folder) != 0:
+            raise RuntimeError("Feature matching failed")
+        if point_triangulator(args, folder, mapper_input_path) != 0:
+            raise RuntimeError("Triangulation failed")
+        if mapper(args, folder, mapper_input_path) != 0:
+            raise RuntimeError("Mapping failed")
