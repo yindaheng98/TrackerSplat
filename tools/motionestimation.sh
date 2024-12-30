@@ -32,9 +32,9 @@ initialize_and_train_clip() {
 initialize_and_train_clip_allmethods() {
     initialize $1 $2 $3
     train $1 $2 $3 refine/regularized-propagate-dot-cotracker3 $4 $5
-    train $1 $2 $3 refine/regularized-filter-dot-cotracker3 $4 $5
-    train $1 $2 $3 refine/regularized-base-dot-cotracker3 $4 $5
+    train $1 $2 $3 refine/base-propagate-dot-cotracker3 $4 $5
     train $1 $2 $3 train/regularized $4 $5
+    train $1 $2 $3 train/base $4 $5
 }
 # initialize_and_train_clip_allmethods "walking" 10 1000 0.3 10 # debug
 initialize_and_train_allvideo_allmethods() {
