@@ -36,7 +36,7 @@ class IncrementalTrainingRefiner(IncrementalTrainingMotionEstimator):
             curr_frame = copy.deepcopy(self.base_compensater.compensate(self.baseframe, motion))
             dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
             trainer = MaskedTrainer(self.trainer_factory(curr_frame, self.baseframe, dataset), motion.fixed_mask)
-            self.training(dataset, trainer, self.iteration)
+            self.training(dataset, trainer, self.iteration, i)
             motions.append(compare(self.baseframe, curr_frame))
         return motions
 

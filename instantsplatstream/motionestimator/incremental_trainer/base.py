@@ -1,6 +1,6 @@
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import BaseTrainer
-from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
+from instantsplatstream.motionestimator import FixedViewFrameSequenceMetaDataset
 from .abc import TrainerFactory
 
 
