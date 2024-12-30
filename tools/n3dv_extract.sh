@@ -3,7 +3,7 @@
 mkdir -p data/cameras
 wget -O data/cameras/cameras.zip https://github.com/yindaheng98/InstantSplatStream/releases/download/v0.0-camera/cameras.zip
 cd data/cameras
-unzip cameras.zip
+unzip -o cameras.zip
 cd ../../
 
 convert_n3dv() {
