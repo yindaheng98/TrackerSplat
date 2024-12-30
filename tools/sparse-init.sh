@@ -17,9 +17,20 @@ initialize() {
     done
 }
 
-# Meeting room datasets
-# initialize "stepin" 300
-initialize "walking" 75
+initialize coffee_martini 300
+initialize cook_spinach 300
+initialize cut_roasted_beef 300
+initialize flame_salmon_1 1200
+initialize flame_steak 300
+initialize sear_steak 300
+
+initialize discussion 300
+initialize stepin 300
+initialize trimming 300
+initialize vrheadset 300
+
+initialize taekwondo 101
+initialize walking 75
 
 initialize_dynamic3dgs() {
     # echo \
