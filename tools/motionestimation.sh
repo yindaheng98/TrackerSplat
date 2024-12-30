@@ -1,6 +1,6 @@
 #!/bin/bash
-COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
-# COLMAP_EXECUTABLE=$(which colmap)
+# COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
+COLMAP_EXECUTABLE=$(which colmap)
 INITARGS=""
 initialize() {
     # echo \
@@ -42,6 +42,25 @@ initialize_and_train_allvideo_allmethods() {
         initialize_and_train_clip_allmethods $1 $(expr $i \* $5 + 1) $3 $4 $5
     done
 }
-# initialize_and_train_allvideo_allmethods "walking" 7 1000 0.3 10 # debug
+initialize_and_train_allvideo_allmethods taekwondo 10 1000 0.3 10
+initialize_and_train_allvideo_allmethods walking 7 1000 0.3 10
+
+initialize_and_train_allvideo_allmethods discussion 30 1000 0.5 10
+initialize_and_train_allvideo_allmethods stepin 30 1000 0.5 10
+initialize_and_train_allvideo_allmethods trimming 30 1000 0.5 10
+initialize_and_train_allvideo_allmethods vrheadset 30 1000 0.5 10
+
+initialize_and_train_allvideo_allmethods coffee_martini 30 1000 0.3 10
+initialize_and_train_allvideo_allmethods cook_spinach 30 1000 0.3 10
+initialize_and_train_allvideo_allmethods cut_roasted_beef 30 1000 0.3 10
+initialize_and_train_allvideo_allmethods flame_salmon_1 120 1000 0.3 10
+initialize_and_train_allvideo_allmethods flame_steak 30 1000 0.3 10
+initialize_and_train_allvideo_allmethods sear_steak 30 1000 0.3 10
+
 INITARGS="-o use_fused=True"
-initialize_and_train_allvideo_allmethods "basketball" 15 1000 1.0 10 # debug
+initialize_and_train_allvideo_allmethods basketball 15 1000 1.0 10 # debug
+initialize_and_train_allvideo_allmethods boxes 15 1000 1.0 10 # debug
+initialize_and_train_allvideo_allmethods football 15 1000 1.0 10 # debug
+initialize_and_train_allvideo_allmethods juggle 15 1000 1.0 10 # debug
+initialize_and_train_allvideo_allmethods softball 15 1000 1.0 10 # debug
+initialize_and_train_allvideo_allmethods tennis 15 1000 1.0 10 # debug

@@ -1,6 +1,6 @@
 #!/bin/bash
-COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
-# COLMAP_EXECUTABLE=$(which colmap)
+# COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
+COLMAP_EXECUTABLE=$(which colmap)
 initialize() {
     # echo \
     python -m instantsplat.initialize \
