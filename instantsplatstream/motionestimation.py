@@ -55,9 +55,9 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
         avg_psnr_for_log = 0.0
         avg_ssim_for_log = 0.0
         avg_lpips_for_log = 0.0
-        epoch_psnr = torch.zeros(len(dataset), 3)
-        epoch_ssim = torch.zeros(len(dataset))
-        epoch_lpips = torch.zeros(len(dataset))
+        epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
+        epoch_ssim = torch.zeros(len(dataset), device=self.device)
+        epoch_lpips = torch.zeros(len(dataset), device=self.device)
         ema_loss_for_log = 0.0
         for step in pbar:
             epoch_idx = step % len(dataset)
@@ -65,9 +65,9 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
             loss, out = trainer.step(dataset[idx])
             with torch.no_grad():
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
-                epoch_psnr[epoch_idx] = psnr(out["render"], dataset[idx].ground_truth_image).squeeze(-1).to(epoch_psnr.device)
-                epoch_ssim[epoch_idx] = ssim(out["render"], dataset[idx].ground_truth_image).to(epoch_psnr.device)
-                epoch_lpips[epoch_idx] = lpips(out["render"], dataset[idx].ground_truth_image).to(epoch_psnr.device)
+                epoch_psnr[epoch_idx] = psnr(out["render"], dataset[idx].ground_truth_image).squeeze(-1).to(self.device)
+                epoch_ssim[epoch_idx] = ssim(out["render"], dataset[idx].ground_truth_image).to(self.device)
+                epoch_lpips[epoch_idx] = lpips(out["render"], dataset[idx].ground_truth_image).to(self.device)
                 if step % 10 == 0:
                     pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log})
             if epoch_idx + 1 == len(dataset):
@@ -77,9 +77,9 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
                 avg_lpips_for_log = epoch_lpips.mean().item()
                 with open(log_path, "a") as f:
                     f.write(f"{step // len(dataset)},{avg_psnr_for_log},{avg_ssim_for_log},{avg_lpips_for_log}\n")
-                epoch_psnr = torch.zeros(len(dataset), 3)
-                epoch_ssim = torch.zeros(len(dataset))
-                epoch_lpips = torch.zeros(len(dataset))
+                epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
+                epoch_ssim = torch.zeros(len(dataset), device=self.device)
+                epoch_lpips = torch.zeros(len(dataset), device=self.device)
         self.frame += 1
 
 
