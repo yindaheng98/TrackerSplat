@@ -11,7 +11,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.utils import psnr, ssim
-from gaussian_splatting.utils.lpipsPyTorch import lpips
+from gaussian_splatting.utils.lpipsPyTorch import LPIPS
 import gaussian_splatting.train
 from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
@@ -49,6 +49,7 @@ class ITLogger(IncrementalTrainingMotionEstimatorWrapper):
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, "w") as f:
             f.write(f"step,psnr,ssim,lpips\n")
+        lpips = LPIPS(net_type='alex', version='0.1').to(self.device)
         pbar = tqdm(range(iteration), desc=f"Training frame {self.frame + 1}")
         epoch = list(range(len(dataset)))
         random.shuffle(epoch)
