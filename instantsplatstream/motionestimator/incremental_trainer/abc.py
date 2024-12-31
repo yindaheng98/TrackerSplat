@@ -74,8 +74,8 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator):
         for i in range(1, len(views[0].frames_path)):
             curr_frame = copy.deepcopy(self.baseframe)
             dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
-            trainer = self.trainer_factory(curr_frame, self.baseframe, dataset, i)
-            self.training(dataset, trainer, self.iteration)
+            trainer = self.trainer_factory(curr_frame, self.baseframe, dataset)
+            self.training(dataset, trainer, self.iteration, i)
             motions.append(compare(self.baseframe, curr_frame))
         return motions
 
