@@ -66,6 +66,8 @@ class RegularizedTrainer(BaseTrainerNoScale):
 
     def incremental_reg(self):
         loss = {}
+
+        # https://github.com/JonathonLuiten/Dynamic3DGaussians/blob/7dbbd4dec404308524ff402756bdb8143a2589b0/train.py#L108
         rotation_matrix = quaternion_to_matrix(self.model.get_rotation)
         relative_rotation_matrix = rotation_matrix @ self.rotation_matrix_inv_last
         loss['rotation'] = weighted_l2_loss(
@@ -74,6 +76,7 @@ class RegularizedTrainer(BaseTrainerNoScale):
             self.neighbor_weights
         )
 
+        # https://github.com/JonathonLuiten/Dynamic3DGaussians/blob/7dbbd4dec404308524ff402756bdb8143a2589b0/train.py#L105
         neighbor_offsets = self.model._xyz[self.neighbor_indices] - self.model._xyz.unsqueeze(-2)
         neighbor_offsets_point_coord = (
             rotation_matrix.transpose(2, 1).unsqueeze(1) @
@@ -84,12 +87,14 @@ class RegularizedTrainer(BaseTrainerNoScale):
             self.neighbor_offsets_point_coord_last,
             self.neighbor_weights)
 
+        # https://github.com/JonathonLuiten/Dynamic3DGaussians/blob/7dbbd4dec404308524ff402756bdb8143a2589b0/train.py#L112
         neighbor_relative_dists = torch.norm(neighbor_offsets, p=2, dim=-1)
         loss['isometry'] = weighted_l2_loss(
             neighbor_relative_dists.unsqueeze(-1),
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
+        # prevent scaling from going too large
         relative_scaling = self.model._scaling - self._scaling_last
         neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
         loss['stretch'] = weighted_l2_loss(
