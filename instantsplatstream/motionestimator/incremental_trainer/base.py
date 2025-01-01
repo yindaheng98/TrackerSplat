@@ -1,13 +1,8 @@
+import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import BaseTrainer
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMetaDataset
 from .abc import TrainerFactory
-
-
-class BaseTrainerNoScale(BaseTrainer):
-    def optim_step(self):
-        self.model._scaling.grad[...] = 0  # no scaling, or the scene will explode
-        return super().optim_step()
 
 
 class BaseTrainerFactory(TrainerFactory):
@@ -15,5 +10,5 @@ class BaseTrainerFactory(TrainerFactory):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainerNoScale:
-        return BaseTrainerNoScale(model, dataset.scene_extent(), *self.args, **self.kwargs)
+    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset, mask: torch.Tensor) -> BaseTrainer:
+        return BaseTrainer(model, dataset.scene_extent(), *self.args, **self.kwargs)

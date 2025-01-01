@@ -2,10 +2,11 @@ import torch
 import torch.nn.functional as F
 from gaussian_splatting.utils import quaternion_to_matrix
 from gaussian_splatting import GaussianModel, Camera
+from gaussian_splatting.trainer import BaseTrainer
 from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
 from instantsplatstream.utils.simple_knn import knn_kernel
 from .abc import TrainerFactory
-from .base import BaseTrainerNoScale
+from .base import BaseTrainer
 
 
 def quaternion_mult(q1, q2):
@@ -26,7 +27,7 @@ def color_l2_loss(x, y):
     return torch.sqrt((torch.flatten(x - y, start_dim=1) ** 2).sum(-1) + 1e-20).mean()
 
 
-class RegularizedTrainer(BaseTrainerNoScale):
+class RegularizedTrainer(BaseTrainer):
 
     def __init__(
             self, model: GaussianModel,
@@ -36,7 +37,8 @@ class RegularizedTrainer(BaseTrainerNoScale):
             stretch_shrink_start=4,
             scaling_max=5,
             loss_weight_overall=0.5,
-            loss_weights={'rotation': 10.0, 'rigidity': 1.0, 'isometry': 1.0, 'stretch': 10.0, 'color': 10.0},
+            # https://github.com/JonathonLuiten/Dynamic3DGaussians/blob/7dbbd4dec404308524ff402756bdb8143a2589b0/train.py#L122
+            loss_weights={'rotation': 4.0, 'rigidity': 4.0, 'isometry': 2.0, 'stretch': 4.0, 'color': 1.0},
             *args, **kwargs):
         super().__init__(model, spatial_lr_scale, *args, **kwargs)
         self.neighbors = neighbors
@@ -94,13 +96,8 @@ class RegularizedTrainer(BaseTrainerNoScale):
             self.neighbor_relative_dists_last.unsqueeze(-1),
             self.neighbor_weights)
 
-        # prevent scaling from going too large
         relative_scaling = self.model._scaling - self._scaling_last
-        neighbor_relative_scaling = relative_scaling[self.neighbor_indices]
-        loss['stretch'] = weighted_l2_loss(
-            relative_scaling.unsqueeze(1),
-            neighbor_relative_scaling,
-            self.neighbor_weights) + relative_scaling.abs().mean()
+        loss['stretch'] = relative_scaling.abs().mean()  # prevent scaling from going too large
 
         loss['color'] = color_l2_loss(
             self.model._features_dc,
@@ -119,5 +116,5 @@ class RegularizedTrainerFactory(TrainerFactory):
         self.args = args
         self.kwargs = kwargs
 
-    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> RegularizedTrainer:
+    def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset, mask: torch.Tensor) -> RegularizedTrainer:
         return RegularizedTrainer(model, basemodel, dataset.scene_extent(), *self.args, **self.kwargs)
