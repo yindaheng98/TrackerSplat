@@ -15,24 +15,22 @@ initialize() {
         -i $3
 }
 # initialize "walking" 10 1000 # debug
+INITTRAININGITERS=30000
 train() {
     # echo \
     python -m instantsplatstream.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
-        --iteration_init $3 -i $3 \
+        --iteration_init $INITTRAININGITERS -i $3 \
         --pipeline $4 --tracking_rescale $5 \
         -n $(expr $6 - 1) -b $6
 }
 # train "walking" 10 1000 track/propagate-dot-cotracker3 0.3 10 # debug
-initialize_and_train_clip() {
-    initialize $1 $2 $3
-    train $1 $2 $3 $4 $5 $6
-}
-# initialize_and_train_clip "walking" 10 1000 track/propagate-dot-cotracker3 0.3 10 # debug
 initialize_and_train_clip_allmethods() {
-    initialize $1 $2 $3
+    initialize $1 $2 $INITTRAININGITERS
     train $1 $2 $3 refine/regularized-propagate-dot-cotracker3 $4 $5
     train $1 $2 $3 refine/base-propagate-dot-cotracker3 $4 $5
+    train $1 $2 $3 refine/regularized-base-dot-cotracker3 $4 $5
+    train $1 $2 $3 refine/base-base-dot-cotracker3 $4 $5
     train $1 $2 $3 train/regularized $4 $5
     train $1 $2 $3 train/base $4 $5
 }
