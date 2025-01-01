@@ -6,7 +6,7 @@ from os import makedirs
 import torchvision
 from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
 from gaussian_splatting.dataset import CameraDataset
-from gaussian_splatting.utils import psnr
+from gaussian_splatting.utils import psnr, ssim
 from gaussian_splatting.utils.lpipsPyTorch import lpips
 from gaussian_splatting.render import prepare_rendering
 from instantsplatstream.utils.motionfusion import compute_mean2D
@@ -55,12 +55,20 @@ def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: 
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
     makedirs(motion_path, exist_ok=True)
+    log_path = os.path.join(save, "log.csv")
+    with open(log_path, "w") as f:
+        f.write(f"cam,psnr,ssim,lpips\n")
     pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
         out = gaussians(camera)
         rendering = out["render"]
         gt = camera.ground_truth_image
-        pbar.set_postfix({"PSNR": psnr(rendering, gt).mean().item(), "LPIPS": lpips(rendering, gt).mean().item()})
+        psnr_log = psnr(rendering, gt).mean().item()
+        ssim_log = ssim(rendering, gt).mean().item()
+        lpips_log = lpips(rendering, gt).mean().item()
+        pbar.set_postfix({"PSNR": psnr_log, "SSIM": ssim_log, "LPIPS": lpips_log})
+        with open(log_path, "a") as f:
+            f.write(f"{idx},{psnr_log},{ssim_log},{lpips_log}\n")
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
         point_image_base = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians_base.get_xyz.detach())
