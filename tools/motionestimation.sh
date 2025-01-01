@@ -15,7 +15,7 @@ initialize() {
         -i $3
 }
 # initialize "walking" 10 1000 # debug
-INITTRAININGITERS=30000
+INITTRAININGITERS=10000
 train() {
     # echo \
     python -m instantsplatstream.motionestimation \
