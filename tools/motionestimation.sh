@@ -22,17 +22,19 @@ train() {
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
         --pipeline $4 --tracking_rescale $5 \
-        -n $(expr $6 - 1) -b $6
+        -n $(expr $6 - 1) -b $6 \
+        --load_camera $7
 }
 # train "walking" 10 1000 track/propagate-dot-cotracker3 0.3 10 # debug
 initialize_and_train_clip_allmethods() {
     initialize $1 $2 $INITTRAININGITERS
-    train $1 $2 $3 refine/regularized-propagate-dot-cotracker3 $4 $5
-    train $1 $2 $3 refine/base-propagate-dot-cotracker3 $4 $5
-    train $1 $2 $3 refine/regularized-base-dot-cotracker3 $4 $5
-    train $1 $2 $3 refine/base-base-dot-cotracker3 $4 $5
-    train $1 $2 $3 train/regularized $4 $5
-    train $1 $2 $3 train/base $4 $5
+    CAMERAS="output/$1/frame$2/cameras.json"
+    train $1 $2 $3 refine/regularized-propagate-dot-cotracker3 $4 $5 "$CAMERAS"
+    train $1 $2 $3 refine/base-propagate-dot-cotracker3 $4 $5 "$CAMERAS"
+    train $1 $2 $3 refine/regularized-base-dot-cotracker3 $4 $5 "$CAMERAS"
+    train $1 $2 $3 refine/base-base-dot-cotracker3 $4 $5 "$CAMERAS"
+    train $1 $2 $3 train/regularized $4 $5 "$CAMERAS"
+    train $1 $2 $3 train/base $4 $5 "$CAMERAS"
 }
 # initialize_and_train_clip_allmethods "walking" 10 1000 0.3 10 # debug
 initialize_and_train_allvideo_allmethods() {
@@ -40,8 +42,8 @@ initialize_and_train_allvideo_allmethods() {
         initialize_and_train_clip_allmethods $1 $(expr $i \* $5 + 1) $3 $4 $5
     done
 }
-initialize_and_train_allvideo_allmethods taekwondo 10 1000 0.3 10
 initialize_and_train_allvideo_allmethods walking 7 1000 0.3 10
+initialize_and_train_allvideo_allmethods taekwondo 10 1000 0.3 10
 
 initialize_and_train_allvideo_allmethods discussion 30 1000 0.5 10
 initialize_and_train_allvideo_allmethods stepin 30 1000 0.5 10
