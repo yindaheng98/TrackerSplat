@@ -19,6 +19,7 @@ pip install --upgrade git+https://github.com/facebookresearch/sam2@main
 pip install -U openmim ftfy regex && python -m mim install -U mmsegmentation==1.2.2 mmcv==2.1.0
 pip install -U xformers==0.0.12 --no-deps
 pip install -U scikit-learn taichi einops einshape timm
+conda install conda-forge::colmap
 ```
 
 ### Pip Install
