@@ -97,7 +97,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
     mode, estimator = pipeline.split("/", 1)
     if mode == "train":
         trainer = estimator
-        batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer), training_proc=training_proc, iteration=1000, device=device)
+        batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer, **kwargs), training_proc=training_proc, iteration=1000, device=device)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "track":
@@ -143,9 +143,10 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
     parser.add_argument("-b", "--batch_size", default=3, type=int, help="batch size of point tracking")
     parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
-    parser.add_argument("--tracking_rescale", default=1.0, type=float)
+    parser.add_argument("-o", "--option", default=[], action='append', type=str)
     args = parser.parse_args()
     save_frame_cfg_args = partial(save_cfg_args, sh_degree=args.sh_degree, source=args.source, destination=os.path.join(args.destination, args.pipeline), frame_folder_fmt=args.frame_folder_fmt)
+    configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
     load_ply = os.path.join(args.destination, args.frame_folder_fmt % args.start_frame, "point_cloud", "iteration_" + str(args.iteration_init), "point_cloud.ply")
     gaussians = prepare_gaussians(
         sh_degree=args.sh_degree, device=args.device,
@@ -155,5 +156,5 @@ if __name__ == "__main__":
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=args.start_frame + frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
-    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, rescale_factor=args.tracking_rescale)
+    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, **configs)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
