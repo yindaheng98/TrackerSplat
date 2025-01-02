@@ -3,6 +3,11 @@
 COLMAP_EXECUTABLE=$(which colmap)
 INITARGS=""
 initialize() {
+    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$3/point_cloud.ply"
+    if [ -e "$EXISTSPATH" ]; then
+        echo "(skip) exists: $EXISTSPATH"
+        return
+    fi
     # echo \
     python -m instantsplat.initialize \
         -d data/$1/frame$2 \
@@ -17,6 +22,22 @@ initialize() {
 # initialize "walking" 10 1000 # debug
 INITTRAININGITERS=10000
 train() {
+    ok=true
+    for i in $(seq $(expr $2 + 1) $(expr $2 + $6 - 1)); do
+        EXISTSPATH="output/$1/$4/frame$i/point_cloud/iteration_$3/point_cloud.ply"
+        if [ -e "$EXISTSPATH" ]; then
+            echo "(skip) exists: $EXISTSPATH"
+            ok=true
+        else
+            echo "not exists: $EXISTSPATH"
+            ok=false
+            break
+        fi
+    done
+    if [ "$ok" = true ]; then
+        echo "(skip) all exists: output/$1/frame<$2-$(expr $2 + $6 - 1)>/point_cloud/iteration_$3/point_cloud.ply"
+        return
+    fi
     # echo \
     python -m instantsplatstream.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
