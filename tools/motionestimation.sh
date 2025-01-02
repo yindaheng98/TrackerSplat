@@ -45,17 +45,18 @@ initialize_and_train_allvideo_allmethods() {
 initialize_and_train_allvideo_allmethods walking 7 1000 0.3 10
 initialize_and_train_allvideo_allmethods taekwondo 10 1000 0.3 10
 
-initialize_and_train_allvideo_allmethods discussion 30 1000 0.5 10
-initialize_and_train_allvideo_allmethods stepin 30 1000 0.5 10
-initialize_and_train_allvideo_allmethods trimming 30 1000 0.5 10
-initialize_and_train_allvideo_allmethods vrheadset 30 1000 0.5 10
-
 initialize_and_train_allvideo_allmethods coffee_martini 30 1000 0.3 10
 initialize_and_train_allvideo_allmethods cook_spinach 30 1000 0.3 10
 initialize_and_train_allvideo_allmethods cut_roasted_beef 30 1000 0.3 10
 initialize_and_train_allvideo_allmethods flame_salmon_1 120 1000 0.3 10
 initialize_and_train_allvideo_allmethods flame_steak 30 1000 0.3 10
 initialize_and_train_allvideo_allmethods sear_steak 30 1000 0.3 10
+
+INITARGS="-o use_fused=True"
+initialize_and_train_allvideo_allmethods discussion 30 1000 0.5 10
+initialize_and_train_allvideo_allmethods stepin 30 1000 0.5 10
+initialize_and_train_allvideo_allmethods trimming 30 1000 0.5 10
+initialize_and_train_allvideo_allmethods vrheadset 30 1000 0.5 10
 
 INITARGS="-o use_fused=True"
 initialize_and_train_allvideo_allmethods basketball 15 1000 1.0 10 # debug
