@@ -196,11 +196,13 @@
                 "--estimator",
                 "dot-cotracker3",
                 "--start_frame",
-                "61",
+                "31",
                 "-n",
-                "10",
+                "45",
                 "--tracking_rescale",
                 "0.3",
+                "--downsample_rate",
+                "8"
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"

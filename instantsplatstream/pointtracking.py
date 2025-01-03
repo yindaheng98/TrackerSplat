@@ -1,13 +1,15 @@
+import math
 import os
 import torch
 from typing import List
 
 from dot.utils.io import read_frame
+from dot.utils.io import write_video
 from instantsplatstream.dataset import prepare_fixedview_dataset
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
 from instantsplatstream.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_point_track_batch_motion_estimator
 from instantsplatstream.motionestimator.point_tracker.visualizer import Visualizer
-from dot.utils.io import write_video
+from cotracker.utils.visualizer import Visualizer as CoTrackerVisualizer
 
 
 class FakeFuser(MotionFuser):
@@ -34,6 +36,7 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
     parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
     parser.add_argument("--tracking_rescale", default=1.0, type=float)
+    parser.add_argument("--downsample_rate", default=4, type=int)
 
     parser.add_argument("--spaghetti_radius", type=float, default=1.5)
     parser.add_argument("--spaghetti_length", type=int, default=40)
@@ -74,6 +77,8 @@ if __name__ == "__main__":
         ], dim=-1)
         mask = torch.ones(h, w).bool().to(track.device)
         n += 1
+
+        # draw tracks by dot visualizer
         video = []
         for path in view.frames_path:
             frame = read_frame(path, resolution=estimator.tracker.compute_rescale(view))
@@ -88,3 +93,28 @@ if __name__ == "__main__":
             }, mode=mode, result_path=os.path.join(result_path, idx))
         torch.save(track, os.path.join(result_path, "%strack.pt" % idx))
         write_video(video, os.path.join(result_path, "%svideo" % idx))
+
+        # draw tracks by cotracker visualizer
+        height, width = estimator.tracker.compute_rescale(view)
+        scale = math.floor(min(view.image_height / height, view.image_width / width))
+        read_height, read_width = height * scale, width * scale
+        video = []
+        for path in view.frames_path:
+            frame = read_frame(path, resolution=(read_height, read_width))
+            video.append(frame)
+        video = torch.stack(video).to(track.device)
+        moved_mask = ((track[..., :2] - xy) > 1).any(-1).any(0)
+        downsample_rate = args.downsample_rate  # sparse it
+        moved_mask_sparse = moved_mask.clone()
+        moved_mask_sparse[...] = False
+        moved_mask_sparse[::downsample_rate, ::downsample_rate] = moved_mask[::downsample_rate, ::downsample_rate]
+        draw_tracks_small = track.flatten(1, 2)[:, moved_mask_sparse.flatten(0, 1), :2]
+        draw_tracks_full = draw_tracks_small * scale
+        cotracker_visualizer = CoTrackerVisualizer(
+            save_dir=os.path.join(result_path, "%scotracker" % idx),
+            pad_value=0, linewidth=1,
+            mode="rainbow", tracks_leave_trace=-1)
+        cotracker_visualizer.visualize(
+            (video.unsqueeze(0) * 255).cpu(),
+            draw_tracks_full.unsqueeze(0).cpu(),
+        )
