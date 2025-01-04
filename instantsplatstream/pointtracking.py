@@ -85,12 +85,11 @@ if __name__ == "__main__":
             video.append(frame)
         video = torch.stack(video).to(track.device)
         idx = os.path.splitext(os.path.basename(view.frames_path[0]))[0]
-        for mode in ["overlay", "spaghetti_last_static"]:
-            visualizer({
-                "video": video,
-                "tracks": track.permute(0, 2, 1, 3),
-                "mask": mask.permute(1, 0),
-            }, mode=mode, result_path=os.path.join(result_path, idx))
+        visualizer({
+            "video": video,
+            "tracks": track.permute(0, 2, 1, 3),
+            "mask": mask.permute(1, 0),
+        }, mode="overlay", result_path=os.path.join(result_path, idx))
         torch.save(track, os.path.join(result_path, "%strack.pt" % idx))
         write_video(video, os.path.join(result_path, "%svideo" % idx))
 
@@ -114,7 +113,9 @@ if __name__ == "__main__":
             save_dir=os.path.join(result_path, "%scotracker" % idx),
             pad_value=0, linewidth=1,
             mode="rainbow", tracks_leave_trace=-1)
-        cotracker_visualizer.visualize(
+        res_video = cotracker_visualizer.visualize(
             (video.unsqueeze(0) * 255).cpu(),
             draw_tracks_full.unsqueeze(0).cpu(),
         )
+        res_video = res_video.squeeze(0)
+        write_video(res_video / 255, os.path.join(result_path, "%scotracker" % idx))
