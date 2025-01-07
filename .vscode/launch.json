@@ -80,6 +80,7 @@
                 "1000",
                 "--pipeline",
                 "train/regularized",
+                // "train1step/regularized",
                 "--iteration_init",
                 "1000",
                 "--start_frame",
