@@ -54,6 +54,8 @@ initialize_and_train_clip_allmethods() {
     train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 "$CAMERAS"
     train $1 $2 $3 train/regularized "-o neighbors=20" $5 "$CAMERAS"
     train $1 $2 $3 train/base "" $5 "$CAMERAS"
+    train $1 $2 $3 train1step/regularized "-o neighbors=20" $5 "$CAMERAS"
+    train $1 $2 $3 train1step/base "" $5 "$CAMERAS"
 }
 # initialize_and_train_clip_allmethods "walking" 10 1000 0.3 10 # debug
 initialize_and_train_allvideo_allmethods() {
