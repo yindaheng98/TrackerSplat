@@ -63,7 +63,7 @@ initialize_and_train_allvideo_allmethods() {
         initialize_and_train_clip_allmethods $1 $(expr $i \* $5 + 1) $3 $4 $5
     done
 }
-initialize_and_train_allvideo_allmethods walking 7 1000 0.3 10
+initialize_and_train_allvideo_allmethods walking 6 1000 0.3 10
 initialize_and_train_allvideo_allmethods taekwondo 10 1000 0.3 10
 
 initialize_and_train_allvideo_allmethods coffee_martini 30 1000 0.3 10
