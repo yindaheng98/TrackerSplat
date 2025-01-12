@@ -13,13 +13,14 @@ class HexplaneTrainer(BaseTrainer):
             self, model: GaussianModel,
             basemodel: GaussianModel,
             spatial_lr_scale: float,
+            position_lr_max_steps=30_000,
+            # https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/arguments/__init__.py
             deformation_lr_init=0.00016,
             deformation_lr_final=0.000016,
             deformation_lr_delay_mult=0.01,
             grid_lr_init=0.0016,
             grid_lr_final=0.00016,
             kwargs_hexplane={},
-            position_lr_max_steps=30_000,
             *args, **kwargs):
         super().__init__(
             model, spatial_lr_scale, *args,
@@ -27,6 +28,8 @@ class HexplaneTrainer(BaseTrainer):
             position_lr_max_steps=position_lr_max_steps,
             **kwargs)
         self._deformation = DeformNetwork(**kwargs_hexplane)
+
+        # https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/scene/gaussian_model.py#L162
         self.optimizer.add_param_group({'params': list(self._deformation.get_mlp_parameters()), 'lr': deformation_lr_init * spatial_lr_scale, "name": "deformation"})
         self.optimizer.add_param_group({'params': list(self._deformation.get_grid_parameters()), 'lr': grid_lr_init * spatial_lr_scale, "name": "grid"})
         self.schedulers["deformation"] = get_expon_lr_func(

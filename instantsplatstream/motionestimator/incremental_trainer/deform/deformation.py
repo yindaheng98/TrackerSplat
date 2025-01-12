@@ -1,3 +1,7 @@
+# copy from https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/scene/deformation.py
+# change log:
+# modified argument list according to https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/arguments/__init__.py
+# modified argument list according to https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/arguments/DyNeRF.py
 import torch
 import torch.nn as nn
 import torch.nn.init as init

@@ -1,3 +1,4 @@
+# copy from: https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/scene/hexplane.py
 import itertools
 from typing import Optional, Sequence, Iterable, Collection
 
