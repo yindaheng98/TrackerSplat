@@ -108,14 +108,14 @@ class Deformation(nn.Module):
     # + list(self.timegrid.parameters())
 
 
-class deform_network(nn.Module):
+class DeformNetwork(nn.Module):
     def __init__(
         self,
         net_width=256, defor_depth=2, timenet_width=64, timenet_output=32,
         timebase_pe=4, posebase_pe=10, scale_rotation_pe=2, opacity_pe=2,
         **kwargs
     ):
-        super(deform_network, self).__init__()
+        super(DeformNetwork, self).__init__()
         times_ch = 2*timebase_pe+1
         self.timenet = nn.Sequential(
             nn.Linear(times_ch, timenet_width), nn.ReLU(),

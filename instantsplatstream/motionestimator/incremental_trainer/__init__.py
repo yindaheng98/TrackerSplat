@@ -4,6 +4,7 @@ from .abc import TrainerFactory
 from .base import BaseTrainer, BaseTrainerFactory
 from .regularization import RegularizedTrainerFactory, RegularizedTrainer
 from .mask import MaskedBaseTrainerFactory, MaskedRegularizedTrainerFactory, MaskedTrainer
+from .deform import HexplaneTrainerFactory, HexplaneTrainer
 
 
 def build_trainer_factory(trainer: str, *args, **kwargs) -> TrainerFactory:
@@ -12,4 +13,5 @@ def build_trainer_factory(trainer: str, *args, **kwargs) -> TrainerFactory:
         "regularized": RegularizedTrainerFactory,
         "masked": MaskedBaseTrainerFactory,
         "maskregularized": MaskedRegularizedTrainerFactory,
+        "hexplane": HexplaneTrainerFactory,
     }[trainer](*args, **kwargs)
