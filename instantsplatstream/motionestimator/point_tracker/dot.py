@@ -1,10 +1,10 @@
 from typing import Tuple
 import torch
 from dot.models import DenseOpticalTracker
-from dot.utils.io import read_frame, read_config
+from dot.utils.io import read_config
 from dot.utils.torch import get_grid
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimator
+from .abc import PointTracker, PointTrackMotionEstimator
 
 
 def resize_model(model: DenseOpticalTracker, height: int, width: int, estimator_patch_size: int, refiner_patch_size: int, device: torch.device) -> DenseOpticalTracker:
@@ -52,16 +52,12 @@ class DotPointTracker(PointTracker):
     def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
         return int(frames.image_height * self.rescale_factor) // 8 * 8, int(frames.image_width * self.rescale_factor) // 8 * 8
 
-    def track(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def track(self, video: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+        _, _, height, width = video.shape
         self.model = resize_model(self.model, height, width, self.estimator_patch_size, self.refiner_patch_size, self.device)
-        video = []
-        for path in frames.frames_path:
-            frame = read_frame(path, resolution=(height, width))
-            video.append(frame)
-        video = torch.stack(video).to(self.device)
         with torch.no_grad():
             pred = self.model.get_tracks_from_first_to_every_other_frame(
-                data={"video": video[None]},
+                data={"video": video[None].to(self.device)},
                 num_tracks=self.n_tracks_total,
                 sim_tracks=self.n_tracks_batch,
             )

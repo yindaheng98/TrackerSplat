@@ -1,6 +1,7 @@
 from typing import List, NamedTuple, Tuple
 from abc import ABCMeta, abstractmethod
 import torch
+from dot.utils.io import read_frame
 from gaussian_splatting import GaussianModel
 from instantsplatstream.dataset import DatasetCameraMeta
 from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
@@ -33,9 +34,16 @@ class PointTracker(metaclass=ABCMeta):
     def to(self, device: torch.device) -> 'PointTracker':
         return self
 
+    def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
+        return frames.image_height, frames.image_width
+
+    def read_frames(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> List[torch.Tensor]:
+        return torch.stack([read_frame(path, resolution=(height, width)) for path in frames.frames_path])
+
     def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
         height, width = self.compute_rescale(frames)
-        track, mask = self.track(frames, height, width)
+        video = self.read_frames(frames, height, width)
+        track, mask = self.track(video)
         n, h, w, c = track.shape
         assert h == height and w == width and c == 2
         assert mask.shape == (n, h, w)
@@ -50,11 +58,8 @@ class PointTracker(metaclass=ABCMeta):
             mask=mask,
         )
 
-    def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
-        return frames.image_height, frames.image_width
-
     @abstractmethod
-    def track(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    def track(self, video: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         raise NotImplementedError
 
 

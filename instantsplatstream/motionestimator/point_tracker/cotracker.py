@@ -1,7 +1,6 @@
 import torch
 from typing import Tuple
 from cotracker.predictor import CoTrackerPredictor
-from dot.utils.io import read_frame
 from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
 from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimator
 
@@ -32,14 +31,10 @@ class Cotracker3PointTracker(PointTracker):
         grid_height = H // grid_step
         return grid_height * grid_step, grid_width * grid_step
 
-    def track(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> PointTrackSequence:
-        video = []
-        for path in frames.frames_path:
-            frame = read_frame(path, resolution=(height, width))
-            video.append(frame)
-        video = torch.stack(video).to(self.device)
+    def track(self, video: torch.Tensor) -> PointTrackSequence:
+        _, _, height, width = video.shape
         with torch.no_grad():
-            pred_tracks, pred_visibility = self.model(video[None])
+            pred_tracks, pred_visibility = self.model(video[None].to(self.device))
         track = pred_tracks.squeeze(0).reshape(-1, height, width, 2)
         mask = pred_visibility.squeeze(0).reshape(-1, height, width)
         return track[1:, ...], mask[1:, ...]
