@@ -78,7 +78,7 @@ class MotionFuser(metaclass=ABCMeta):
         return self
 
 
-class PointTrackMotionEstimator(FixedViewBatchMotionEstimator, metaclass=ABCMeta):
+class PointTrackMotionEstimator(FixedViewBatchMotionEstimator):
     def __init__(self, tracker: PointTracker, fuser: MotionFuser, device=torch.device("cuda")):
         self.tracker = tracker
         self.fuser = fuser
