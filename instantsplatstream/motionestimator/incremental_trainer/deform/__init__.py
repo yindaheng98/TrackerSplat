@@ -1,1 +1,2 @@
 from .base import HexplaneTrainer, HexplaneTrainerFactory
+from .regularization import RegularizedHexplaneTrainer, RegularizedHexplaneTrainerFactory
