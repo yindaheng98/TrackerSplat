@@ -2,6 +2,7 @@ from .abc import PointTrackSequence, PointTracker, MotionFuser, PointTrackMotion
 from .dot import DotPointTracker, DotMotionEstimator, Cotracker3DotMotionEstimator, TapirDotMotionEstimator, BootsTapirDotMotionEstimator
 from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimator
 from .fuser import BaseMotionFuser
+from .parallel import DataParallelPointTrackMotionEstimator
 
 
 def build_point_track_batch_motion_estimator(estimator: str, fuser: MotionFuser, device="cuda", *args, **kwargs) -> PointTrackMotionEstimator:
