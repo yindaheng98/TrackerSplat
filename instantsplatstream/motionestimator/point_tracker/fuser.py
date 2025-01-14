@@ -205,7 +205,7 @@ class BaseMotionFuser(MotionFuser):
         # correct the order
         rotation_base = self.gaussians._rotation[valid_mask_cov, ...]
         scaling_base = self.gaussians._scaling[valid_mask_cov, ...]
-        R_base = build_rotation(rotation_base, device=self.device)
+        R_base = build_rotation(rotation_base)
         S_base = self.gaussians.scaling_activation(scaling_base)
         bestorder = self.compute_best_order(R, S, R_base, S_base)
         R_best = torch.gather(R, 2, bestorder.unsqueeze(1).expand(-1, 3, -1))

@@ -1,5 +1,5 @@
 import itertools
-from typing import Callable, List
+from typing import List
 import torch
 import torch.multiprocessing as mp
 import os
@@ -19,7 +19,7 @@ torch.cuda.set_device(int(os.environ.get("LOCAL_DEVICE_ID", "0")))
 def parallel_worker(
         estimator: str, gaussians: GaussianModel, estimator_kwargs,
         queue_in_sync: mp.Queue,
-        queue_in: mp.Queue, queue_in_fuser: mp.Queue, queues_out_fuser: List[mp.Queue], queue_out: mp.Queue):
+        queue_in: mp.Queue, queue_in_fuser: mp.Queue, queue_out: mp.Queue, *queues_out_fuser: List[mp.Queue]):
     base_estimator = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians.to("cuda")), device="cuda", **estimator_kwargs)
     tracker = base_estimator.tracker
     fuser = base_estimator.fuser
@@ -44,7 +44,7 @@ def parallel_worker(
             assert n == n_frames
             # stage 1.2: split frames an send to fuser
             for queue_out_fuser, frame_idx in zip(itertools.cycle(queues_out_fuser), range(n)):
-                queue_out_fuser.put((frame_idx, view._replace(track=view.track[i:i+1], mask=view.mask[i:i+1])))
+                queue_out_fuser.put((frame_idx, view._replace(track=view.track[i:i+1].cpu(), mask=view.mask[i:i+1].cpu())))
 
         # stage 2: fuse each frames
         trackviews = {}
@@ -60,7 +60,7 @@ def parallel_worker(
                 queue_out.put((frame_idx, motions[0]))
 
 
-def task_ingest(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp.Queue], queues_in: List[mp.Queue]):
+def task_io(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp.Queue], queues_in: List[mp.Queue], queues_out: List[mp.Queue]):
     assert len(queues_in_sync) == len(queues_in)
 
     # stage 1: count tasks
@@ -82,38 +82,39 @@ def task_ingest(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp
     for queue_in, view in zip(itertools.cycle(queues_in), views):
         queue_in.put(view)
 
-
-def task_outgest(queues_out: List[mp.Queue], n_frames: int) -> List[Motion]:
     motions = [None] * n_frames
-    for queue_out in queues_out:
+    for queue_out, frame_idx in zip(itertools.cycle(queues_out), range(n_frames)):
         frame_idx, motion = queue_out.get()
         motions[frame_idx] = motion
     return motions
 
 
 class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
-    def __init__(self, estimator: str, gaussians: GaussianModel, device_ids=[0], max_size=100, **estimator_kwargs):
+    def __init__(self, estimator: str, gaussians: GaussianModel, master_device='cuda', slave_device_ids=[0], max_size=100, **estimator_kwargs):
         self.estimator = estimator
         self.gaussians = gaussians
         self.estimator_kwargs = estimator_kwargs
-        self.device_ids = device_ids
+        self.device = master_device
+        self.device_ids = slave_device_ids
 
         self.queues_in_sync = [mp.Queue(1) for _ in self.device_ids]
         self.queues_in = [mp.Queue(max_size) for _ in self.device_ids]
-        self.queues_in_fuser = [mp.Queue(max_size) for _ in self.device_ids]
-        self.queues_out_fuser = [mp.Queue(max_size) for _ in self.device_ids]
         self.queues_out = [mp.Queue(max_size) for _ in self.device_ids]
+
+        self.manager = mp.Manager()
+        self.queues_fuser = [self.manager.Queue(max_size) for _ in self.device_ids]
+
         self.processes = None
 
     def start(self):
         processes = []
-        for queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(self.queues_in_sync, self.queues_in, self.queues_in_fuser, self.queues_out, self.device_ids):
+        for queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(self.queues_in_sync, self.queues_in, self.queues_fuser, self.queues_out, self.device_ids):
             os.environ["LOCAL_DEVICE_ID"] = str(device_id)
             process = mp.Process(
                 target=parallel_worker, args=(
                     self.estimator, self.gaussians, self.estimator_kwargs,
                     queue_in_sync,
-                    queue_in, queue_in_fuser, self.queues_in_fuser, queue_out))
+                    queue_in, queue_in_fuser, queue_out, *self.queues_fuser))
             process.start()
             processes.append(process)
         del os.environ["LOCAL_DEVICE_ID"]
@@ -128,11 +129,12 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         self.processes = None
 
     def to(self, device: torch.device) -> 'DataParallelPointTrackMotionEstimator':
+        self.device = device
         return self
 
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        task_ingest(views, self.queues_in_sync, self.queues_in)
-        motions = task_outgest(self.queues_out, len(views[0].frames_path) - 1)
+        motions = task_io(views, self.queues_in_sync, self.queues_in, self.queues_out)
+        motions = [motion.to(self.device) for motion in motions]
         return motions
 
     def update_baseframe(self, frame: GaussianModel) -> 'PointTrackMotionEstimator':
@@ -147,7 +149,7 @@ pipeline_choices = [compensater + "-" + estimator for compensater, estimator in 
 
 def motion_compensate(estimator: str, gaussians: GaussianModel, dataset: VideoCameraDataset, n_frames: int, device: torch.device, device_ids: List[torch.device], batch_size: int, **kwargs) -> MotionCompensater:
     compensater, estimator = estimator.split("-", 1)
-    batch_func = DataParallelPointTrackMotionEstimator(estimator=estimator, gaussians=gaussians, device_ids=device_ids, **kwargs)
+    batch_func = DataParallelPointTrackMotionEstimator(estimator=estimator, gaussians=gaussians, master_device=device, slave_device_ids=device_ids, **kwargs)
     batch_func.start()
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
     motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)

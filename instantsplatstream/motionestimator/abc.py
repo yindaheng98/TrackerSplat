@@ -20,6 +20,9 @@ class Motion(NamedTuple):
     features_dc_modifier: torch.Tensor = None
     features_rest_modifier: torch.Tensor = None
 
+    def to(self, device: torch.device) -> 'Motion':
+        return self._replace(**{k: (v.to(device) if isinstance(v, torch.Tensor) else v) for k, v in self._asdict().items()})
+
     def validate(self):
         if self.fixed_mask is not None:
             assert self.fixed_mask.dtype == torch.bool and self.fixed_mask.dim() == 1
