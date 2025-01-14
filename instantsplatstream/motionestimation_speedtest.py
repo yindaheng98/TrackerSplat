@@ -60,6 +60,24 @@ def parallel_worker(
                 queue_out.put((frame_idx, motions[0]))
 
 
+def start_parallel_worker(
+        estimator: str, gaussians: GaussianModel, estimator_kwargs, device_ids: List[int],
+        queues_in_sync: List[mp.Queue],
+        queues_in: List[mp.Queue], queues_out: List[mp.Queue], queues_fuser: List[mp.Queue]):
+    processes = []
+    for queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(queues_in_sync, queues_in, queues_fuser, queues_out, device_ids):
+        os.environ["LOCAL_DEVICE_ID"] = str(device_id)
+        process = mp.Process(
+            target=parallel_worker, args=(
+                estimator, gaussians, estimator_kwargs,
+                queue_in_sync,
+                queue_in, queue_in_fuser, queue_out, *queues_fuser))
+        process.start()
+        processes.append(process)
+    del os.environ["LOCAL_DEVICE_ID"]
+    return processes
+
+
 def task_io(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp.Queue], queues_in: List[mp.Queue], queues_out: List[mp.Queue]):
     assert len(queues_in_sync) == len(queues_in)
 
@@ -89,6 +107,13 @@ def task_io(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp.Que
     return motions
 
 
+def join_parallel_worker(processes: List[mp.Process], queues_in_sync: List[mp.Queue]):
+    for queue_in in queues_in_sync:
+        queue_in.put(None)
+    for process in processes:
+        process.join()
+
+
 class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
     def __init__(self, estimator: str, gaussians: GaussianModel, master_device='cuda', slave_device_ids=[0], max_size=100, **estimator_kwargs):
         self.estimator = estimator
@@ -107,26 +132,13 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         self.processes = None
 
     def start(self):
-        processes = []
-        for queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(self.queues_in_sync, self.queues_in, self.queues_fuser, self.queues_out, self.device_ids):
-            os.environ["LOCAL_DEVICE_ID"] = str(device_id)
-            process = mp.Process(
-                target=parallel_worker, args=(
-                    self.estimator, self.gaussians, self.estimator_kwargs,
-                    queue_in_sync,
-                    queue_in, queue_in_fuser, queue_out, *self.queues_fuser))
-            process.start()
-            processes.append(process)
-        del os.environ["LOCAL_DEVICE_ID"]
-        self.processes = processes
+        self.processes = start_parallel_worker(
+            estimator=self.estimator, gaussians=self.gaussians, estimator_kwargs=self.estimator_kwargs, device_ids=self.device_ids,
+            queues_in_sync=self.queues_in_sync,
+            queues_in=self.queues_in, queues_out=self.queues_out, queues_fuser=self.queues_fuser)
 
     def join(self):
-        processes = self.processes
-        for queue_in in self.queues_in_sync:
-            queue_in.put(None)
-        for process in processes:
-            process.join()
-        self.processes = None
+        self.processes = join_parallel_worker(self.processes, self.queues_in_sync)
 
     def to(self, device: torch.device) -> 'DataParallelPointTrackMotionEstimator':
         self.device = device
