@@ -14,12 +14,13 @@ torch.cuda.set_device(int(os.environ.get("LOCAL_DEVICE_ID", "0")))
 def parallel_worker(
         build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
         base_gaussians: GaussianModel,
-        queue_in_sync: mp.Queue,
+        queue_out_init_done: mp.Queue, queue_in_sync: mp.Queue,
         queue_in: mp.Queue, queue_in_fuser: mp.Queue, queue_out: mp.Queue, *queues_out_fuser: List[mp.Queue]):
     base_estimator = build_estimator(**build_estimator_kwargs)
     tracker = base_estimator.tracker
     fuser = base_estimator.fuser
     fuser.update_baseframe(base_gaussians)
+    queue_out_init_done.put(True)
     while True:
         # start the process, get the number of views
         sync_msg = queue_in_sync.get()
@@ -63,18 +64,21 @@ def start_parallel_worker(
         device_ids: List[int],
         queues_in_sync: List[mp.Queue],
         queues_in: List[mp.Queue], queues_out: List[mp.Queue], queues_fuser: List[mp.Queue]):
+    queues_out_init_done = [mp.Queue(1) for _ in device_ids]
     processes = []
-    for queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(queues_in_sync, queues_in, queues_fuser, queues_out, device_ids):
+    for queue_out_init_done, queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(queues_out_init_done, queues_in_sync, queues_in, queues_fuser, queues_out, device_ids):
         os.environ["LOCAL_DEVICE_ID"] = str(device_id)
         process = mp.Process(
             target=parallel_worker, args=(
                 build_estimator, build_estimator_kwargs,
                 base_gaussians,
-                queue_in_sync,
+                queue_out_init_done, queue_in_sync,
                 queue_in, queue_in_fuser, queue_out, *queues_fuser))
         process.start()
         processes.append(process)
     del os.environ["LOCAL_DEVICE_ID"]
+    for queue_out_init_done in queues_out_init_done:
+        queue_out_init_done.get()
     return processes
 
 
