@@ -92,13 +92,13 @@ def task_outgest(queues_out: List[mp.Queue], n_frames: int) -> List[Motion]:
 
 
 class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
-    def __init__(self, estimator: str, gaussians: GaussianModel, device_ids=[0], max_size=10, **estimator_kwargs):
+    def __init__(self, estimator: str, gaussians: GaussianModel, device_ids=[0], max_size=100, **estimator_kwargs):
         self.estimator = estimator
         self.gaussians = gaussians
         self.estimator_kwargs = estimator_kwargs
         self.device_ids = device_ids
 
-        self.queues_in_sync = [mp.Queue() for _ in self.device_ids]
+        self.queues_in_sync = [mp.Queue(1) for _ in self.device_ids]
         self.queues_in = [mp.Queue(max_size) for _ in self.device_ids]
         self.queues_in_fuser = [mp.Queue(max_size) for _ in self.device_ids]
         self.queues_out_fuser = [mp.Queue(max_size) for _ in self.device_ids]
