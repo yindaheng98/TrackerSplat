@@ -109,9 +109,11 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
     return motion_compensater
 
 
-def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
+def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int, save_frames: bool):
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         print(f"Frame {start_frame + i + 1}")
+        if not save_frames:
+            continue
         destination_folder = save_frame_cfg_args(frame=start_frame + i + 1)
         save_path = os.path.join(destination_folder, "point_cloud", "iteration_" + str(iteration))
         makedirs(save_path, exist_ok=True)
@@ -138,6 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("-b", "--batch_size", default=3, type=int, help="batch size of point tracking")
     parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
     parser.add_argument("-o", "--option", default=[], action='append', type=str)
+    parser.add_argument("--save_frames", action='store_true')
     args = parser.parse_args()
     save_frame_cfg_args = partial(save_cfg_args, sh_degree=args.sh_degree, source=args.source, destination=os.path.join(args.destination, args.pipeline), frame_folder_fmt=args.frame_folder_fmt)
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
@@ -153,4 +156,4 @@ if __name__ == "__main__":
     frame_str = (args.frame_folder_fmt % args.start_frame) + f"plus{args.n_frames}"
     log_path = os.path.join(os.path.join(args.destination, args.pipeline), "timelog", frame_str + ".txt")
     motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, log_path, args.device, args.parallel_device, args.batch_size, args.iteration, **configs)
-    motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
+    motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames, args.save_frames)
