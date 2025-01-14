@@ -22,4 +22,27 @@ speedtest_allmethods() {
     speedtest $1 $2 $3 train/hexplane "" $5
     speedtest $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5
 }
-speedtest_allmethods "discussion" 61 1000 0.3 4 # debug
+
+DEVICES=4
+FRAME=51
+
+speedtest_allmethods "walking" $FRAME 1000 0.3 $DEVICES
+speedtest_allmethods "taekwondo" $FRAME 1000 0.3 $DEVICES
+
+speedtest_allmethods "coffee_martini" $FRAME 1000 0.3 $DEVICES
+speedtest_allmethods "cook_spinach" $FRAME 1000 0.3 $DEVICES
+speedtest_allmethods "cut_roasted_beef" $FRAME 1000 0.3 $DEVICES
+
+INITARGS="-o use_fused=True"
+speedtest_allmethods "discussion" $FRAME 1000 0.5 $DEVICES
+speedtest_allmethods "stepin" $FRAME 1000 0.5 $DEVICES
+speedtest_allmethods "trimming" $FRAME 1000 0.5 $DEVICES
+speedtest_allmethods "vrheadset" $FRAME 1000 0.5 $DEVICES
+
+INITARGS="-o use_fused=True"
+speedtest_allmethods "basketball" $FRAME 1000 1.0 $DEVICES
+speedtest_allmethods "boxes" $FRAME 1000 1.0 $DEVICES
+speedtest_allmethods "football" $FRAME 1000 1.0 $DEVICES
+speedtest_allmethods "juggle" $FRAME 1000 1.0 $DEVICES
+speedtest_allmethods "softball" $FRAME 1000 1.0 $DEVICES
+speedtest_allmethods "tennis" $FRAME 1000 1.0 $DEVICES
