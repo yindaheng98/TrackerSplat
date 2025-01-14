@@ -13,11 +13,13 @@ torch.cuda.set_device(int(os.environ.get("LOCAL_DEVICE_ID", "0")))
 
 def parallel_worker(
         build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
+        base_gaussians: GaussianModel,
         queue_in_sync: mp.Queue,
         queue_in: mp.Queue, queue_in_fuser: mp.Queue, queue_out: mp.Queue, *queues_out_fuser: List[mp.Queue]):
     base_estimator = build_estimator(**build_estimator_kwargs)
     tracker = base_estimator.tracker
     fuser = base_estimator.fuser
+    fuser.update_baseframe(base_gaussians)
     while True:
         # start the process, get the number of views
         sync_msg = queue_in_sync.get()
@@ -57,6 +59,7 @@ def parallel_worker(
 
 def start_parallel_worker(
         build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
+        base_gaussians: GaussianModel,
         device_ids: List[int],
         queues_in_sync: List[mp.Queue],
         queues_in: List[mp.Queue], queues_out: List[mp.Queue], queues_fuser: List[mp.Queue]):
@@ -66,6 +69,7 @@ def start_parallel_worker(
         process = mp.Process(
             target=parallel_worker, args=(
                 build_estimator, build_estimator_kwargs,
+                base_gaussians,
                 queue_in_sync,
                 queue_in, queue_in_fuser, queue_out, *queues_fuser))
         process.start()
@@ -114,9 +118,11 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
     def __init__(
             self,
             build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
+            base_gaussians: GaussianModel,
             master_device='cuda', slave_device_ids=[0], max_size=100):
         self.build_estimator = build_estimator
         self.build_estimator_kwargs = build_estimator_kwargs
+        self.base_gaussians = base_gaussians
         self.device = master_device
         self.device_ids = slave_device_ids
 
@@ -132,6 +138,7 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
     def start(self):
         self.processes = start_parallel_worker(
             build_estimator=self.build_estimator, build_estimator_kwargs=self.build_estimator_kwargs,
+            base_gaussians=self.base_gaussians,
             device_ids=self.device_ids,
             queues_in_sync=self.queues_in_sync,
             queues_in=self.queues_in, queues_out=self.queues_out, queues_fuser=self.queues_fuser)
@@ -149,4 +156,5 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         return motions
 
     def update_baseframe(self, frame: GaussianModel) -> 'PointTrackMotionEstimator':
+        self.base_gaussians = frame
         return self
