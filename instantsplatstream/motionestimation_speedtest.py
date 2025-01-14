@@ -1,5 +1,5 @@
 import itertools
-from typing import List
+from typing import Any, Callable, Dict, List
 import torch
 import torch.multiprocessing as mp
 import os
@@ -17,10 +17,10 @@ torch.cuda.set_device(int(os.environ.get("LOCAL_DEVICE_ID", "0")))
 
 
 def parallel_worker(
-        estimator: str, gaussians: GaussianModel, estimator_kwargs,
+        build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
         queue_in_sync: mp.Queue,
         queue_in: mp.Queue, queue_in_fuser: mp.Queue, queue_out: mp.Queue, *queues_out_fuser: List[mp.Queue]):
-    base_estimator = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians.to("cuda")), device="cuda", **estimator_kwargs)
+    base_estimator = build_estimator(**build_estimator_kwargs)
     tracker = base_estimator.tracker
     fuser = base_estimator.fuser
     while True:
@@ -61,7 +61,8 @@ def parallel_worker(
 
 
 def start_parallel_worker(
-        estimator: str, gaussians: GaussianModel, estimator_kwargs, device_ids: List[int],
+        build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
+        device_ids: List[int],
         queues_in_sync: List[mp.Queue],
         queues_in: List[mp.Queue], queues_out: List[mp.Queue], queues_fuser: List[mp.Queue]):
     processes = []
@@ -69,7 +70,7 @@ def start_parallel_worker(
         os.environ["LOCAL_DEVICE_ID"] = str(device_id)
         process = mp.Process(
             target=parallel_worker, args=(
-                estimator, gaussians, estimator_kwargs,
+                build_estimator, build_estimator_kwargs,
                 queue_in_sync,
                 queue_in, queue_in_fuser, queue_out, *queues_fuser))
         process.start()
@@ -115,10 +116,12 @@ def join_parallel_worker(processes: List[mp.Process], queues_in_sync: List[mp.Qu
 
 
 class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
-    def __init__(self, estimator: str, gaussians: GaussianModel, master_device='cuda', slave_device_ids=[0], max_size=100, **estimator_kwargs):
-        self.estimator = estimator
-        self.gaussians = gaussians
-        self.estimator_kwargs = estimator_kwargs
+    def __init__(
+            self,
+            build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
+            master_device='cuda', slave_device_ids=[0], max_size=100):
+        self.build_estimator = build_estimator
+        self.build_estimator_kwargs = build_estimator_kwargs
         self.device = master_device
         self.device_ids = slave_device_ids
 
@@ -133,7 +136,8 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
 
     def start(self):
         self.processes = start_parallel_worker(
-            estimator=self.estimator, gaussians=self.gaussians, estimator_kwargs=self.estimator_kwargs, device_ids=self.device_ids,
+            build_estimator=self.build_estimator, build_estimator_kwargs=self.build_estimator_kwargs,
+            device_ids=self.device_ids,
             queues_in_sync=self.queues_in_sync,
             queues_in=self.queues_in, queues_out=self.queues_out, queues_fuser=self.queues_fuser)
 
@@ -159,9 +163,15 @@ compensater_choices = ["base", "propagate", "filter"]
 pipeline_choices = [compensater + "-" + estimator for compensater, estimator in itertools.product(compensater_choices, estimator_choices)]
 
 
+def builder(estimator: str, gaussians: GaussianModel, **kwargs):
+    return build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians.to("cuda")), device="cuda", **kwargs)
+
+
 def motion_compensate(estimator: str, gaussians: GaussianModel, dataset: VideoCameraDataset, n_frames: int, device: torch.device, device_ids: List[torch.device], batch_size: int, **kwargs) -> MotionCompensater:
     compensater, estimator = estimator.split("-", 1)
-    batch_func = DataParallelPointTrackMotionEstimator(estimator=estimator, gaussians=gaussians, master_device=device, slave_device_ids=device_ids, **kwargs)
+    batch_func = DataParallelPointTrackMotionEstimator(
+        build_estimator=builder, build_estimator_kwargs=dict(estimator=estimator, gaussians=gaussians, **kwargs),
+        master_device=device, slave_device_ids=device_ids)
     batch_func.start()
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
     motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
