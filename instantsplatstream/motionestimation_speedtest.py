@@ -106,10 +106,10 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     else:
         ValueError(f"Unknown estimator: {estimator}")
-    return motion_compensater
+    return batch_func, motion_compensater
 
 
-def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int, save_frames: bool):
+def motion_compensate(batch_func: TimingDataParallelPointTrackMotionEstimator, motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int, save_frames: bool):
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         print(f"Frame {start_frame + i + 1}")
         if not save_frames:
@@ -119,6 +119,7 @@ def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCamer
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(destination_folder, "cameras.json"))
+    batch_func.join()
 
 
 if __name__ == "__main__":
@@ -155,5 +156,5 @@ if __name__ == "__main__":
 
     frame_str = (args.frame_folder_fmt % args.start_frame) + f"plus{args.n_frames}"
     log_path = os.path.join(os.path.join(args.destination, args.pipeline), "timelog", frame_str + ".txt")
-    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, log_path, args.device, args.parallel_device, args.batch_size, args.iteration, **configs)
-    motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames, args.save_frames)
+    batch_func, motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, log_path, args.device, args.parallel_device, args.batch_size, args.iteration, **configs)
+    motion_compensate(batch_func, motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames, args.save_frames)
