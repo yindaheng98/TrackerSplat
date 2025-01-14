@@ -13,4 +13,13 @@ speedtest() {
         -n $6 -b $(expr $6 + 1) \
         $PARALLELDEVICES
 }
-speedtest "discussion" 61 1000 track/propagate-dot-cotracker3 "-o rescale_factor=0.3" 4 # debug
+# speedtest "discussion" 61 1000 track/propagate-dot-cotracker3 "-o rescale_factor=0.3" 4 # debug
+speedtest_allmethods() {
+    speedtest $1 $2 $3 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$4" $5
+    speedtest $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5
+    speedtest $1 $2 $3 train/regularized "-o neighbors=20" $5
+    speedtest $1 $2 $3 train/base "" $5
+    speedtest $1 $2 $3 train/hexplane "" $5
+    speedtest $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5
+}
+speedtest_allmethods "discussion" 61 1000 0.3 4 # debug
