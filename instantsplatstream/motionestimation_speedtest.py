@@ -6,7 +6,6 @@ import os
 from os import makedirs
 from itertools import islice
 from functools import partial
-from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer
@@ -18,9 +17,25 @@ from instantsplatstream.motionestimator.incremental_trainer import IncrementalTr
 from instantsplatstream.motionestimation import save_cfg_args, prepare_gaussians
 
 
+class TimingDataParallelPointTrackMotionEstimator(DataParallelPointTrackMotionEstimator):
+    log_path: str
+
+    def __call__(self, views):
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+        start.record()
+        motions = super().__call__(views)
+        end.record()
+        torch.cuda.synchronize()
+        print("tracking timing: ", start.elapsed_time(end))
+        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
+        with open(self.log_path, "w") as f:
+            f.write(f"tracking timing: {start.elapsed_time(end)}\n")
+        return motions
+
+
 class TimingTrainingProcess(BaseTrainingProcess):
-    def __init__(self, log_path: Callable[[int], str]):
-        self.log_path = log_path
+    log_path: str
 
     def __call__(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int, frame_idx: int):
         '''Overload this method to make your own training'''
@@ -30,11 +45,9 @@ class TimingTrainingProcess(BaseTrainingProcess):
         super().__call__(dataset, trainer, iteration, frame_idx)
         end.record()
         torch.cuda.synchronize()
-        print("timing", start.elapsed_time(end))
-        log_path = self.log_path(frame_idx)
-        os.makedirs(os.path.dirname(log_path), exist_ok=True)
-        with open(log_path, "w") as f:
-            f.write(f"{start.elapsed_time(end)}\n")
+        print("training timing: ", start.elapsed_time(end))
+        with open(self.log_path, "a") as f:
+            f.write(f"training timing: {start.elapsed_time(end)}\n")
 
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
@@ -56,7 +69,9 @@ def incremental_trainer_builder(builder, trainer: str, iteration: int, **kwargs)
     return builder(trainer_factory=build_trainer_factory(trainer, **kwargs), iteration=iteration, device="cuda")
 
 
-def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCameraDataset, training_proc: TrainingProcess, device: torch.device, device_ids: List[torch.device], batch_size: int, iteration: int, **kwargs) -> MotionCompensater:
+def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCameraDataset, log_path: str, device: torch.device, device_ids: List[torch.device], batch_size: int, iteration: int, **kwargs) -> MotionCompensater:
+    training_proc = TimingTrainingProcess()
+    training_proc.log_path = log_path
     mode, estimator = pipeline.split("/", 1)
     if mode[:5] == "train":
         trainer = estimator
@@ -68,19 +83,21 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "track":
         compensater, estimator = estimator.split("-", 1)
-        batch_func = DataParallelPointTrackMotionEstimator(
+        batch_func = TimingDataParallelPointTrackMotionEstimator(
             build_estimator=point_track_builder, build_estimator_kwargs=dict(estimator=estimator, gaussians=gaussians, **kwargs),
             base_gaussians=gaussians,
             master_device=device, slave_device_ids=device_ids)
+        batch_func.log_path = log_path
         batch_func.start()
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "refine":
         trainer, compensater, estimator = estimator.split("-", 2)
-        batch_func = DataParallelPointTrackMotionEstimator(
+        batch_func = TimingDataParallelPointTrackMotionEstimator(
             build_estimator=point_track_builder, build_estimator_kwargs=dict(estimator=estimator, gaussians=gaussians, **kwargs),
             base_gaussians=gaussians,
             master_device=device, slave_device_ids=device_ids)
+        batch_func.log_path = log_path
         batch_func.start()
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
@@ -132,6 +149,8 @@ if __name__ == "__main__":
         source=args.source, device=args.device,
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
-    training_proc = TimingTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=args.start_frame + frame), os.path.join("log", "iteration_" + str(args.iteration), "timimg.txt")))
-    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.parallel_device, args.batch_size, args.iteration, **configs)
+
+    frame_str = (args.frame_folder_fmt % args.start_frame) + f"plus{args.n_frames}"
+    log_path = os.path.join(os.path.join(args.destination, args.pipeline), "timelog", frame_str + ".txt")
+    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, log_path, args.device, args.parallel_device, args.batch_size, args.iteration, **configs)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
