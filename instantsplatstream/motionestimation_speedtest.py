@@ -17,17 +17,78 @@ torch.cuda.set_device(int(os.environ.get("LOCAL_DEVICE_ID", "0")))
 
 
 def parallel_worker(
-        estimator: str, gaussians: GaussianModel, kwargs,
-        queue_in: mp.Queue, queue_out_result: mp.Queue):
-    base_estimator = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians.to("cuda")), device="cuda", **kwargs)
+        estimator: str, gaussians: GaussianModel, estimator_kwargs,
+        queue_in_sync: mp.Queue,
+        queue_in: mp.Queue, queue_in_fuser: mp.Queue, queues_out_fuser: List[mp.Queue], queue_out: mp.Queue):
+    base_estimator = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians.to("cuda")), device="cuda", **estimator_kwargs)
     tracker = base_estimator.tracker
     fuser = base_estimator.fuser
     while True:
-        view = queue_in.get()
-        if view is None:
+        # start the process, get the number of views
+        sync_msg = queue_in_sync.get()
+        if sync_msg is None:
             break
-        track = tracker(view)
-        queue_out_result.put(track)
+        (n_views, n_frames, n_track_task, n_fuse_task) = sync_msg
+
+        # stage 1: track each views
+        for i in range(n_track_task):
+            # stage 1.1: get and track
+            view = queue_in.get()
+            trackview = tracker(view)
+            # stage 1.1+: validate and get number of frames
+            view = trackview
+            n, h, w, c = view.track.shape
+            assert c == 2
+            assert list(view.mask.shape) == [n, h, w]
+            assert view.image_height == h and view.image_width == w
+            assert n == n_frames
+            # stage 1.2: split frames an send to fuser
+            for queue_out_fuser, frame_idx in zip(itertools.cycle(queues_out_fuser), range(n)):
+                queue_out_fuser.put((frame_idx, view._replace(track=view.track[i:i+1], mask=view.mask[i:i+1])))
+
+        # stage 2: fuse each frames
+        trackviews = {}
+        for i in range(n_fuse_task * n_views):
+            # stage 1.1: gather views
+            frame_idx, view = queue_in_fuser.get()
+            if frame_idx not in trackviews:
+                trackviews[frame_idx] = []
+            trackviews[frame_idx].append(view._replace(track=view.track.to('cuda'), mask=view.mask.to('cuda')))
+            # stage 1.2: fuse if all views are gathered
+            if len(trackviews[frame_idx]) == n_views:
+                motions = fuser(trackviews[frame_idx])
+                queue_out.put((frame_idx, motions[0]))
+
+
+def task_ingest(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp.Queue], queues_in: List[mp.Queue]):
+    assert len(queues_in_sync) == len(queues_in)
+
+    # stage 1: count tasks
+    n_track_task, n_fuse_task = [0]*len(queues_in), [0]*len(queues_in)
+    # stage 1.1: count track tasks
+    n_views = len(views)
+    for proc_idx, view_idx in zip(itertools.cycle(range(len(queues_in))), range(n_views)):
+        n_track_task[proc_idx] += 1
+    # stage 1.2: count fuse tasks
+    n_frames = len(views[0].frames_path) - 1
+    for proc_idx, frame_idx in zip(itertools.cycle(range(len(queues_in))), range(n_frames)):
+        n_fuse_task[proc_idx] += 1
+
+    # stage 2: inject sync messages
+    for queue_in_sync, ntt, nft in zip(queues_in_sync, n_track_task, n_fuse_task):
+        queue_in_sync.put((n_views, n_frames, ntt, nft))
+
+    # stage 2: inject tasks
+    for queue_in, view in zip(itertools.cycle(queues_in), views):
+        queue_in.put(view)
+
+
+def task_outgest(queues_out: List[mp.Queue], n_frames: int) -> List[Motion]:
+    motions = [None] * n_frames
+    for queue_out in queues_out:
+        frame_idx, motion = queue_out.get()
+        motions[frame_idx] = motion
+    return motions
 
 
 class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
@@ -37,18 +98,22 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         self.estimator_kwargs = estimator_kwargs
         self.device_ids = device_ids
 
+        self.queues_in_sync = [mp.Queue() for _ in self.device_ids]
         self.queues_in = [mp.Queue(max_size) for _ in self.device_ids]
+        self.queues_in_fuser = [mp.Queue(max_size) for _ in self.device_ids]
+        self.queues_out_fuser = [mp.Queue(max_size) for _ in self.device_ids]
         self.queues_out = [mp.Queue(max_size) for _ in self.device_ids]
         self.processes = None
 
     def start(self):
         processes = []
-        for queue_in, queue_out, device_id in zip(self.queues_in, self.queues_out, self.device_ids):
+        for queue_in_sync, queue_in, queue_in_fuser, queue_out, device_id in zip(self.queues_in_sync, self.queues_in, self.queues_in_fuser, self.queues_out, self.device_ids):
             os.environ["LOCAL_DEVICE_ID"] = str(device_id)
             process = mp.Process(
                 target=parallel_worker, args=(
                     self.estimator, self.gaussians, self.estimator_kwargs,
-                    queue_in, queue_out))
+                    queue_in_sync,
+                    queue_in, queue_in_fuser, self.queues_in_fuser, queue_out))
             process.start()
             processes.append(process)
         del os.environ["LOCAL_DEVICE_ID"]
@@ -56,7 +121,7 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
 
     def join(self):
         processes = self.processes
-        for queue_in in self.queues_in:
+        for queue_in in self.queues_in_sync:
             queue_in.put(None)
         for process in processes:
             process.join()
@@ -66,22 +131,9 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         return self
 
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        for queue_in, view in zip(itertools.cycle(self.queues_in), views):
-            queue_in.put(view)
-        tracks = []
-        for queue_out, _ in zip(itertools.cycle(self.queues_out), views):
-            track = queue_out.get()
-            tracks.append(track)
-        # TODO: put the track into the fuser
-        trackviews = [tracker(view) for view, tracker in zip(views, itertools.cycle(self.trackers))]
-        for view in trackviews:
-            n, h, w, c = view.track.shape
-            assert c == 2
-            assert list(view.mask.shape) == [n, h, w]
-            assert view.image_height == h and view.image_width == w
-        device = self.fusers[0].device
-        trackviews = [view._replace(track=view.track.to(device), mask=view.mask.to(device)) for view in trackviews]
-        return self.fusers[0](trackviews)
+        task_ingest(views, self.queues_in_sync, self.queues_in)
+        motions = task_outgest(self.queues_out, len(views[0].frames_path) - 1)
+        return motions
 
     def update_baseframe(self, frame: GaussianModel) -> 'PointTrackMotionEstimator':
         return self
