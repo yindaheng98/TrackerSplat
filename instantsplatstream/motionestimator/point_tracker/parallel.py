@@ -29,7 +29,7 @@ def parallel_worker(
         (n_views, n_frames, n_track_task, n_fuse_task) = sync_msg
 
         # stage 1: track each views
-        for i in range(n_track_task):
+        for _ in range(n_track_task):
             # stage 1.1: get and track
             view = queue_in.get()
             trackview = tracker(view)
@@ -42,7 +42,7 @@ def parallel_worker(
             assert n == n_frames
             # stage 1.2: split frames an send to fuser
             for queue_out_fuser, frame_idx in zip(itertools.cycle(queues_out_fuser), range(n)):
-                queue_out_fuser.put((frame_idx, view._replace(track=view.track[i:i+1].cpu(), mask=view.mask[i:i+1].cpu())))
+                queue_out_fuser.put((frame_idx, view._replace(track=view.track[frame_idx:frame_idx+1].cpu(), mask=view.mask[frame_idx:frame_idx+1].cpu())))
 
         # stage 2: fuse each frames
         trackviews = {}
