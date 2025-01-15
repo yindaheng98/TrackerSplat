@@ -46,6 +46,7 @@ class TimingTrainingProcess(BaseTrainingProcess):
         end.record()
         torch.cuda.synchronize()
         print("training timing: ", start.elapsed_time(end))
+        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
         with open(self.log_path, "a") as f:
             f.write(f"training timing: {start.elapsed_time(end)}\n")
 
