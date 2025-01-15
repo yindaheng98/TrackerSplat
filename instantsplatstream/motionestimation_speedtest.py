@@ -72,6 +72,7 @@ def incremental_trainer_builder(builder, trainer: str, iteration: int, **kwargs)
 def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCameraDataset, log_path: str, device: torch.device, device_ids: List[torch.device], batch_size: int, iteration: int, **kwargs) -> MotionCompensater:
     training_proc = TimingTrainingProcess()
     training_proc.log_path = log_path
+    batch_func_return = None
     mode, estimator = pipeline.split("/", 1)
     if mode[:5] == "train":
         trainer = estimator
@@ -88,7 +89,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
             base_gaussians=gaussians,
             master_device=device, slave_device_ids=device_ids)
         batch_func.log_path = log_path
-        batch_func.start()
+        batch_func_return = batch_func
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "refine":
@@ -98,7 +99,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
             base_gaussians=gaussians,
             master_device=device, slave_device_ids=device_ids)
         batch_func.log_path = log_path
-        batch_func.start()
+        batch_func_return = batch_func
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
         batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer), training_proc=training_proc, iteration=iteration, device=device)
@@ -106,10 +107,12 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     else:
         ValueError(f"Unknown estimator: {estimator}")
-    return batch_func, motion_compensater
+    return batch_func_return, motion_compensater
 
 
 def motion_compensate(batch_func: TimingDataParallelPointTrackMotionEstimator, motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int, save_frames: bool):
+    if batch_func is not None:
+        batch_func.start()
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         print(f"Frame {start_frame + i + 1}")
         if not save_frames:
@@ -119,7 +122,8 @@ def motion_compensate(batch_func: TimingDataParallelPointTrackMotionEstimator, m
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
         dataset[i + 1].save_cameras(os.path.join(destination_folder, "cameras.json"))
-    batch_func.join()
+    if batch_func is not None:
+        batch_func.join()
 
 
 if __name__ == "__main__":
