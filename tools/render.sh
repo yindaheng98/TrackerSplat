@@ -16,3 +16,4 @@ renderall() {
     rendering $1 "train/regularizedhexplane" $2 $3
 }
 renderall "walking" 61 68
+renderall "stepin" 61 68
