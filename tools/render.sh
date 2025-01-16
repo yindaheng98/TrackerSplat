@@ -17,3 +17,5 @@ renderall() {
 }
 renderall "walking" 61 68
 renderall "stepin" 61 68
+renderall "basketball" 1 8
+renderall "coffee_martini" 1 8
