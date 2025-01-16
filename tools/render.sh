@@ -7,4 +7,12 @@ rendering() {
         -d output/$1/$2/frame$4 \
         --iteration_base 10000 -i 1000
 }
-rendering "walking" "train/regularizedhexplane" 61 68
+renderall() {
+    rendering $1 "refine/base-base-dot-cotracker3" $2 $3
+    rendering $1 "refine/base-propagate-dot-cotracker3" $2 $3
+    rendering $1 "train/base" $2 $3
+    rendering $1 "train/regularized" $2 $3
+    rendering $1 "train/hexplane" $2 $3
+    rendering $1 "train/regularizedhexplane" $2 $3
+}
+renderall "walking" 61 68
