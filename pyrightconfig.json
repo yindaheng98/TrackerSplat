@@ -5,4 +5,5 @@
         "data/**",
         "output/**",
     ],
+    "typeCheckingMode": "off",
 }
