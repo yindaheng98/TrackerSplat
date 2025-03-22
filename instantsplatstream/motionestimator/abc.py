@@ -91,8 +91,7 @@ class MotionCompensater(metaclass=ABCMeta):
         self.update_baseframe(self.initframe)
         return self
 
-    @abstractmethod
-    def compensate(baseframe: GaussianModel, motion: Motion) -> GaussianModel:
+    def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         return baseframe
 
     def __next__(self) -> GaussianModel:
