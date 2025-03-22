@@ -14,6 +14,7 @@ Install dependencies:
 ```sh
 pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
+pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
 pip install --upgrade git+https://github.com/facebookresearch/sam2@main
 pip install -U openmim ftfy regex && python -m mim install -U mmsegmentation==1.2.2 mmcv==2.1.0
@@ -40,6 +41,7 @@ pip install --target . --upgrade .
 ```sh
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
+pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
 ```
 
 ## Download pth
