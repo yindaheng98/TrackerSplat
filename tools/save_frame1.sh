@@ -1,6 +1,7 @@
 # !/bin/bash
 
 save_frame1() {
+    echo saving $1
     rm -rf data/saved_frame1/$1
     mkdir -p data/saved_frame1/$1
     cp -r data/$1/frame1 data/saved_frame1/$1/frame1
