@@ -29,6 +29,7 @@ initialize stepin 300
 initialize trimming 300
 initialize vrheadset 300
 
+initialize boxing 71
 initialize taekwondo 101
 initialize walking 75
 

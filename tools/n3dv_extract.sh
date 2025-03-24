@@ -41,5 +41,6 @@ convert_stnerf() {
     rm -rf "data/$1/frame1" && cp -r "data/cameras/$1/frame1" "data/$1/frame1"
 }
 
+convert_stnerf boxing 71
 convert_stnerf taekwondo 101
 convert_stnerf walking 75

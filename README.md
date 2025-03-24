@@ -109,3 +109,99 @@ wget -P checkpoints https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam
 wget -P checkpoints https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_base_plus.pt
 wget -P checkpoints https://dl.fbaipublicfiles.com/segment_anything_2/092824/sam2.1_hiera_large.pt
 ```
+
+## Quick Start
+
+### Prepare Datasets
+
+Download datasets and extract them into `./data`:
+
+* [Neural 3D Video dataset](https://github.com/facebookresearch/Neural_3D_Video/releases/tag/v1.0)
+* [st-nerf dataset](https://hkustconnect-my.sharepoint.com/:f:/g/personal/xliufe_connect_ust_hk/EjqArjZxmmtDplj_IrwlUq0BMUyG69zr5YqXFBxgku4rRQ?e=n2fSBs)
+* [Meet Room dataset](https://drive.google.com/drive/folders/1lNmQ6_ykyKjT6UKy-SnqWoSlI5yjh3l_)
+* [Dynamic 3D Gaussians dataset](https://omnomnom.vision.rwth-aachen.de/data/Dynamic3DGaussians/data.zip)
+
+For Neural 3D Video dataset:
+```
+data
+|-coffee_martini
+  |-poses_bounds.npy
+  |-cam00.mp4
+  |-cam01.mp4
+  |-cam02.mp4
+  |-cam......
+|-cook_spinach
+  |-poses_bounds.npy
+  |-cam00.mp4
+  |-cam01.mp4
+  |-cam02.mp4
+  |-cam......
+......
+```
+
+For st-nerf dataset:
+```
+data
+|-boxing
+  |-background
+  |-frame1
+  |-frame2
+  |-frame......
+|-taekwondo
+  |-background
+  |-frame1
+  |-frame2
+  |-frame......
+......
+```
+
+For Meet Room dataset:
+```
+data
+|-discussion
+  |-poses_bounds.npy
+  |-cam_0.mp4
+  |-cam_1.mp4
+  |-cam_2.mp4
+  |-cam......
+|-stepin
+  |-poses_bounds.npy
+  |-cam_0.mp4
+  |-cam_1.mp4
+  |-cam_2.mp4
+  |-cam......
+......
+```
+
+For Dynamic 3D Gaussians dataset:
+```
+data
+|-basketball
+  |-ims
+  |-seg
+  |-init_pt_cld.npz
+  |-test_meta.json
+  |-train_meta.json
+|-boxes
+  |-ims
+  |-seg
+  |-......
+......
+```
+
+Then run scripts to extract them to proper format:
+```sh
+./tools/n3dv_extract.sh
+```
+
+### Sparse Initialization
+
+```sh
+./tools/sparse-init.sh
+```
+
+### Dense Initialization
+
+```sh
+./tools/dense-recon-1st.sh
+```
