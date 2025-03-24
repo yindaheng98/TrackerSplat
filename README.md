@@ -183,17 +183,17 @@ data
 ......
 ```
 
-Then run scripts to extract them to proper format:
+Run scripts to extract n3dv-like datasets (n3dv, st-nerf and meet room) to proper format:
 ```sh
 ./tools/n3dv_extract.sh
 ```
 
-### Initialization
-
-Sparse initialization:
+Run scripts to extract Dynamic 3DGS dataset and initialize camera poses for all datasets:
 ```sh
 ./tools/sparse-init.sh
 ```
+
+### Initialize point cloud
 
 Dense initialization of the 1st frame:
 ```sh
