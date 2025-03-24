@@ -18,16 +18,16 @@ initialize flame_salmon_1
 initialize flame_steak
 initialize sear_steak
 
+initialize boxing
+initialize taekwondo
+initialize walking
+
 INITARGS="-o use_fused=True"
 
 initialize discussion
 initialize stepin
 initialize trimming
 initialize vrheadset
-
-initialize boxing
-initialize taekwondo
-initialize walking
 
 initialize basketball
 initialize boxes
