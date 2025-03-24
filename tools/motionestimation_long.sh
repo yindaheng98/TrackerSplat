@@ -46,4 +46,19 @@ train() {
         -n $6 -b $7 \
         --load_camera $8
 }
-train "walking" 1 1000 track/propagate-dot-cotracker3 "" 100 8 "output/walking/frame1/cameras.json" # debug
+# train "walking" 1 1000 track/propagate-dot-cotracker3 "" 100 8 "output/walking/frame1/cameras.json" # debug
+initialize_and_train_video_allmethods() {
+    initialize $1 $2 $INITTRAININGITERS
+    CAMERAS="output/$1/frame$2/cameras.json"
+    train $1 $2 $3 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
+    train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train1step/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train1step/base "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train1step/hexplane "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train1step/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
+}
+initialize_and_train_video_allmethods "walking" 10 1000 0.3 100 8 # debug
