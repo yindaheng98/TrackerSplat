@@ -56,10 +56,6 @@ initialize_and_train_video_allmethods() {
     train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
     train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
     train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train1step/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train1step/base "" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train1step/hexplane "" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train1step/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
 initialize_and_train_video_allmethods walking 1 1000 0.3 8 75 # debug
 initialize_and_train_video_allmethods taekwondo 1 1000 0.3 101
