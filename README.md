@@ -2,13 +2,11 @@
 
 Fast volumetric video reconstruction, just like InstantSplat
 
-## Install
+## Prerequisites
 
-### Requirements
-
-Install Pytorch and torchvision following the official guideline: [pytorch.org](https://pytorch.org/)
-
-Install mmseg following the official guideline: [open-mmlab/mmsegmentation](https://github.com/open-mmlab/mmsegmentation)
+* [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
+* [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
+* [open-mmlab/mmsegmentation](https://github.com/open-mmlab/mmsegmentation) (mmsegmentation==1.2.2 mmcv==2.1.0)
 
 Install dependencies:
 ```sh
@@ -23,25 +21,21 @@ pip install -U scikit-learn taichi einops einshape timm
 conda install conda-forge::colmap
 ```
 
-### Pip Install
+## Install (pip, build from source)
 
 ```shell
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplatStream.git@main
 ```
 
-### Local Install
+## Install (Development)
 
 ```shell
 git clone https://github.com/yindaheng98/InstantSplatStream --recursive
 cd InstantSplatStream
-pip install --target . --upgrade .
-```
-
-(Optional) If you do not want to install those related dependencies in your env:
-```sh
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
+pip install --target . --upgrade .
 ```
 
 ## Download pth
@@ -194,14 +188,27 @@ Then run scripts to extract them to proper format:
 ./tools/n3dv_extract.sh
 ```
 
-### Sparse Initialization
+### Initialization
 
+Sparse initialization:
 ```sh
 ./tools/sparse-init.sh
 ```
 
-### Dense Initialization
-
+Dense initialization of the 1st frame:
 ```sh
 ./tools/dense-recon-1st.sh
 ```
+
+### Run the experiment
+
+Experiment on all our methods and baselines
+```sh
+./tools/motionestimation.sh
+```
+
+Then you can see the quality (PANR, SSIM, LIPIPS) of each training step in output folder: `output/<name of dataset>/<name of method>/frame2/log/iteration_1000/log.csv`
+
+### Long video experiment
+
+TBD
