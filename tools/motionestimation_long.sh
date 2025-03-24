@@ -43,10 +43,10 @@ train() {
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
         --pipeline $4 $5 \
-        -n $6 -b $7 \
+        -b $6 -n $7 \
         --load_camera $8
 }
-# train "walking" 1 1000 track/propagate-dot-cotracker3 "" 100 8 "output/walking/frame1/cameras.json" # debug
+# train "walking" 1 1000 track/propagate-dot-cotracker3 "" 8 100 "output/walking/frame1/cameras.json" # debug
 initialize_and_train_video_allmethods() {
     initialize $1 $2 $INITTRAININGITERS
     CAMERAS="output/$1/frame$2/cameras.json"
@@ -61,4 +61,4 @@ initialize_and_train_video_allmethods() {
     train $1 $2 $3 train1step/hexplane "" $5 $6 "$CAMERAS"
     train $1 $2 $3 train1step/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
-initialize_and_train_video_allmethods "walking" 10 1000 0.3 100 8 # debug
+initialize_and_train_video_allmethods "walking" 1 1000 0.3 8 75 # debug
