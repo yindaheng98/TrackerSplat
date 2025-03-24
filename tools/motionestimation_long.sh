@@ -61,4 +61,26 @@ initialize_and_train_video_allmethods() {
     train $1 $2 $3 train1step/hexplane "" $5 $6 "$CAMERAS"
     train $1 $2 $3 train1step/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
-initialize_and_train_video_allmethods "walking" 1 1000 0.3 8 75 # debug
+initialize_and_train_video_allmethods walking 1 1000 0.3 8 75 # debug
+initialize_and_train_video_allmethods taekwondo 1 1000 0.3 101
+initialize_and_train_video_allmethods boxing 1 1000 0.3 71
+
+initialize_and_train_video_allmethods coffee_martini 1 1000 0.3 8 300
+initialize_and_train_video_allmethods cook_spinach 1 1000 0.3 8 300
+initialize_and_train_video_allmethods cut_roasted_beef 1 1000 0.3 8 300
+initialize_and_train_video_allmethods flame_salmon_1 1 1000 0.3 8 1200
+initialize_and_train_video_allmethods flame_steak 1 1000 0.3 8 300
+initialize_and_train_video_allmethods sear_steak 1 1000 0.3 8 300
+
+INITARGS="-o use_fused=True"
+initialize_and_train_video_allmethods discussion 1 1000 0.5 8 300
+initialize_and_train_video_allmethods stepin 1 1000 0.5 8 300
+initialize_and_train_video_allmethods trimming 1 1000 0.5 8 300
+initialize_and_train_video_allmethods vrheadset 1 1000 0.5 8 300
+
+initialize_and_train_video_allmethods basketball 1 1000 1.0 8 150
+initialize_and_train_video_allmethods boxes 1 1000 1.0 8 150
+initialize_and_train_video_allmethods football 15 1000 1.0 8 150
+initialize_and_train_video_allmethods juggle 1 1000 1.0 8 150
+initialize_and_train_video_allmethods softball 1 1000 1.0 8 150
+initialize_and_train_video_allmethods tennis 1 1000 1.0 8 150
