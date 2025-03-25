@@ -1,26 +1,46 @@
 #!/bin/bash
 # COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
 COLMAP_EXECUTABLE=$(which colmap)
-INITARGS=""
+INITTRAININGITERS=10000
+INITTRAININGARGS=""
+INITTRAININGARGS=$INITTRAININGARGS" --mode camera-densify-prune-shculling"
+INITTRAININGARGS=$INITTRAININGARGS" --save_iterations"
+INITTRAININGARGS=$INITTRAININGARGS" 10000"
+INITTRAININGARGS=$INITTRAININGARGS" -oposition_lr_max_steps=10000"
+INITTRAININGARGS=$INITTRAININGARGS" -ocamera_position_lr_max_steps=10000"
+INITTRAININGARGS=$INITTRAININGARGS" -ocamera_rotation_lr_max_steps=10000"
+INITTRAININGARGS=$INITTRAININGARGS" -ocamera_position_lr_init=10000"
+INITTRAININGARGS=$INITTRAININGARGS" -odensify_from_iter=2000"
+INITTRAININGARGS=$INITTRAININGARGS" -odensify_until_iter=8000"
+INITTRAININGARGS=$INITTRAININGARGS" -odensify_interval=100"
+INITTRAININGARGS=$INITTRAININGARGS" -odensify_percent_too_big=0.5"
+INITTRAININGARGS=$INITTRAININGARGS" -oprune_from_iter=2000"
+INITTRAININGARGS=$INITTRAININGARGS" -oprune_until_iter=8000"
+INITTRAININGARGS=$INITTRAININGARGS" -oprune_interval=100"
+INITTRAININGARGS=$INITTRAININGARGS" -oprune_percent_too_big=1.0"
+INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_from_iter=4000"
+INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_until_iter=8000"
+INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_interval=1000"
+INITTRAININGARGS=$INITTRAININGARGS" -ocull_at_steps=[9000]"
+INITARGS
 initialize() {
     EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$3/point_cloud.ply"
     if [ -e "$EXISTSPATH" ]; then
         echo "(skip) exists: $EXISTSPATH"
         return
     fi
-    # echo \
+    echo \
     python -m instantsplat.initialize \
         -d data/$1/frame$2 \
         --initializer colmap-dense \
         -o "colmap_executable='$COLMAP_EXECUTABLE'" $INITARGS
-    # echo \
-    python -m instantsplat.train \
+    echo \
+    python -m reduced_3dgs.train \
         -s data/$1/frame$2 \
         -d output/$1/frame$2 \
-        -i $3
+        -i $INITTRAININGITERS $INITTRAININGARGS
 }
-# initialize "walking" 1 1000 # debug
-INITTRAININGITERS=10000
+# initialize "walking" 1 # debug
 train() {
     ok=true
     for i in $(seq $(expr $2 + 1) $(expr $2 + $6 - 1)); do
@@ -38,7 +58,7 @@ train() {
         echo "(skip) all exists: output/$1/frame<$2-$(expr $2 + $6 - 1)>/point_cloud/iteration_$3/point_cloud.ply"
         return
     fi
-    # echo \
+    echo \
     python -m instantsplatstream.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
@@ -48,7 +68,7 @@ train() {
 }
 # train "walking" 1 1000 track/propagate-dot-cotracker3 "" 8 100 "output/walking/frame1/cameras.json" # debug
 initialize_and_train_video_allmethods() {
-    initialize $1 $2 $INITTRAININGITERS
+    initialize $1 $2
     CAMERAS="output/$1/frame$2/cameras.json"
     train $1 $2 $3 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
     train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
