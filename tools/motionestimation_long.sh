@@ -44,7 +44,7 @@ initialize() {
 # initialize "walking" 1 # debug
 train() {
     ok=true
-    for i in $(seq $(expr $2 + 1) $(expr $2 + $6 - 1)); do
+    for i in $(seq $(expr $2 + 1) $(expr $2 + $7 - 1)); do
         EXISTSPATH="output/$1/$4/frame$i/point_cloud/iteration_$3/point_cloud.ply"
         if [ -e "$EXISTSPATH" ]; then
             echo "(skip) exists: $EXISTSPATH"
@@ -97,7 +97,7 @@ initialize_and_train_video_allmethods vrheadset 1 1000 0.5 8 300
 
 initialize_and_train_video_allmethods basketball 1 1000 1.0 8 150
 initialize_and_train_video_allmethods boxes 1 1000 1.0 8 150
-initialize_and_train_video_allmethods football 15 1000 1.0 8 150
+initialize_and_train_video_allmethods football 1 1000 1.0 8 150
 initialize_and_train_video_allmethods juggle 1 1000 1.0 8 150
 initialize_and_train_video_allmethods softball 1 1000 1.0 8 150
 initialize_and_train_video_allmethods tennis 1 1000 1.0 8 150
