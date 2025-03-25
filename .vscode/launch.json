@@ -38,7 +38,7 @@
                 "-oposition_lr_max_steps=10000",
                 "-ocamera_position_lr_max_steps=10000",
                 "-ocamera_rotation_lr_max_steps=10000",
-                "-ocamera_position_lr_init=10000",
+                "-ocamera_exposure_lr_max_steps=10000",
                 // densify stage
                 "-odensify_from_iter=2000",
                 "-odensify_until_iter=8000",
