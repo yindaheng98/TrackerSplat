@@ -24,11 +24,12 @@ INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_interval=1000"
 INITTRAININGARGS=$INITTRAININGARGS" -ocull_at_steps=[9000]"
 INITARGS=""
 initialize() {
-    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$3/point_cloud.ply"
+    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$INITTRAININGITERS/point_cloud.ply"
     if [ -e "$EXISTSPATH" ]; then
         echo "(skip) exists: $EXISTSPATH"
         return
     fi
+    echo "not exists: $EXISTSPATH"
     # echo \
     python -m instantsplat.initialize \
         -d data/$1/frame$2 \
@@ -71,11 +72,11 @@ initialize_and_train_video_allmethods() {
     initialize $1 $2
     CAMERAS="output/$1/frame$2/cameras.json"
     train $1 $2 $3 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
-    # train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
-    # train $1 $2 $3 train/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
-    # train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
-    # train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
-    # train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
+    train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
 initialize_and_train_video_allmethods walking 1 1000 0.3 8 75 # debug
 initialize_and_train_video_allmethods taekwondo 1 1000 0.3 101
