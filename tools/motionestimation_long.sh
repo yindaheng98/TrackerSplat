@@ -29,12 +29,12 @@ initialize() {
         echo "(skip) exists: $EXISTSPATH"
         return
     fi
-    echo \
+    # echo \
     python -m instantsplat.initialize \
         -d data/$1/frame$2 \
         --initializer colmap-dense \
         -o "colmap_executable='$COLMAP_EXECUTABLE'" $INITARGS
-    echo \
+    # echo \
     python -m reduced_3dgs.train \
         -s data/$1/frame$2 \
         -d output/$1/frame$2 \
@@ -58,7 +58,7 @@ train() {
         echo "(skip) all exists: output/$1/frame<$2-$(expr $2 + $6 - 1)>/point_cloud/iteration_$3/point_cloud.ply"
         return
     fi
-    echo \
+    # echo \
     python -m instantsplatstream.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
