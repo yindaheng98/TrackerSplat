@@ -93,7 +93,7 @@ track_choices = ["track/" + compensater + "-" + estimator for compensater, estim
 pipeline_choices = train_choices + refine_choices + track_choices
 
 
-def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCameraDataset, training_proc: TrainingProcess, device: torch.device, batch_size: int, iteration: int, **kwargs) -> MotionCompensater:
+def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCameraDataset, training_proc: TrainingProcess, device: torch.device, batch_size: int, iteration: int, configs_refining: dict, **kwargs) -> MotionCompensater:
     mode, estimator = pipeline.split("/", 1)
     if mode[:5] == "train":
         trainer = estimator
@@ -113,7 +113,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
-        batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer), training_proc=training_proc, iteration=iteration, device=device)
+        batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer, **configs_refining), training_proc=training_proc, iteration=iteration, device=device)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     else:
@@ -146,10 +146,12 @@ if __name__ == "__main__":
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
     parser.add_argument("-b", "--batch_size", default=3, type=int, help="batch size of point tracking")
     parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
-    parser.add_argument("-o", "--option", default=[], action='append', type=str)
+    parser.add_argument("-o", "--option_estimation", default=[], action='append', type=str)
+    parser.add_argument("-r", "--option_refining", default=[], action='append', type=str)
     args = parser.parse_args()
     save_frame_cfg_args = partial(save_cfg_args, sh_degree=args.sh_degree, source=args.source, destination=os.path.join(args.destination, args.pipeline), frame_folder_fmt=args.frame_folder_fmt)
-    configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
+    configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_estimation}
+    configs_refining = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_refining}
     load_ply = os.path.join(args.destination, args.frame_folder_fmt % args.start_frame, "point_cloud", "iteration_" + str(args.iteration_init), "point_cloud.ply")
     gaussians = prepare_gaussians(
         sh_degree=args.sh_degree, device=args.device,
@@ -159,5 +161,5 @@ if __name__ == "__main__":
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=args.start_frame + frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
-    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, **configs)
+    motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, configs_refining, **configs)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
