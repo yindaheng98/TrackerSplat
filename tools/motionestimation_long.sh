@@ -22,7 +22,7 @@ INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_from_iter=4000"
 INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_until_iter=8000"
 INITTRAININGARGS=$INITTRAININGARGS" -oopacity_reset_interval=1000"
 INITTRAININGARGS=$INITTRAININGARGS" -ocull_at_steps=[9000]"
-INITARGS
+INITARGS=""
 initialize() {
     EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$3/point_cloud.ply"
     if [ -e "$EXISTSPATH" ]; then
