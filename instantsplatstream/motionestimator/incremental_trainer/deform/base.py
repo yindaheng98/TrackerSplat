@@ -1,7 +1,7 @@
 from typing import Callable, Dict
 import torch
 from gaussian_splatting import GaussianModel, Camera
-from gaussian_splatting.trainer.trainer import AbstractTrainer
+from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.utils import l1_loss, ssim
 from gaussian_splatting.utils.schedular import get_expon_lr_func
 from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
