@@ -5,8 +5,7 @@ INITTRAININGITERS=10000
 INITTRAININGARGS=""
 INITTRAININGARGS=$INITTRAININGARGS" --mode camera-densify-prune-shculling"
 INITTRAININGARGS=$INITTRAININGARGS" --empty_cache_every_step"
-INITTRAININGARGS=$INITTRAININGARGS" --save_iterations"
-INITTRAININGARGS=$INITTRAININGARGS" 10000"
+INITTRAININGARGS=$INITTRAININGARGS" --save_iterations=10000"
 INITTRAININGARGS=$INITTRAININGARGS" -oposition_lr_max_steps=10000"
 INITTRAININGARGS=$INITTRAININGARGS" -ocamera_position_lr_max_steps=10000"
 INITTRAININGARGS=$INITTRAININGARGS" -ocamera_rotation_lr_max_steps=10000"
@@ -72,11 +71,11 @@ initialize_and_train_video_allmethods() {
     initialize $1 $2
     CAMERAS="output/$1/frame$2/cameras.json"
     train $1 $2 $3 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
-    train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
+    # train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
+    # train $1 $2 $3 train/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
+    # train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
+    # train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
+    # train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
 initialize_and_train_video_allmethods walking 1 1000 0.3 8 75 # debug
 initialize_and_train_video_allmethods taekwondo 1 1000 0.3 101
