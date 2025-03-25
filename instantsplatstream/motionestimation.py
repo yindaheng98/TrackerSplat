@@ -1,6 +1,7 @@
 import itertools
 import torch
 import os
+import shutil
 import random
 from tqdm import tqdm
 from os import makedirs
@@ -124,6 +125,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
 def motion_compensate(motion_compensater: MotionCompensater, dataset: VideoCameraDataset, save_frame_cfg_args, iteration: int, start_frame: int, n_frames: int):
     for i, frame_gaussians in enumerate(islice(motion_compensater, n_frames)):
         destination_folder = save_frame_cfg_args(frame=start_frame + i + 1)
+        shutil.rmtree(os.path.join(destination_folder, "point_cloud"), ignore_errors=True)  # remove the previous point cloud
         save_path = os.path.join(destination_folder, "point_cloud", "iteration_" + str(iteration))
         makedirs(save_path, exist_ok=True)
         frame_gaussians.save_ply(os.path.join(save_path, "point_cloud.ply"))
