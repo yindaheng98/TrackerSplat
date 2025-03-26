@@ -38,4 +38,4 @@ class MaskedRegularizedTrainerFactory(TrainerFactory):
         self.kwargs = kwargs
 
     def __call__(self, model: GaussianModel, basemodel: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset, mask: torch.Tensor) -> RegularizedTrainer:
-        return MaskedTrainer(RegularizedTrainer(model, dataset.scene_extent(), *self.args, **self.kwargs), mask)
+        return MaskedTrainer(RegularizedTrainer(model, basemodel, dataset.scene_extent(), *self.args, **self.kwargs), mask)
