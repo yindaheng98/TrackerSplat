@@ -42,6 +42,8 @@ initialize() {
         -i $INITTRAININGITERS $INITTRAININGARGS
 }
 # initialize "walking" 1 # debug
+REFININGARGS=""
+REFININGARGS=$REFININGARGS" -rscaling_lr=0.000001"
 train() {
     ok=true
     for i in $(seq $(expr $2 + 1) $(expr $2 + $7 - 1)); do
@@ -62,9 +64,9 @@ train() {
     # echo \
     python -m instantsplatstream.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
-        --iteration_init $INITTRAININGITERS -i $3 \
+        --iteration_init $INITTRAININGITERS -i $3 -rposition_lr_max_steps=$3 \
         --pipeline $4 $5 \
-        -b $6 -n $7 \
+        -b $6 -n $7 $REFININGARGS \
         --load_camera $8
 }
 # train "walking" 1 1000 track/propagate-dot-cotracker3 "" 8 100 "output/walking/frame1/cameras.json" # debug
