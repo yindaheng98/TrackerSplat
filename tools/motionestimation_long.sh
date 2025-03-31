@@ -81,8 +81,8 @@ initialize_and_train_video_allmethods() {
     train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
 initialize_and_train_video_allmethods walking 1 1000 0.3 8 75 # debug
-initialize_and_train_video_allmethods taekwondo 1 1000 0.3 101
-initialize_and_train_video_allmethods boxing 1 1000 0.3 71
+initialize_and_train_video_allmethods taekwondo 1 1000 0.3 8 101
+initialize_and_train_video_allmethods boxing 1 1000 0.3 8 71
 
 initialize_and_train_video_allmethods coffee_martini 1 1000 0.3 8 300
 initialize_and_train_video_allmethods cook_spinach 1 1000 0.3 8 300
