@@ -17,4 +17,25 @@ render_all() {
     render $1 train/regularized $2 $3 $4 $5
     render $1 refine/masked-propagate-dot-cotracker3 $2 $3 $4 $5
 }
-render_all basketball 10000 1000 2 75
+render_all walking 10000 1000 2 75
+render_all taekwondo 10000 1000 2 101
+render_all boxing 10000 1000 2 71
+
+render_all coffee_martini 10000 1000 2 300
+render_all cook_spinach 10000 1000 2 300
+render_all cut_roasted_beef 10000 1000 2 300
+render_all flame_salmon_1 10000 1000 2 1200
+render_all flame_steak 10000 1000 2 300
+render_all sear_steak 10000 1000 2 300
+
+render_all discussion 10000 1000 2 300
+render_all stepin 10000 1000 2 300
+render_all trimming 10000 1000 2 300
+render_all vrheadset 10000 1000 2 300
+
+render_all basketball 10000 1000 2 150
+render_all boxes 10000 1000 2 150
+render_all football 10000 1000 2 150
+render_all juggle 10000 1000 2 150
+render_all softball 10000 1000 2 150
+render_all tennis 10000 1000 2 150
