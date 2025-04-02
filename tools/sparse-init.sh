@@ -7,13 +7,20 @@ initialize() {
         -d data/$1/frame1 \
         --initializer colmap-sparse \
         -o "colmap_executable='$COLMAP_EXECUTABLE'"
+    n=0
     for i in $(seq 2 $2); do
         # echo \
         python -m instantsplat.initialize \
             -d data/$1/frame$i \
             --initializer colmap-sparse \
             -o "load_camera='./data/$1/frame1'" \
-            -o "colmap_executable='$COLMAP_EXECUTABLE'"
+            -o "colmap_executable='$COLMAP_EXECUTABLE'" \
+            --device cpu &
+        n=$(expr $n + 1)
+        if [ $n -eq 16 ]; then
+            wait
+            n=0
+        fi
     done
 }
 
@@ -39,12 +46,19 @@ initialize_dynamic3dgs() {
         --path data/$1 \
         --colmap_executable $COLMAP_EXECUTABLE \
         --n_frames $2
+    n=0
     for i in $(seq 1 $2); do
         # echo \
         python -m instantsplat.initialize \
             -d data/$1/frame$i \
             --initializer colmap-sparse \
-            -o "colmap_executable='$COLMAP_EXECUTABLE'"
+            -o "colmap_executable='$COLMAP_EXECUTABLE'" \
+            --device cpu &
+        n=$(expr $n + 1)
+        if [ $n -eq 16 ]; then
+            wait
+            n=0
+        fi
     done
 }
 
