@@ -13,4 +13,8 @@ render() {
     $FFMPEG -y -f image2 -i output/$1/$2/render/%05d.png -vf "crop=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -pix_fmt yuv420p -crf 10 output/$1/$2.mp4
     rm -rf output/$1/$2/render
 }
-render basketball train/regularized 10000 1000 2 75
+render_all() {
+    render $1 train/regularized $2 $3 $4 $5
+    render $1 refine/masked-propagate-dot-cotracker3 $2 $3 $4 $5
+}
+render_all basketball 10000 1000 2 75
