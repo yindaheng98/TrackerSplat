@@ -2,9 +2,12 @@
 
 save_frame1() {
     echo saving $1
-    rm -rf data/saved_frame1/$1
-    mkdir -p data/saved_frame1/$1
-    cp -r data/$1/frame1 data/saved_frame1/$1/frame1
+    rm -rf data/saved_frame1/data/$1
+    mkdir -p data/saved_frame1/data/$1
+    cp -r data/$1/frame1 data/saved_frame1/data/$1/frame1
+    rm -rf data/saved_frame1/output/$1
+    mkdir -p data/saved_frame1/output/$1
+    cp -r output/$1/frame1 data/saved_frame1/output/$1/frame1
 }
 
 rm -rf data/saved_frame1
@@ -35,4 +38,5 @@ save_frame1 tennis
 
 cd data/saved_frame1
 rm saved_frame1.zip
-zip -r saved_frame1.zip ./
+zip -r saved_frame1-data.zip ./data
+zip -r saved_frame1-output.zip ./output
