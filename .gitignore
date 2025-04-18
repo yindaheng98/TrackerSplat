@@ -12,6 +12,7 @@ scripts
 /mast3r
 /croco
 /instantsplat
+/depth_anything_v2
 /gaussian_splatting
 /checkpoints
 /configs/dinov2
