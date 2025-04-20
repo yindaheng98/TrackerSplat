@@ -25,6 +25,7 @@ initialize() {
         fi
     done
     wait
+    echo Done $MODE $1 $2
 }
 
 before_initialize_n3dv() {
