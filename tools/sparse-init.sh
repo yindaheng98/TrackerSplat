@@ -17,12 +17,13 @@ initialize() {
             -d data/$1/frame$i \
             --initializer colmap-sparse \
             -o "colmap_executable='$COLMAP_EXECUTABLE'" \
-            --device cpu &
-        n=$(expr $n + 1)
-        if [ $n -eq 16 ]; then
-            wait
-            n=0
-        fi
+            --device cuda
+        #     --device cpu &
+        # n=$(expr $n + 1)
+        # if [ $n -eq 8 ]; then
+        #     wait
+        #     n=0
+        # fi
     done
     wait
     echo Done $MODE $1 $2
