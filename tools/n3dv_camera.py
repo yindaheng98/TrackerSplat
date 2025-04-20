@@ -203,14 +203,7 @@ def image_undistorter(args, folder):
     return execute(cmd)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--colmap_executable", type=str, required=True, help="path to colmap executable")
-parser.add_argument("--path", type=str, required=True, help="path to the video folder")
-parser.add_argument("--n_frames", type=int, default=300, help="number of frames")
-parser.add_argument("--use_gpu", type=str, default="1", help="path to colmap executable")
-
-
-def read_camera_meta(path):
+def read_camera_meta_n3dv(path):
     poses_arr = torch.tensor(np.load(os.path.join(path, "poses_bounds.npy")))
     poses = poses_arr[:, :-2].reshape(-1, 3, 5)
     bds = poses_arr[:, -2:].transpose(1, 0)
@@ -220,7 +213,7 @@ def read_camera_meta(path):
     return poses.shape[0], Rs, Ts, hwf, bds
 
 
-def build_frame_folder(camera_meta, folder, i_frame):
+def build_frame_folder_n3dv(camera_meta, folder, i_frame):
     n_cameras, Rs, Ts, hwf, bds = camera_meta
     img_names = sorted(os.listdir(os.path.join(folder, "input")))
     assert len(img_names) == n_cameras, f"Number of images in {folder} does not match number of cameras"
@@ -240,8 +233,50 @@ def build_frame_folder(camera_meta, folder, i_frame):
     return cameras, images
 
 
+def read_camera_meta_dynamic3dgs(path):
+    with open(os.path.join(path, "train_meta.json")) as f:
+        return json.load(f)
+
+
+def build_frame_folder_dynamic3dgs(camera_meta, folder, frame):
+    os.makedirs(os.path.join(folder, "input"), exist_ok=True)
+    width, height = camera_meta["w"], camera_meta["h"]
+    cameras, images = {}, {}
+    for i, (k, w2c, fn) in enumerate(zip(camera_meta["k"][frame], camera_meta["w2c"][frame], camera_meta["fn"][frame])):
+        img_name = f"cam%02d{os.path.splitext(fn)[1]}" % (i+1)
+
+        fx, fy = k[0][0], k[1][1]
+        cx, cy = k[0][2], k[1][2]
+        cameras[img_name] = f"PINHOLE {width} {height} {fx} {fy} {cx} {cy}"
+
+        R, T = torch.tensor(w2c)[:3, :3], torch.tensor(w2c)[:3, 3]
+        q, t = matrix_to_quaternion(R), T
+        images[img_name] = f"{q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]}"
+
+        img_src = os.path.join(args.path, "ims", fn)
+        img_dst = os.path.join(folder, "input", img_name)
+        if os.path.isfile(img_dst):
+            os.remove(img_dst)
+        os.link(img_src, img_dst)
+    return cameras, images
+
+
+modes = {
+    "n3dv": (read_camera_meta_n3dv, build_frame_folder_n3dv),
+    "dynamic3dgs": (read_camera_meta_dynamic3dgs, build_frame_folder_dynamic3dgs),
+}
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--mode", choices=list(modes.keys()), required=True)
+parser.add_argument("--colmap_executable", type=str, required=True, help="path to colmap executable")
+parser.add_argument("--path", type=str, required=True, help="path to the video folder")
+parser.add_argument("--n_frames", type=int, default=300, help="number of frames")
+parser.add_argument("--use_gpu", type=str, default="1", help="path to colmap executable")
+
 if __name__ == "__main__":
     args = parser.parse_args()
+    read_camera_meta, build_frame_folder = modes[args.mode]
     camera_meta = read_camera_meta(args.path)
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
