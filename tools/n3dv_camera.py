@@ -112,7 +112,7 @@ parser.add_argument("--use_gpu", type=str, default="1", help="path to colmap exe
 
 
 def read_camera_meta(path):
-    poses_arr = torch.tensor(np.load(path))
+    poses_arr = torch.tensor(np.load(os.path.join(path, "poses_bounds.npy")))
     poses = poses_arr[:, :-2].reshape(-1, 3, 5)
     bds = poses_arr[:, -2:].transpose(1, 0)
     Rs = poses[:, :, :3]
@@ -220,26 +220,32 @@ def image_undistorter(args, folder):
     return execute(cmd)
 
 
+def build_frame_folder(camera_meta, folder, i_frame):
+    n_cameras, Rs, Ts, hwf, bds = camera_meta
+    img_names = sorted(os.listdir(os.path.join(folder, "input")))
+    assert len(img_names) == n_cameras, f"Number of images in {folder} does not match number of cameras"
+    cameras, images = {}, {}
+    for i, img_name in enumerate(img_names):
+        width, height = hwf[i, 0], hwf[i, 1]
+        fx = fy = hwf[i, 2]
+        cx, cy = width / 2, height / 2
+        cameras[img_name] = f"PINHOLE {width} {height} {fx} {fy} {cx} {cy}"
+        R, T = Rs[i], Ts[i]
+        q, t = matrix_to_quaternion(R), T
+        images[img_name] = f"{q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]}"
+
+        img_dst = os.path.join(folder, "images", img_name)
+        if os.path.isfile(img_dst):
+            os.remove(img_dst)
+    return cameras, images
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
-    n_cameras, Rs, Ts, hwf, bds = read_camera_meta(os.path.join(args.path, "poses_bounds.npy"))
+    camera_meta = read_camera_meta(args.path)
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
-        img_names = sorted(os.listdir(os.path.join(folder, "input")))
-        assert len(img_names) == n_cameras, f"Number of images in {folder} does not match number of cameras"
-        cameras, images = {}, {}
-        for i, img_name in enumerate(img_names):
-            width, height = hwf[i, 0], hwf[i, 1]
-            fx = fy = hwf[i, 2]
-            cx, cy = width / 2, height / 2
-            cameras[img_name] = f"PINHOLE {width} {height} {fx} {fy} {cx} {cy}"
-            R, T = Rs[i], Ts[i]
-            q, t = matrix_to_quaternion(R), T
-            images[img_name] = f"{q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]}"
-
-            img_dst = os.path.join(folder, "images", img_name)
-            if os.path.isfile(img_dst):
-                os.remove(img_dst)
+        cameras, images = build_frame_folder(camera_meta, folder, frame)
 
         args.colmap_executable = os.path.abspath(args.colmap_executable)
         if feature_extractor(args, folder) != 0:
