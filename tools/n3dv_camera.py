@@ -228,7 +228,7 @@ def build_frame_folder_n3dv(camera_meta, folder, i_frame):
     assert len(img_names) == n_cameras, f"Number of images in {folder} does not match number of cameras"
     cameras, images = {}, {}
     for i, img_name in enumerate(img_names):
-        width, height = hwf[i, 0], hwf[i, 1]
+        height, width = hwf[i, 0], hwf[i, 1]
         fx = fy = hwf[i, 2]
         cx, cy = width / 2, height / 2
         cameras[img_name] = f"PINHOLE {width} {height} {fx} {fy} {cx} {cy}"
