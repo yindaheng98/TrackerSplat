@@ -24,6 +24,7 @@ initialize() {
             n=0
         fi
     done
+    wait
 }
 
 before_initialize_n3dv() {
