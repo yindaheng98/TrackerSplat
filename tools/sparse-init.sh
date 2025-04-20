@@ -59,7 +59,6 @@ initialize stepin 300
 initialize trimming 300
 initialize vrheadset 300
 
-MODE=stnerf
 before_initialize_stnerf() {
     for i in $(seq 1 $2); do
         if [ -e "data/$1/frame$i/input" ]; then
@@ -68,6 +67,7 @@ before_initialize_stnerf() {
         fi
     done
 }
+MODE=stnerf
 # initialize boxing 71 # boxing is test set, no pose
 initialize taekwondo 101
 initialize walking 75
