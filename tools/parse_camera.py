@@ -263,6 +263,64 @@ def build_frame_folder_meetingroom(camera_meta, folder, i_frame):
     return cameras, images
 
 
+def read_camera_meta_stnerf(path):
+    with open(os.path.join(path, "pose/K.txt")) as fo:
+        # https://github.com/DarlingHang/st-nerf/blob/main/data/datasets/utils.py#L20
+        data = fo.readlines()
+        i = 0
+        Ks = []
+        while i < len(data):
+            tmp = data[i].split()
+            a = [float(i) for i in tmp[0:3]]
+            a = np.array(a)
+            b = [float(i) for i in tmp[3:6]]
+            b = np.array(b)
+            c = [float(i) for i in tmp[6:9]]
+            c = np.array(c)
+            res = np.vstack([a, b, c])
+            Ks.append(res)
+
+            i = i+1
+        Ks = np.stack(Ks)
+    camposes = np.loadtxt(os.path.join(path, 'pose/RT_c2w.txt'))
+    # https://github.com/DarlingHang/st-nerf/blob/main/data/datasets/utils.py#L6
+    if camposes.shape[1] != 12:
+        raise Exception(" wrong campose data structure!")
+
+    res = np.zeros((camposes.shape[0], 4, 4))
+
+    res[:, 0, :] = camposes[:, 0:4]
+    res[:, 1, :] = camposes[:, 4:8]
+    res[:, 2, :] = camposes[:, 8:12]
+    res[:, 3, 3] = 1.0
+
+    w2c = np.linalg.inv(res)
+    return torch.tensor(Ks), torch.tensor(w2c)
+
+
+def build_frame_folder_stnerf(camera_meta, folder, i_frame):
+    os.makedirs(os.path.join(folder, "input"), exist_ok=True)
+    Ks, w2cs = camera_meta
+    n_cameras = w2cs.shape[0]
+    assert n_cameras == Ks.shape[0], f"Number of cameras in {folder} does not match number of cameras"
+    cameras, images = {}, {}
+    for i in range(n_cameras):
+        img_name = f"{i}.png"
+        fx, fy = Ks[i, 0, 0], Ks[i, 1, 1]
+        cx, cy = Ks[i, 0, 2], Ks[i, 1, 2]
+        cameras[img_name] = f"PINHOLE {1920} {1080} {fx} {fy} {cx} {cy}"
+        R, T = w2cs[i, :3, :3], w2cs[i, :3, 3]
+        q, t = matrix_to_quaternion(R), T
+        images[img_name] = f"{q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]}"
+
+        img_src = os.path.join(folder, "images", img_name)
+        img_dst = os.path.join(folder, "input", img_name)
+        if os.path.isfile(img_dst):
+            os.remove(img_dst)
+        os.rename(img_src, img_dst)
+    return cameras, images
+
+
 def read_camera_meta_dynamic3dgs(path):
     with open(os.path.join(path, "train_meta.json")) as f:
         return json.load(f)
@@ -294,6 +352,7 @@ def build_frame_folder_dynamic3dgs(camera_meta, folder, frame):
 modes = {
     "n3dv": (read_camera_meta_n3dv, build_frame_folder_n3dv),
     "meetingroom": (read_camera_meta_n3dv, build_frame_folder_meetingroom),
+    "stnerf": (read_camera_meta_stnerf, build_frame_folder_stnerf),
     "dynamic3dgs": (read_camera_meta_dynamic3dgs, build_frame_folder_dynamic3dgs),
 }
 

@@ -39,9 +39,10 @@ initialize stepin 300
 initialize trimming 300
 initialize vrheadset 300
 
-# initialize boxing 71
-# initialize taekwondo 101
-# initialize walking 75
+MODE=stnerf
+initialize boxing 71
+initialize taekwondo 101
+initialize walking 75
 
 MODE=dynamic3dgs
 initialize_dynamic3dgs basketball 150
