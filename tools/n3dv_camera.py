@@ -207,10 +207,10 @@ def read_camera_meta_n3dv(path):
     # Inverse of: https://github.com/Fyusion/LLFF/blob/master/llff/poses/pose_utils.py#L11
     poses_arr = torch.tensor(np.load(os.path.join(path, "poses_bounds.npy")))
     poses = poses_arr[:, :-2].reshape(-1, 3, 5)
-    bds = poses_arr[:, -2:].transpose(1, 0)
+    bds = poses_arr[:, -2:]
     hwf = poses[:, :, 4]
     c2w = torch.zeros((poses.shape[0], 4, 4), dtype=poses.dtype)
-    # switch from [-u, r, -t] (poses_bounds format) back to [r, -u, t] (colmap format)
+    # switch from [-y, x, z] (poses_bounds format) back to [x, -y, -z] (colmap format)
     c2w[:, :3, :4] = torch.cat((poses[:, :, 1:2], poses[:, :, 0:1], -poses[:, :, 2:3], poses[:, :, 3:4]), dim=-1)
     c2w[:, 3, 3] = 1
     w2c = torch.linalg.inv(c2w)
