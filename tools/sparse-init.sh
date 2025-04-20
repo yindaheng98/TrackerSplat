@@ -3,6 +3,12 @@
 COLMAP_EXECUTABLE=$(which colmap)
 MODE=n3dv
 initialize() {
+    for i in $(seq 1 $2); do
+        mv data/$1/frame$i data/$1/tmpframe$i
+        mkdir -p data/$1/frame$i
+        mv data/$1/tmpframe$i/input data/$1/frame$i/input
+        rm -rf data/$1/tmpframe$i
+    done
     # echo \
     python tools/parse_camera.py \
         --mode $MODE \
