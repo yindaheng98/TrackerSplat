@@ -1,14 +1,9 @@
 #!/bin/bash
 # COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
 COLMAP_EXECUTABLE=$(which colmap)
-MODE=n3dv
+MODE=""
 initialize() {
-    for i in $(seq 1 $2); do
-        mv data/$1/frame$i data/$1/tmpframe$i
-        mkdir -p data/$1/frame$i
-        mv data/$1/tmpframe$i/input data/$1/frame$i/input
-        rm -rf data/$1/tmpframe$i
-    done
+    eval before_initialize_$MODE $1 $2
     # echo \
     python tools/parse_camera.py \
         --mode $MODE \
@@ -31,6 +26,14 @@ initialize() {
     done
 }
 
+before_initialize_n3dv() {
+    for i in $(seq 1 $2); do
+        mv data/$1/frame$i data/$1/tmpframe$i
+        mkdir -p data/$1/frame$i
+        mv data/$1/tmpframe$i/input data/$1/frame$i/input
+        rm -rf data/$1/tmpframe$i
+    done
+}
 MODE=n3dv
 initialize coffee_martini 300
 initialize cook_spinach 300
@@ -39,6 +42,14 @@ initialize flame_salmon_1 1200
 initialize flame_steak 300
 initialize sear_steak 300
 
+before_initialize_meetingroom() {
+    for i in $(seq 1 $2); do
+        mv data/$1/frame$i data/$1/tmpframe$i
+        mkdir -p data/$1/frame$i
+        mv data/$1/tmpframe$i/input data/$1/frame$i/input
+        rm -rf data/$1/tmpframe$i
+    done
+}
 MODE=meetingroom
 initialize discussion 300
 initialize stepin 300
@@ -46,14 +57,27 @@ initialize trimming 300
 initialize vrheadset 300
 
 MODE=stnerf
-initialize boxing 71
+before_initialize_stnerf() {
+    for i in $(seq 1 $2); do
+        if [ -e "data/$1/frame$i/input" ]; then
+            rm -rf data/$1/frame$i/images
+            mv data/$1/frame$i/input data/$1/frame$i/images
+        fi
+    done
+}
+# initialize boxing 71 # boxing is test set, no pose
 initialize taekwondo 101
 initialize walking 75
 
+before_initialize_dynamic3dgs() {
+    for i in $(seq 1 $2); do
+        rm -rf data/$1/frame$i
+    done
+}
 MODE=dynamic3dgs
-initialize_dynamic3dgs basketball 150
-initialize_dynamic3dgs boxes 150
-initialize_dynamic3dgs football 150
-initialize_dynamic3dgs juggle 150
-initialize_dynamic3dgs softball 150
-initialize_dynamic3dgs tennis 150
+initialize basketball 150
+initialize boxes 150
+initialize football 150
+initialize juggle 150
+initialize softball 150
+initialize tennis 150
