@@ -104,23 +104,6 @@ def matrix_to_quaternion(matrix: torch.Tensor) -> torch.Tensor:
     return standardize_quaternion(out)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument("--colmap_executable", type=str, required=True, help="path to colmap executable")
-parser.add_argument("--path", type=str, required=True, help="path to the video folder")
-parser.add_argument("--n_frames", type=int, default=300, help="number of frames")
-parser.add_argument("--use_gpu", type=str, default="1", help="path to colmap executable")
-
-
-def read_camera_meta(path):
-    poses_arr = torch.tensor(np.load(os.path.join(path, "poses_bounds.npy")))
-    poses = poses_arr[:, :-2].reshape(-1, 3, 5)
-    bds = poses_arr[:, -2:].transpose(1, 0)
-    Rs = poses[:, :, :3]
-    Ts = poses[:, :, 3]
-    hwf = poses[:, :, 4]
-    return poses.shape[0], Rs, Ts, hwf, bds
-
-
 def execute(cmd):
     proc = subprocess.Popen(cmd, shell=False)
     proc.communicate()
@@ -218,6 +201,23 @@ def image_undistorter(args, folder):
         "--output_type=COLMAP",
     ]
     return execute(cmd)
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--colmap_executable", type=str, required=True, help="path to colmap executable")
+parser.add_argument("--path", type=str, required=True, help="path to the video folder")
+parser.add_argument("--n_frames", type=int, default=300, help="number of frames")
+parser.add_argument("--use_gpu", type=str, default="1", help="path to colmap executable")
+
+
+def read_camera_meta(path):
+    poses_arr = torch.tensor(np.load(os.path.join(path, "poses_bounds.npy")))
+    poses = poses_arr[:, :-2].reshape(-1, 3, 5)
+    bds = poses_arr[:, -2:].transpose(1, 0)
+    Rs = poses[:, :, :3]
+    Ts = poses[:, :, 3]
+    hwf = poses[:, :, 4]
+    return poses.shape[0], Rs, Ts, hwf, bds
 
 
 def build_frame_folder(camera_meta, folder, i_frame):
