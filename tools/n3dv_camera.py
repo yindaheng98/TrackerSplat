@@ -242,6 +242,27 @@ def build_frame_folder_n3dv(camera_meta, folder, i_frame):
     return cameras, images
 
 
+def build_frame_folder_meetingroom(camera_meta, folder, i_frame):
+    n_cameras, Rs, Ts, hwf, bds = camera_meta
+    img_names = sorted(os.listdir(os.path.join(folder, "input")))
+    assert len(img_names) == n_cameras, f"Number of images in {folder} does not match number of cameras"
+    cameras, images = {}, {}
+    for i in range(n_cameras):
+        img_name = f"cam_{i}.png"
+        height, width = hwf[i, 0], hwf[i, 1]
+        fx = fy = hwf[i, 2]
+        cx, cy = width / 2, height / 2
+        cameras[img_name] = f"PINHOLE {width} {height} {fx} {fy} {cx} {cy}"
+        R, T = Rs[i], Ts[i]
+        q, t = matrix_to_quaternion(R), T
+        images[img_name] = f"{q[0]} {q[1]} {q[2]} {q[3]} {t[0]} {t[1]} {t[2]}"
+
+        img_dst = os.path.join(folder, "images", img_name)
+        if os.path.isfile(img_dst):
+            os.remove(img_dst)
+    return cameras, images
+
+
 def read_camera_meta_dynamic3dgs(path):
     with open(os.path.join(path, "train_meta.json")) as f:
         return json.load(f)
@@ -272,6 +293,7 @@ def build_frame_folder_dynamic3dgs(camera_meta, folder, frame):
 
 modes = {
     "n3dv": (read_camera_meta_n3dv, build_frame_folder_n3dv),
+    "meetingroom": (read_camera_meta_n3dv, build_frame_folder_meetingroom),
     "dynamic3dgs": (read_camera_meta_dynamic3dgs, build_frame_folder_dynamic3dgs),
 }
 
