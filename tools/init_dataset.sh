@@ -26,13 +26,6 @@ initialize() {
         # fi
     done
     # wait
-    # echo \
-    python -m instantsplat.initialize \
-        -d data/$1/frame1 \
-        --initializer colmap-dense \
-        -o "colmap_executable='$COLMAP_EXECUTABLE'" \
-        $INITARGS # dense initialization the first frame
-    echo Done $MODE $1 $2
 }
 
 before_initialize_n3dv() {

@@ -194,6 +194,7 @@ Run scripts to extract n3dv-like datasets (n3dv, st-nerf and meet room) to prope
 Run scripts to extract and initialize camera poses for all datasets:
 ```sh
 ./tools/init_dataset.sh
+./tools/init_dataset_dense.sh
 ```
 
 ### Run the experiment
