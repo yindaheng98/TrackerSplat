@@ -3,21 +3,21 @@
 COLMAP_EXECUTABLE=$(which colmap)
 MODE=""
 initialize() {
-    eval before_initialize_$MODE $1 $2
+    eval before_initialize_$MODE $1 $2 # remove the old data
     # echo \
     python tools/parse_camera.py \
         --mode $MODE \
         --path data/$1 \
         --colmap_executable $COLMAP_EXECUTABLE \
-        --n_frames $2
-    n=0
+        --n_frames $2 # parse the given camera parameters
+    # n=0
     for i in $(seq 1 $2); do
         # echo \
         python -m instantsplat.initialize \
             -d data/$1/frame$i \
             --initializer colmap-sparse \
             -o "colmap_executable='$COLMAP_EXECUTABLE'" \
-            --device cuda
+            --device cuda # sparse initialization
         #     --device cpu &
         # n=$(expr $n + 1)
         # if [ $n -eq 8 ]; then
@@ -25,7 +25,13 @@ initialize() {
         #     n=0
         # fi
     done
-    wait
+    # wait
+    # echo \
+    python -m instantsplat.initialize \
+        -d data/$1/frame1 \
+        --initializer colmap-dense \
+        -o "colmap_executable='$COLMAP_EXECUTABLE'" \
+        $INITARGS # dense initialization the first frame
     echo Done $MODE $1 $2
 }
 

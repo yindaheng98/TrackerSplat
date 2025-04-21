@@ -29,18 +29,3 @@ convert_n3dv discussion 300 "cam_[0-9]+.mp4"
 convert_n3dv stepin 300 "cam_[0-9]+.mp4"
 convert_n3dv trimming 300 "cam_[0-9]+.mp4"
 convert_n3dv vrheadset 300 "cam_[0-9]+.mp4"
-
-convert_stnerf() {
-    for ((i = 1; i <= $2; ++i)); do
-        rm -rf "data/$1/frame$i/labels" "data/$1/frame$i/pointclouds"
-        if [ ! -e "data/$1/frame$i/input" ]; then
-            mv "data/$1/frame$i/images" "data/$1/frame$i/input"
-        fi
-    done
-    # extract first camera from dataset
-    rm -rf "data/$1/frame1" && cp -r "data/saved_frame1/$1/frame1" "data/$1/frame1"
-}
-
-convert_stnerf boxing 71
-convert_stnerf taekwondo 101
-convert_stnerf walking 75
