@@ -1,7 +1,7 @@
 #!/bin/bash
 # COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
 COLMAP_EXECUTABLE=$(which colmap)
-MODE=""
+
 initialize() {
     eval before_initialize_$MODE $1 $2 # remove the old data
     # echo \
@@ -124,7 +124,6 @@ initialize_nopose() {
     echo Done $MODE $1 $2
 }
 
-MODE=stnerf
 before_initialize_nopose_stnerf() {
     before_initialize_stnerf $1 $2
     for i in $(seq 1 $2); do
@@ -132,4 +131,5 @@ before_initialize_nopose_stnerf() {
         mv "data/$1/frame$i/images" "data/$1/frame$i/input"
     done
 }
+MODE=stnerf
 initialize_nopose boxing 71
