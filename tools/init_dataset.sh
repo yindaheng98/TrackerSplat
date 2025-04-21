@@ -92,7 +92,7 @@ initialize tennis 150
 
 # Dataset without pose
 initialize_nopose() {
-    eval before_initialize_$MODE $1 $2 # remove the old data
+    eval before_initialize_nopose_$MODE $1 $2 # remove the old data
     # echo \
     python -m instantsplat.initialize \
         -d data/$1/frame1 \
@@ -122,5 +122,14 @@ initialize_nopose() {
         -o "colmap_executable='$COLMAP_EXECUTABLE'" \
         $INITARGS # dense initialization the first frame
     echo Done $MODE $1 $2
+}
+
+MODE=stnerf
+before_initialize_nopose_stnerf() {
+    before_initialize_stnerf $1 $2
+    for i in $(seq 1 $2); do
+        rm -rf "data/$1/frame$i/labels" "data/$1/frame$i/pointclouds"
+        mv "data/$1/frame$i/images" "data/$1/frame$i/input"
+    done
 }
 initialize_nopose boxing 71
