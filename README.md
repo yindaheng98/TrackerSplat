@@ -197,14 +197,7 @@ Run scripts to extract n3dv-like datasets (n3dv, st-nerf and meet room) to prope
 
 Run scripts to extract Dynamic 3DGS dataset and initialize camera poses for all datasets:
 ```sh
-./tools/sparse-init.sh
-```
-
-### Initialize point cloud
-
-Dense initialization of the 1st frame:
-```sh
-./tools/dense-recon-1st.sh
+./tools/init_dataset.sh
 ```
 
 ### Run the experiment
