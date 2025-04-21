@@ -74,7 +74,6 @@ before_initialize_stnerf() {
     done
 }
 MODE=stnerf
-# initialize boxing 71 # boxing is test set, no pose
 initialize taekwondo 101
 initialize walking 75
 
@@ -90,3 +89,38 @@ initialize football 150
 initialize juggle 150
 initialize softball 150
 initialize tennis 150
+
+# Dataset without pose
+initialize_nopose() {
+    eval before_initialize_$MODE $1 $2 # remove the old data
+    # echo \
+    python -m instantsplat.initialize \
+        -d data/$1/frame1 \
+        --initializer colmap-sparse \
+        -o "colmap_executable='$COLMAP_EXECUTABLE'"
+    n=0
+    for i in $(seq 2 $2); do
+        # echo \
+        python -m instantsplat.initialize \
+            -d data/$1/frame$i \
+            --initializer colmap-sparse \
+            -o "load_camera='./data/$1/frame1'" \
+            -o "colmap_executable='$COLMAP_EXECUTABLE'" \
+            --device cuda
+        #     --device cpu &
+        # n=$(expr $n + 1)
+        # if [ $n -eq 16 ]; then
+        #     wait
+        #     n=0
+        # fi
+    done
+    # wait
+    # echo \
+    python -m instantsplat.initialize \
+        -d data/$1/frame1 \
+        --initializer colmap-dense \
+        -o "colmap_executable='$COLMAP_EXECUTABLE'" \
+        $INITARGS # dense initialization the first frame
+    echo Done $MODE $1 $2
+}
+initialize_nopose boxing 71
