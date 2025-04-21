@@ -67,11 +67,11 @@ initialize vrheadset 300
 
 before_initialize_stnerf() {
     for i in $(seq 1 $2); do
-        if [ -e "data/$1/frame$i/input" ]; then
-            rm -rf data/$1/frame$i/images
-            mv data/$1/frame$i/input data/$1/frame$i/images
-        fi
+        rm -rf data/$1/frame$i
     done
+    cd data
+    unzip -o $1/$1.zip
+    cd ../
 }
 MODE=stnerf
 initialize taekwondo 101

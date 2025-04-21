@@ -144,15 +144,11 @@ For st-nerf dataset:
 ```
 data
 |-boxing
-  |-background
-  |-frame1
-  |-frame2
-  |-frame......
+  |-boxing.zip
 |-taekwondo
-  |-background
-  |-frame1
-  |-frame2
-  |-frame......
+  |-taekwondo.zip
+|-walking
+  |-walking.zip
 ......
 ```
 
@@ -195,7 +191,7 @@ Run scripts to extract n3dv-like datasets (n3dv, st-nerf and meet room) to prope
 ./tools/n3dv_extract.sh
 ```
 
-Run scripts to extract Dynamic 3DGS dataset and initialize camera poses for all datasets:
+Run scripts to extract and initialize camera poses for all datasets:
 ```sh
 ./tools/init_dataset.sh
 ```
