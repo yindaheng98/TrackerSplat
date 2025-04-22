@@ -7,10 +7,12 @@ initialize() {
     # echo \
     python -m instantsplat.initialize \
         -d data/$1/frame1 \
-        --initializer colmap-dense \
+        --initializer $MODE \
         -o "colmap_executable='$COLMAP_EXECUTABLE'" \
         $INITARGS # dense initialization the first frame
 }
+
+MODE=dust3r-align-colmap
 
 initialize coffee_martini
 initialize cook_spinach
@@ -29,6 +31,8 @@ initialize discussion
 initialize stepin
 initialize trimming
 initialize vrheadset
+
+MODE=colmap-dense
 
 initialize basketball
 initialize boxes
