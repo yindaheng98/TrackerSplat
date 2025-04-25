@@ -67,8 +67,8 @@ before_initialize_stnerf() {
     cd ../
 }
 MODE=stnerf
-initialize taekwondo 101
-initialize walking 75
+# initialize taekwondo 101 # camera pose data is too bad
+# initialize walking 75    # camera pose data is too bad
 
 before_initialize_dynamic3dgs() {
     for i in $(seq 1 $2); do
@@ -126,3 +126,5 @@ before_initialize_nopose_stnerf() {
 }
 MODE=stnerf
 initialize_nopose boxing 71
+initialize_nopose taekwondo 101
+initialize_nopose walking 75
