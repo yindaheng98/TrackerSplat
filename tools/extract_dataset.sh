@@ -25,3 +25,16 @@ extract_n3dv discussion 300 "cam_[0-9]+.mp4"
 extract_n3dv stepin 300 "cam_[0-9]+.mp4"
 extract_n3dv trimming 300 "cam_[0-9]+.mp4"
 extract_n3dv vrheadset 300 "cam_[0-9]+.mp4"
+
+extract_dynamic3dgs() {
+    HERE=$(pwd)
+    rm -rf "$HERE/data/basketball"
+    rm -rf "$HERE/data/boxes"
+    rm -rf "$HERE/data/football"
+    rm -rf "$HERE/data/juggle"
+    rm -rf "$HERE/data/softball"
+    rm -rf "$HERE/data/tennis"
+    unzip -o data/data.zip
+}
+
+extract_dynamic3dgs
