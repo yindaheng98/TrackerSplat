@@ -27,8 +27,8 @@ initialize trimming
 initialize vrheadset
 
 initialize boxing
-initialize taekwondo
-initialize walking
+# initialize taekwondo # bad dust3r results
+# initialize walking   # too many outliers
 
 MODE=colmap-dense
 
@@ -38,3 +38,7 @@ initialize football
 initialize juggle
 initialize softball
 initialize tennis
+
+# Special cases
+MODE=colmap-dense INITARGS="-o use_fused=True" initialize taekwondo
+MODE=dust3r-align-colmap INITARGS="" initialize walking
