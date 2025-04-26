@@ -10,12 +10,17 @@ initialize() {
         --path data/$1 \
         --colmap_executable $COLMAP_EXECUTABLE \
         --n_frames $2 # parse the given camera parameters
+    # echo \
+    python -m instantsplat.initialize \
+        -d data/$1/frame1 \
+        --initializer colmap-sparse \
+        -o "colmap_executable='$COLMAP_EXECUTABLE'"
     # n=0
-    for i in $(seq 1 $2); do
+    for i in $(seq 2 $2); do
         # echo \
         python -m instantsplat.initialize \
             -d data/$1/frame$i \
-            --initializer colmap-sparse \
+            --initializer nodepth-colmap-sparse \
             -o "colmap_executable='$COLMAP_EXECUTABLE'" \
             --device cuda # sparse initialization
         #     --device cpu &
@@ -91,12 +96,12 @@ initialize_nopose() {
         -d data/$1/frame1 \
         --initializer colmap-sparse \
         -o "colmap_executable='$COLMAP_EXECUTABLE'"
-    n=0
+    # n=0
     for i in $(seq 2 $2); do
         # echo \
         python -m instantsplat.initialize \
             -d data/$1/frame$i \
-            --initializer colmap-sparse \
+            --initializer nodepth-colmap-sparse \
             -o "load_camera='./data/$1/frame1'" \
             -o "colmap_executable='$COLMAP_EXECUTABLE'" \
             --device cuda
