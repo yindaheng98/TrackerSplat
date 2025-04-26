@@ -125,73 +125,46 @@ Download datasets and extract them into `./data`:
 For Neural 3D Video dataset:
 ```
 data
-|-coffee_martini
-  |-poses_bounds.npy
-  |-cam00.mp4
-  |-cam01.mp4
-  |-cam02.mp4
-  |-cam......
-|-cook_spinach
-  |-poses_bounds.npy
-  |-cam00.mp4
-  |-cam01.mp4
-  |-cam02.mp4
-  |-cam......
-......
+|-coffee_martini.zip
+|-cook_spinach.zip
+|-cut_roasted_beef.zip
+|-flame_salmon_1_split.z01
+|-flame_salmon_1_split.z02
+|-flame_salmon_1_split.z03
+|-flame_salmon_1_split.zip
+|-flame_steak.zip
+|-sear_steak.zip
 ```
 
 For st-nerf dataset:
 ```
 data
-|-boxing
-  |-boxing.zip
-|-taekwondo
-  |-taekwondo.zip
-|-walking
-  |-walking.zip
-......
+|-boxing.zip
+|-taekwondo.zip
+|-walking.zip
 ```
 
 For Meet Room dataset:
 ```
 data
-|-discussion
-  |-poses_bounds.npy
-  |-cam_0.mp4
-  |-cam_1.mp4
-  |-cam_2.mp4
-  |-cam......
-|-stepin
-  |-poses_bounds.npy
-  |-cam_0.mp4
-  |-cam_1.mp4
-  |-cam_2.mp4
-  |-cam......
-......
+|-discussion.zip
+|-stepin.zip
+|-trimming.zip
+|-vrheadset.zip
 ```
 
 For Dynamic 3D Gaussians dataset:
 ```
 data
-|-basketball
-  |-ims
-  |-seg
-  |-init_pt_cld.npz
-  |-test_meta.json
-  |-train_meta.json
-|-boxes
-  |-ims
-  |-seg
-  |-......
-......
+|-data.zip
 ```
 
-Run scripts to extract n3dv-like datasets (n3dv, st-nerf and meet room) to proper format:
+Run scripts to extract these datasets to proper format:
 ```sh
-./tools/n3dv_extract.sh
+./tools/extract_dataset.sh
 ```
 
-Run scripts to extract and initialize camera poses for all datasets:
+Run scripts to convert and initialize camera poses for all datasets:
 ```sh
 ./tools/init_dataset.sh
 ./tools/init_dataset_dense.sh

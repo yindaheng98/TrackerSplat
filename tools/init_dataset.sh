@@ -68,7 +68,7 @@ before_initialize_stnerf() {
         rm -rf data/$1/frame$i
     done
     cd data
-    unzip -o $1/$1.zip
+    unzip -o $1.zip
     cd ../
 }
 MODE=stnerf

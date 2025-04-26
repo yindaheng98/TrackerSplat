@@ -1,6 +1,8 @@
 # !/bin/bash
 
 extract_n3dv() {
+    HERE=$(pwd)
+    rm -rf "$HERE/data/$1" && cd "$HERE/data" && unzip -o $1.zip && cd "$HERE"
     # echo \
     python tools/extract_n3dv.py \
         --path data/$1 \
@@ -13,7 +15,9 @@ extract_n3dv() {
 extract_n3dv coffee_martini 300 "cam[0-9][0-9].mp4"
 extract_n3dv cook_spinach 300 "cam[0-9][0-9].mp4"
 extract_n3dv cut_roasted_beef 300 "cam[0-9][0-9].mp4"
+zip -s- data/flame_salmon_1_split.zip -O data/flame_salmon_1.zip
 extract_n3dv flame_salmon_1 1200 "cam[0-9][0-9].mp4"
+rm flame_salmon_1.zip
 extract_n3dv flame_steak 300 "cam[0-9][0-9].mp4"
 extract_n3dv sear_steak 300 "cam[0-9][0-9].mp4"
 
