@@ -1,5 +1,5 @@
 #!/bin/bash
-ITERS=10000
+ITERS=30000
 MODE=camera-densify-prune-shculling
 ARGS=""
 train() {
@@ -29,6 +29,16 @@ ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_kernel_radius=32"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_stride=16"
 ARGSCOMMON=$ARGSCOMMON" -odepth_resize=577"
 
+ARGS="$ARGSCOMMON"
+MODE=camera-prune-shculling
+ITERS=30000
+train coffee_martini 1
+train cook_spinach 1
+train cut_roasted_beef 1
+train flame_salmon_1 1
+train flame_steak 1
+train sear_steak 1
+
 ARGSDENSIFY=""
 ARGSDENSIFY=$ARGSDENSIFY" -odensify_percent_too_big=0.3"
 
@@ -52,6 +62,8 @@ ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
 ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
 
 ARGS="$ARGSCOMMON $ARGSDENSIFY $ARGSSTEPS"
+MODE=camera-densify-prune-shculling
+ITERS=10000
 train walking 1
 train taekwondo 1
 train boxing 1
