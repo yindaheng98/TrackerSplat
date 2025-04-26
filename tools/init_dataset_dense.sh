@@ -1,7 +1,7 @@
 #!/bin/bash
 # COLMAP_EXECUTABLE=./data/colmap/COLMAP.bat
 COLMAP_EXECUTABLE=$(which colmap)
-INITARGS=""
+INITARGS="-o use_fused=True"
 initialize() {
     echo data/$1/frame1
     # echo \
@@ -21,18 +21,16 @@ initialize flame_salmon_1
 initialize flame_steak
 initialize sear_steak
 
-INITARGS="-o use_fused=True"
-
 initialize discussion
 initialize stepin
 initialize trimming
 initialize vrheadset
 
-MODE=colmap-dense
-
 initialize boxing
 initialize taekwondo
 initialize walking
+
+MODE=colmap-dense
 
 initialize basketball
 initialize boxes
