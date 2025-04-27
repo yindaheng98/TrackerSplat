@@ -18,7 +18,7 @@
             ]
         },
         {
-            "name": "train 1st frame",
+            "name": "train 1st frame (init by colmap)",
             "type": "debugpy",
             "request": "launch",
             "module": "reduced_3dgs.train",
@@ -57,6 +57,57 @@
                 "-odensify_interval=100",
                 "-oprune_from_iter=3000",
                 "-oprune_until_iter=6000",
+                "-oprune_interval=500",
+                "-oopacity_reset_from_iter=3000",
+                "-oopacity_reset_until_iter=5000",
+                "-oopacity_reset_interval=500",
+                // steps for camera
+                "-ocamera_position_lr_max_steps=10000",
+                "-ocamera_rotation_lr_max_steps=10000",
+                "-ocamera_exposure_lr_max_steps=10000",
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "train 1st frame (init by dust3r)",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "reduced_3dgs.train",
+            "console": "integratedTerminal",
+            "args": [
+                "-s",
+                "data/taekwondo/frame1",
+                "-d",
+                "output/taekwondo/frame1",
+                "-i",
+                "10000",
+                "--mode",
+                "camera-densify-prune-shculling",
+                // "camera-prune-shculling",
+                "--with_scale_reg",
+                "--empty_cache_every_step",
+                // hyperparams
+                "-oscale_reg_thr_scale=0.2",
+                "-odensify_percent_too_big=0.15",
+                "-odepth_l1_weight_init=1.0",
+                "-odepth_l1_weight_final=1.0",
+                "-odepth_from_iter=4000",
+                "-odepth_local_relative_kernel_radius=32",
+                "-odepth_local_relative_stride=16",
+                "-odepth_resize=577",
+                // steps
+                "-oposition_lr_max_steps=10000",
+                "-ocull_at_steps=[9000]",
+                "-oscale_reg_from_iter=500",
+                "-odepth_l1_weight_max_steps=10000",
+                // steps for densify
+                // tips: depth will make the training unstable, and the pruning strategy may prune too many points
+                // densification of points would slower than pruning, so more densify and less pruning
+                "-odensify_from_iter=1000",
+                "-odensify_until_iter=7000",
+                "-odensify_interval=100",
+                "-oprune_from_iter=2000",
+                "-oprune_until_iter=7000",
                 "-oprune_interval=500",
                 "-oopacity_reset_from_iter=3000",
                 "-oopacity_reset_until_iter=5000",

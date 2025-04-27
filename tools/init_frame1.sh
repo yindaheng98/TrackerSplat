@@ -1,5 +1,5 @@
 #!/bin/bash
-ITERS=30000
+ITERS=10000
 MODE=camera-densify-prune-shculling
 ARGS=""
 train() {
@@ -19,19 +19,43 @@ train() {
 # train walking 1 # debug
 
 ARGSCOMMON=""
-ARGSCOMMON=$ARGSCOMMON" --empty_cache_every_step"
+# hyperparams
 ARGSCOMMON=$ARGSCOMMON" --with_scale_reg"
-ARGSCOMMON=$ARGSCOMMON" -oscale_reg_thr_scale=0.5"
+ARGSCOMMON=$ARGSCOMMON" --empty_cache_every_step"
+ARGSCOMMON=$ARGSCOMMON" -oscale_reg_thr_scale=0.2"
+ARGSCOMMON=$ARGSCOMMON" -odensify_percent_too_big=0.15"
 ARGSCOMMON=$ARGSCOMMON" -odepth_from_iter=500"
 ARGSCOMMON=$ARGSCOMMON" -odepth_l1_weight_init=1.0"
 ARGSCOMMON=$ARGSCOMMON" -odepth_l1_weight_final=1.0"
+ARGSCOMMON=$ARGSCOMMON" -odepth_from_iter=4000"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_kernel_radius=32"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_stride=16"
 ARGSCOMMON=$ARGSCOMMON" -odepth_resize=577"
 
-ARGS="$ARGSCOMMON"
-MODE=camera-prune-shculling
-ITERS=30000
+ARGSSTEPS=""
+# steps
+ARGSSTEPS=$ARGSSTEPS" --save_iterations=10000"
+ARGSSTEPS=$ARGSSTEPS" -oposition_lr_max_steps=10000"
+ARGSSTEPS=$ARGSSTEPS" -ocull_at_steps=[9000]"
+ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
+ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
+# steps for densify
+ARGSSTEPS=$ARGSSTEPS" -odensify_from_iter=1000"
+ARGSSTEPS=$ARGSSTEPS" -odensify_until_iter=7000"
+ARGSSTEPS=$ARGSSTEPS" -odensify_interval=100"
+ARGSSTEPS=$ARGSSTEPS" -oprune_from_iter=2000"
+ARGSSTEPS=$ARGSSTEPS" -oprune_until_iter=7000"
+ARGSSTEPS=$ARGSSTEPS" -oprune_interval=500"
+ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_from_iter=3000"
+ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_until_iter=5000"
+ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_interval=500"
+# steps for camera
+ARGSSTEPS=$ARGSSTEPS" -ocamera_position_lr_max_steps=10000"
+ARGSSTEPS=$ARGSSTEPS" -ocamera_rotation_lr_max_steps=10000"
+ARGSSTEPS=$ARGSSTEPS" -ocamera_exposure_lr_max_steps=10000"
+
+ARGS="$ARGSCOMMON $ARGSSTEPS"
+
 train coffee_martini 1
 train cook_spinach 1
 train cut_roasted_beef 1
@@ -39,31 +63,6 @@ train flame_salmon_1 1
 train flame_steak 1
 train sear_steak 1
 
-ARGSDENSIFY=""
-ARGSDENSIFY=$ARGSDENSIFY" -odensify_percent_too_big=0.3"
-
-ARGSSTEPS=""
-ARGSSTEPS=$ARGSSTEPS" --save_iterations=10000"
-ARGSSTEPS=$ARGSSTEPS" -oposition_lr_max_steps=10000"
-ARGSSTEPS=$ARGSSTEPS" -ocamera_position_lr_max_steps=10000"
-ARGSSTEPS=$ARGSSTEPS" -ocamera_rotation_lr_max_steps=10000"
-ARGSSTEPS=$ARGSSTEPS" -ocamera_exposure_lr_max_steps=10000"
-ARGSSTEPS=$ARGSSTEPS" -odensify_from_iter=1000"
-ARGSSTEPS=$ARGSSTEPS" -odensify_until_iter=8000"
-ARGSSTEPS=$ARGSSTEPS" -odensify_interval=100"
-ARGSSTEPS=$ARGSSTEPS" -oprune_from_iter=2000"
-ARGSSTEPS=$ARGSSTEPS" -oprune_until_iter=8000"
-ARGSSTEPS=$ARGSSTEPS" -oprune_interval=500"
-ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_from_iter=4000"
-ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_until_iter=8000"
-ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_interval=500"
-ARGSSTEPS=$ARGSSTEPS" -ocull_at_steps=[9000]"
-ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
-ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
-
-ARGS="$ARGSCOMMON $ARGSDENSIFY $ARGSSTEPS"
-MODE=camera-densify-prune-shculling
-ITERS=10000
 train walking 1
 train taekwondo 1
 train boxing 1
