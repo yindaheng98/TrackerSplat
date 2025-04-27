@@ -12,7 +12,8 @@ extract_n3dv() {
         chmod +x ./temp.sh && ./temp.sh && rm ./temp.sh
 }
 
-extract_n3dv coffee_martini 300 "cam[0-9][0-9].mp4"
+extract_n3dv coffee_martini 300 "cam[0-9][012456789].mp4" # no cam03, cam13 is wrong
+rm data/coffee_martini/cam13.mp4 # no cam13 is wrong
 extract_n3dv cook_spinach 300 "cam[0-9][0-9].mp4"
 extract_n3dv cut_roasted_beef 300 "cam[0-9][0-9].mp4"
 zip -s- data/flame_salmon_1_split.zip -O data/flame_salmon_1.zip

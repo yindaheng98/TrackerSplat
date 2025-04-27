@@ -42,7 +42,7 @@ before_initialize_n3dv() {
     done
 }
 MODE=n3dv
-initialize coffee_martini 300
+# initialize coffee_martini 300 # has wrong video
 initialize cook_spinach 300
 initialize cut_roasted_beef 300
 initialize flame_salmon_1 1200
@@ -127,3 +127,14 @@ MODE=stnerf
 initialize_nopose boxing 71
 initialize_nopose taekwondo 101
 initialize_nopose walking 75
+
+before_initialize_nopose_n3dv() {
+    for i in $(seq 1 $2); do
+        mv data/$1/frame$i data/$1/tmpframe$i
+        mkdir -p data/$1/frame$i
+        mv data/$1/tmpframe$i/input data/$1/frame$i/input
+        rm -rf data/$1/tmpframe$i
+    done
+}
+MODE=n3dv
+initialize_nopose coffee_martini 300
