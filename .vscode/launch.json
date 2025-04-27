@@ -104,13 +104,13 @@
                 // tips: depth will make the training unstable, and the pruning strategy may prune too many points
                 // densification of points would slower than pruning, so more densify and less pruning
                 "-odensify_from_iter=1000",
-                "-odensify_until_iter=7000",
+                "-odensify_until_iter=8000",
                 "-odensify_interval=100",
                 "-oprune_from_iter=2000",
-                "-oprune_until_iter=7000",
+                "-oprune_until_iter=8000",
                 "-oprune_interval=500",
                 "-oopacity_reset_from_iter=3000",
-                "-oopacity_reset_until_iter=5000",
+                "-oopacity_reset_until_iter=7000",
                 "-oopacity_reset_interval=500",
                 // steps for camera
                 "-ocamera_position_lr_max_steps=10000",
