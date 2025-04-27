@@ -15,7 +15,7 @@ extract_n3dv() {
 extract_n3dv coffee_martini 300 "cam[0-9][012456789].mp4" # no cam03, cam13 is wrong
 rm data/coffee_martini/cam13.mp4                          # cam13 is wrong
 mv data/coffee_martini/poses_bounds.npy data/coffee_martini/poses_bounds_raw.npy
-python -c "import numpy as np; poses = np.load('data/coffee_martini/poses_bounds_raw.npy'); np.save('data/coffee_martini/poses_bounds.npy', np.concat((poses[:11, :], poses[12:, :])))"
+python -c "import numpy as np; poses = np.load('data/coffee_martini/poses_bounds_raw.npy'); np.save('data/coffee_martini/poses_bounds.npy', np.concat((poses[:12, :], poses[13:, :])))"
 extract_n3dv cook_spinach 300 "cam[0-9][0-9].mp4"
 extract_n3dv cut_roasted_beef 300 "cam[0-9][0-9].mp4"
 zip -s- data/flame_salmon_1_split.zip -O data/flame_salmon_1.zip
