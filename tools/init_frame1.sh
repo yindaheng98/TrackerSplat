@@ -63,3 +63,15 @@ train cut_roasted_beef 1
 train flame_salmon_1 1
 train flame_steak 1
 train sear_steak 1
+
+train discussion 1
+train stepin 1
+train trimming 1
+train vrheadset 1
+
+train basketball 1
+train boxes 1
+train football 1
+train juggle 1
+train softball 1
+train tennis 1
