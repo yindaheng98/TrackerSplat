@@ -30,6 +30,7 @@ ARGSCOMMON=$ARGSCOMMON" -odepth_from_iter=4000"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_kernel_radius=32"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_stride=16"
 ARGSCOMMON=$ARGSCOMMON" -odepth_resize=577"
+ARGSCOMMON=$ARGSCOMMON" -omercy_type='redundancy_opacity_opacity'"
 
 ARGSSTEPS=""
 # steps
