@@ -38,22 +38,23 @@ ARGSSTEPS=$ARGSSTEPS" -oposition_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocull_at_steps=[9000]"
 ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
 ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
-# steps for densify
-ARGSSTEPS=$ARGSSTEPS" -odensify_from_iter=1000"
-ARGSSTEPS=$ARGSSTEPS" -odensify_until_iter=7800"
-ARGSSTEPS=$ARGSSTEPS" -odensify_interval=100"
-ARGSSTEPS=$ARGSSTEPS" -oprune_from_iter=2000"
-ARGSSTEPS=$ARGSSTEPS" -oprune_until_iter=7500"
-ARGSSTEPS=$ARGSSTEPS" -oprune_interval=500"
-ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_from_iter=3000"
-ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_until_iter=5000"
-ARGSSTEPS=$ARGSSTEPS" -oopacity_reset_interval=500"
 # steps for camera
 ARGSSTEPS=$ARGSSTEPS" -ocamera_position_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocamera_rotation_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocamera_exposure_lr_max_steps=10000"
 
-ARGS="$ARGSCOMMON $ARGSSTEPS"
+# steps for densify
+ARGSDENSIFY=$ARGSDENSIFY" -odensify_from_iter=1000"
+ARGSDENSIFY=$ARGSDENSIFY" -odensify_until_iter=7800"
+ARGSDENSIFY=$ARGSDENSIFY" -odensify_interval=100"
+ARGSDENSIFY=$ARGSDENSIFY" -oprune_from_iter=2000"
+ARGSDENSIFY=$ARGSDENSIFY" -oprune_until_iter=7500"
+ARGSDENSIFY=$ARGSDENSIFY" -oprune_interval=500"
+ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_from_iter=3000"
+ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_until_iter=5000"
+ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_interval=500"
+
+ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
 
 train coffee_martini 1
 train cook_spinach 1
@@ -61,14 +62,3 @@ train cut_roasted_beef 1
 train flame_salmon_1 1
 train flame_steak 1
 train sear_steak 1
-
-train walking 1
-train taekwondo 1
-train boxing 1
-
-train basketball 1
-train boxes 1
-train football 1
-train juggle 1
-train softball 1
-train tennis 1
