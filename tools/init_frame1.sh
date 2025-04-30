@@ -78,3 +78,7 @@ train football 1
 train juggle 1
 train softball 1
 train tennis 1
+
+train boxing 1
+train taekwondo 1
+train walking 1
