@@ -10,7 +10,6 @@ save_frame1() {
     cp -r output/$1/frame1 data/saved_frame1/output/$1/frame1
 }
 
-rm -rf data/saved_frame1
 mkdir -p data/saved_frame1
 
 save_frame1 coffee_martini
@@ -37,6 +36,7 @@ save_frame1 softball
 save_frame1 tennis
 
 cd data/saved_frame1
-rm saved_frame1.zip
+rm saved_frame1-data.zip
 zip -r saved_frame1-data.zip ./data
+rm saved_frame1-output.zip
 zip -r saved_frame1-output.zip ./output
