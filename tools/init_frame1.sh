@@ -54,6 +54,9 @@ ARGSDENSIFY=$ARGSDENSIFY" -oprune_interval=500"
 ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_from_iter=3000"
 ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_until_iter=5000"
 ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_interval=500"
+ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_from_iter=2000"
+ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_until_iter=8500"
+ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_interval=100"
 
 ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
 

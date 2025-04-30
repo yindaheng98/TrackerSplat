@@ -113,6 +113,9 @@
                 "-oopacity_reset_from_iter=3000",
                 "-oopacity_reset_until_iter=7000",
                 "-oopacity_reset_interval=500",
+                "-oimportance_prune_from_iter=2000",
+                "-oimportance_prune_until_iter=8500",
+                "-oimportance_prune_interval=100",
                 // steps for camera
                 "-ocamera_position_lr_max_steps=10000",
                 "-ocamera_rotation_lr_max_steps=10000",
