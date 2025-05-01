@@ -174,7 +174,7 @@ Run scripts to convert and initialize camera poses for all datasets:
 
 Experiment on all our methods and baselines
 ```sh
-./tools/motionestimation.sh
+./tools/motionestimation_long.sh
 ```
 
 Then you can see the quality (PANR, SSIM, LIPIPS) of each training step in output folder: `output/<name of dataset>/<name of method>/frame2/log/iteration_1000/log.csv`
