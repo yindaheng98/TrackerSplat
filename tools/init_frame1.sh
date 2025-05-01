@@ -77,7 +77,7 @@ train boxing 1
 train taekwondo 1
 train walking 1
 
-ARGS="$ARGS --no_depth_data"
+# ARGS="$ARGS --no_depth_data"
 train basketball 1
 train boxes 1
 train football 1
