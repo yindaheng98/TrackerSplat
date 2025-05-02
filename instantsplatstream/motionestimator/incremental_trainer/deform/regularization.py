@@ -25,7 +25,7 @@ def weighted_l2_loss(x, y, w):
 
 def scale_loss(point_scale, thr):
     return torch.mean(
-        torch.max((torch.max(torch.abs(point_scale), dim=1).values / torch.min(torch.abs(point_scale), dim=1).values), torch.tensor([thr], device="cuda")) - thr)
+        torch.max((torch.max(torch.abs(point_scale), dim=1).values / torch.min(torch.abs(point_scale), dim=1).values), torch.tensor([thr], device=point_scale.device)) - thr)
 
 
 class RegularizedHexplaneTrainer(HexplaneTrainer):
@@ -146,7 +146,7 @@ class RegularizedHexplaneTrainer(HexplaneTrainer):
             time_smoothness_weight=self.time_smoothness_weight,
             l1_time_planes_weight=self.l1_time_planes,
             plane_tv_weight=self.plane_tv_weight)
-        ani = scale_loss(self.model.get_scaling, thr=10.0)
+        ani = scale_loss(self.model.get_scaling, thr=10.0).clamp_max(1)  # TODO: very big value WTF? clamp it or destroy the model
         loc = self._loc_regulation()
         # https://github.com/wanglids/ST-4DGS/blob/bf0dbb13e76bf41b2c2a4ca64063e5d346db7c74/train.py#L228
         return super().loss(out, camera) + tv + self.lambda_ani*ani + self.lambda_loc*loc

@@ -5,7 +5,7 @@ from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.utils import l1_loss, ssim
 from gaussian_splatting.utils.schedular import get_expon_lr_func
 from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
-from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory, BaseTrainer
+from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory
 
 from .deformation import DeformNetwork
 
@@ -77,6 +77,11 @@ class HexplaneTrainer(AbstractTrainer):
 
     @property
     def model(self) -> GaussianModel:
+        means3D_deform, scales_deform, rotations_deform, opacity_deform = self._deformation(self.mean3D_base, self.scales_base, self.rotations_base, self.opacity_base, self.per_time)
+        self._model._xyz = means3D_deform
+        self._model._scaling = scales_deform
+        self._model._rotation = rotations_deform
+        self._model._opacity = opacity_deform
         return self._model
 
     @property
@@ -86,17 +91,6 @@ class HexplaneTrainer(AbstractTrainer):
     @property
     def schedulers(self) -> Dict[str, Callable[[int], float]]:
         return self._schedulers
-
-    def forward_backward(self, camera: Camera):
-        means3D_deform, scales_deform, rotations_deform, opacity_deform = self._deformation(self.mean3D_base, self.scales_base, self.rotations_base, self.opacity_base, self.per_time)
-        self.model._xyz = means3D_deform
-        self.model._scaling = scales_deform
-        self.model._rotation = rotations_deform
-        self.model._opacity = opacity_deform
-        out = self.model(camera)
-        loss = self.loss(out, camera)
-        loss.backward()
-        return loss, out
 
     def loss(self, out: dict, camera: Camera) -> torch.Tensor:
         render = out["render"]
