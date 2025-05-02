@@ -1,6 +1,14 @@
 #!/bin/bash
 FFMPEG="ffmpeg"
 render() {
+    for i in $(seq $5 $6); do
+        EXISTSPATH="output/$1/$2/frame$i/point_cloud/iteration_$4/point_cloud.ply"
+        if [ ! -e "$EXISTSPATH" ]; then
+            echo "not exists: $EXISTSPATH"
+            return
+        fi
+    done
+    echo "all exists: output/$1/$2/frame<$5-$6>/point_cloud/iteration_$3/point_cloud.ply"
     python -m cagstream.render \
         -s output/$1/$2 \
         -d output/$1/$2/render \

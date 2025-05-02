@@ -5,8 +5,12 @@ collect() {
     cp output/$1/$2.mp4 output/collected_videos/$1/$2.mp4
 }
 collect_all() {
+    collect $1 refine/base-propagate-dot-cotracker3 $2 $3 $4 $5
+    collect $1 refine/base-base-dot-cotracker3 $2 $3 $4 $5
     collect $1 train/regularized $2 $3 $4 $5
-    collect $1 refine/masked-propagate-dot-cotracker3 $2 $3 $4 $5
+    collect $1 train/base $2 $3 $4 $5
+    collect $1 train/hexplane $2 $3 $4 $5
+    collect $1 train/regularizedhexplane $2 $3 $4 $5
 }
 collect_all walking 10000 1000 2 75
 collect_all taekwondo 10000 1000 2 101

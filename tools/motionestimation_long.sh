@@ -17,7 +17,7 @@ train() {
         fi
     done
     if [ "$ok" = true ]; then
-        echo "(skip) all exists: output/$1/frame<$2-$(expr $2 + $7 - 1)>/point_cloud/iteration_$3/point_cloud.ply"
+        echo "(skip) all exists: output/$1/$4/frame<$2-$(expr $2 + $7 - 1)>/point_cloud/iteration_$3/point_cloud.ply"
         return
     fi
     # echo \
