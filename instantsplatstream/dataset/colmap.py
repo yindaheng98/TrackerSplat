@@ -26,7 +26,8 @@ def read_colmap_framemetas(video_folder: str, frame_folder_fmt: str = "frame%d",
             FoVy=camera.FoVy,
             R=camera.R,
             T=camera.T,
-            image_path=camera.image_path
+            image_path=camera.image_path,
+            frame_idx=frame_idx,
         ) for camera in read_colmap_cameras(frame_folder)]
         framemeta = sorted(framemeta, key=lambda x: x.image_path)
         framemetas.append(framemeta)
@@ -52,6 +53,7 @@ def fixedview_validate(framemetas):
             assert abs(camera.FoVy - camera0.FoVy) < 1e-8
             assert torch.isclose(camera0.R, camera.R).all()
             assert torch.isclose(camera0.T, camera.T).all()
+            assert camera.frame_idx == framemeta[0].frame_idx
 
 
 def FixedViewColmapVideoCameraDataset(*args, device=torch.device("cuda"), **kwargs) -> VideoCameraDataset:
@@ -80,7 +82,8 @@ def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=tor
         FoVy=jsoncameras[idx].FoVy,
         R=jsoncameras[idx].R,
         T=jsoncameras[idx].T,
-        image_path=camera.image_path
+        image_path=camera.image_path,
+        frame_idx=camera.frame_idx,
     ) for idx, camera in zip(cam_idx_in_json, framemeta)] for framemeta in framemetas]
     fixedview_validate(framemetas)
     return VideoCameraDataset(frames=framemetas, device=device)

@@ -17,6 +17,7 @@ class FixedViewFrameSequenceMeta(NamedTuple):
     R: torch.Tensor  # TODO: quaternion maybe better?
     T: torch.Tensor
     frames_path: List[str]
+    frame_idx: List[int]
 
     @classmethod
     def from_datasetcameras(cls, cameras: List[DatasetCameraMeta]) -> 'FixedViewFrameSequenceMeta':
@@ -34,7 +35,8 @@ class FixedViewFrameSequenceMeta(NamedTuple):
             FoVy=camera.FoVy,
             R=camera.R,
             T=camera.T,
-            frames_path=[camera.image_path for camera in cameras]
+            frames_path=[camera.image_path for camera in cameras],
+            frame_idx=[camera.frame_idx for camera in cameras],
         )
 
 
@@ -102,9 +104,9 @@ class FixedViewMotionEstimator(MotionEstimator):
 
             def __getitem__(self, frame_idx: Union[int, slice]) -> List[FixedViewFrameSequenceMeta]:
                 if isinstance(frame_idx, slice):
-                    return [camera._replace(frames_path=camera.frames_path[frame_idx]) for camera in self.cameras]
+                    return [camera._replace(frames_path=camera.frames_path[frame_idx], frame_idx=camera.frame_idx[frame_idx]) for camera in self.cameras]
                 if isinstance(frame_idx, int):
-                    return [camera._replace(frames_path=[camera.frames_path[frame_idx]]) for camera in self.cameras]
+                    return [camera._replace(frames_path=[camera.frames_path[frame_idx]], frame_idx=[camera.frame_idx[frame_idx]]) for camera in self.cameras]
                 raise ValueError("frame_idx must be either an integer or a slice")
         return ViewCollector(self.cameras)
 

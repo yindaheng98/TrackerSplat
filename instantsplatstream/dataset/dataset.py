@@ -14,9 +14,13 @@ class DatasetCameraMeta(NamedTuple):
     R: torch.Tensor
     T: torch.Tensor
     image_path: str = None
+    # only used for video dataset
+    frame_idx: int = None
 
     def build_camera(self, device=torch.device("cuda")) -> Camera:
-        return build_camera(**self._asdict(), device=device)
+        params = self._asdict()
+        params.pop("frame_idx")
+        return build_camera(**params, device=device)
 
 
 class FrameCameraDataset(CameraDataset):
