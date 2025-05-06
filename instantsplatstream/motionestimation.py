@@ -85,7 +85,7 @@ class LoggerTrainingProcess(BaseTrainingProcess):
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
 compensater_choices = ["base", "propagate", "filter"]
-trainer_choices = ["base", "regularized", "masked", "maskregularized", "hexplane", "regularizedhexplane"]
+trainer_choices = ["base", "regularized", "masked", "maskregularized", "hexplane", "regularizedhexplane", "hicom"]
 
 train_choices = [traintype + "/" + trainer for traintype, trainer in itertools.product(["train", "train1step"], trainer_choices)]
 refine_choices = ["refine/" + trainer + "-" + compensater + "-" + estimator for trainer, compensater, estimator in itertools.product(trainer_choices, compensater_choices, estimator_choices)]
