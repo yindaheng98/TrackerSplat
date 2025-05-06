@@ -34,7 +34,7 @@ initialize_and_train_video_allmethods() {
     train $1 $2 $3 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
     train $1 $2 $3 refine/base-base-dot-cotracker3 "-o rescale_factor=$4" $5 $6 "$CAMERAS"
     train $1 $2 $3 train/regularized "-o neighbors=20" $5 $6 "$CAMERAS"
-    train $1 $2 $3 train/base "" $5 $6 "$CAMERAS"
+    train $1 $2 $3 train/hicom "" $5 $6 "$CAMERAS"
     train $1 $2 $3 train/hexplane "" $5 $6 "$CAMERAS"
     train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $6 "$CAMERAS"
 }
