@@ -8,7 +8,7 @@ collect_all() {
     collect $1 refine/base-propagate-dot-cotracker3 $2 $3 $4 $5
     collect $1 refine/base-base-dot-cotracker3 $2 $3 $4 $5
     collect $1 train/regularized $2 $3 $4 $5
-    collect $1 train/base $2 $3 $4 $5
+    collect $1 train/hicom $2 $3 $4 $5
     collect $1 train/hexplane $2 $3 $4 $5
     collect $1 train/regularizedhexplane $2 $3 $4 $5
 }
