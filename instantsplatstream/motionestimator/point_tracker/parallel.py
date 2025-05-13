@@ -102,7 +102,7 @@ def task_io(views: List[FixedViewFrameSequenceMeta], queues_in_sync: List[mp.Que
 
     # stage 2: inject tasks
     for queue_in, view in zip(itertools.cycle(queues_in), views):
-        queue_in.put(view)
+        queue_in.put(view._replace(R=view.R.cpu(), T=view.T.cpu()))
 
     motions = [None] * n_frames
     for queue_out, frame_idx in zip(itertools.cycle(queues_out), range(n_frames)):
@@ -123,7 +123,7 @@ class DataParallelPointTrackMotionEstimator(FixedViewBatchMotionEstimator):
             self,
             build_estimator: Callable[..., PointTrackMotionEstimator], build_estimator_kwargs: Dict[str, Any],
             base_gaussians: GaussianModel,
-            master_device='cuda', slave_device_ids=[0], max_size=100):
+            master_device='cuda', slave_device_ids=[0], max_size=0):
         self.build_estimator = build_estimator
         self.build_estimator_kwargs = build_estimator_kwargs
         self.base_gaussians = base_gaussians
