@@ -28,8 +28,7 @@ class TimingDataParallelPointTrackMotionEstimator(DataParallelPointTrackMotionEs
         end.record()
         torch.cuda.synchronize()
         print("tracking timing: ", start.elapsed_time(end))
-        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
-        with open(self.log_path, "w") as f:
+        with open(self.log_path, "a") as f:
             f.write(f"tracking timing: {start.elapsed_time(end)}\n")
         return motions
 
@@ -46,14 +45,13 @@ class TimingTrainingProcess(BaseTrainingProcess):
         end.record()
         torch.cuda.synchronize()
         print("training timing: ", start.elapsed_time(end))
-        os.makedirs(os.path.dirname(self.log_path), exist_ok=True)
         with open(self.log_path, "a") as f:
             f.write(f"training timing: {start.elapsed_time(end)}\n")
 
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
 compensater_choices = ["base", "propagate", "filter"]
-trainer_choices = ["base", "regularized", "masked", "maskregularized", "hexplane", "regularizedhexplane"]
+trainer_choices = ["base", "regularized", "masked", "maskregularized", "hexplane", "regularizedhexplane", "hicom"]
 
 train_choices = [traintype + "/" + trainer for traintype, trainer in itertools.product(["train", "train1step"], trainer_choices)]
 refine_choices = ["refine/" + trainer + "-" + compensater + "-" + estimator for trainer, compensater, estimator in itertools.product(trainer_choices, compensater_choices, estimator_choices)]
@@ -159,7 +157,10 @@ if __name__ == "__main__":
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera)
 
-    frame_str = (args.frame_folder_fmt % args.start_frame) + f"plus{args.n_frames}"
+    frame_str = (args.frame_folder_fmt % args.start_frame) + f"plus{args.batch_size - 1}to{args.n_frames + 1}"
     log_path = os.path.join(os.path.join(args.destination, args.pipeline), "timelog", frame_str + ".txt")
+    os.makedirs(os.path.dirname(log_path), exist_ok=True)
+    with open(log_path, "w") as f:
+        pass
     batch_func, motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, log_path, args.device, args.parallel_device, args.batch_size, args.iteration, **configs)
     motion_compensate(batch_func, motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames, args.save_frames)

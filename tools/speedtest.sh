@@ -5,12 +5,13 @@ speedtest() {
     for i in $(seq 0 $(expr $6 - 1)); do
         PARALLELDEVICES="$PARALLELDEVICES --parallel_device=$i"
     done
+    echo $1/$4 -n $(expr $6 \* 3) -b $(expr $6 + 1)
     # echo \
     python -m instantsplatstream.motionestimation_speedtest \
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
         --pipeline $4 $5 \
-        -n $6 -b $(expr $6 + 1) \
+        -n $(expr $6 \* 3) -b $(expr $6 + 1) \
         $PARALLELDEVICES
 }
 # speedtest "discussion" 61 1000 track/propagate-dot-cotracker3 "-o rescale_factor=0.3" 4 # debug
@@ -23,25 +24,29 @@ speedtest_allmethods() {
     speedtest $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5
 }
 
-DEVICES=4
+speedtest_allmethods_alldevices() {
+    speedtest_allmethods $1 $2 $3 $4 2
+    speedtest_allmethods $1 $2 $3 $4 4
+    speedtest_allmethods $1 $2 $3 $4 8
+}
 
 FRAME=1
-speedtest_allmethods "walking" $FRAME 1000 0.3 $DEVICES
-speedtest_allmethods "taekwondo" $FRAME 1000 0.3 $DEVICES
-speedtest_allmethods "boxing" $FRAME 1000 0.3 $DEVICES
+speedtest_allmethods_alldevices "walking" $FRAME 1000 0.3
+speedtest_allmethods_alldevices "taekwondo" $FRAME 1000 0.3
+speedtest_allmethods_alldevices "boxing" $FRAME 1000 0.3
 
-speedtest_allmethods "coffee_martini" $FRAME 1000 0.3 $DEVICES
-speedtest_allmethods "cook_spinach" $FRAME 1000 0.3 $DEVICES
-speedtest_allmethods "cut_roasted_beef" $FRAME 1000 0.3 $DEVICES
+speedtest_allmethods_alldevices "coffee_martini" $FRAME 1000 0.3
+speedtest_allmethods_alldevices "cook_spinach" $FRAME 1000 0.3
+speedtest_allmethods_alldevices "cut_roasted_beef" $FRAME 1000 0.3
 
-speedtest_allmethods "discussion" $FRAME 1000 0.5 $DEVICES
-speedtest_allmethods "stepin" $FRAME 1000 0.5 $DEVICES
-speedtest_allmethods "trimming" $FRAME 1000 0.5 $DEVICES
-speedtest_allmethods "vrheadset" $FRAME 1000 0.5 $DEVICES
+speedtest_allmethods_alldevices "discussion" $FRAME 1000 0.5
+speedtest_allmethods_alldevices "stepin" $FRAME 1000 0.5
+speedtest_allmethods_alldevices "trimming" $FRAME 1000 0.5
+speedtest_allmethods_alldevices "vrheadset" $FRAME 1000 0.5
 
-speedtest_allmethods "basketball" $FRAME 1000 1.0 $DEVICES
-speedtest_allmethods "boxes" $FRAME 1000 1.0 $DEVICES
-speedtest_allmethods "football" $FRAME 1000 1.0 $DEVICES
-speedtest_allmethods "juggle" $FRAME 1000 1.0 $DEVICES
-speedtest_allmethods "softball" $FRAME 1000 1.0 $DEVICES
-speedtest_allmethods "tennis" $FRAME 1000 1.0 $DEVICES
+speedtest_allmethods_alldevices "basketball" $FRAME 1000 1.0
+speedtest_allmethods_alldevices "boxes" $FRAME 1000 1.0
+speedtest_allmethods_alldevices "football" $FRAME 1000 1.0
+speedtest_allmethods_alldevices "juggle" $FRAME 1000 1.0
+speedtest_allmethods_alldevices "softball" $FRAME 1000 1.0
+speedtest_allmethods_alldevices "tennis" $FRAME 1000 1.0
