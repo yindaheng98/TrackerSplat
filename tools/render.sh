@@ -16,6 +16,7 @@ renderall() {
     # rendering $1 "train/regularizedhexplane" $2 $3
 }
 renderall "walking" 61 69
+renderall "discussion" 91 99
 renderall "stepin" 61 69
 renderall "basketball" 1 9
 # renderall "tennis" 1 9
