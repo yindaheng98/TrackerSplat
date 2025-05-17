@@ -19,5 +19,6 @@ renderall "walking" 61 69
 renderall "stepin" 61 69
 renderall "basketball" 1 9
 renderall "tennis" 31 39
+renderall "softball" 141 149
 renderall "taekwondo" 61 69
 renderall "coffee_martini" 1 9
