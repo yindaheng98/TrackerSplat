@@ -62,6 +62,7 @@ initialize_and_train_allvideo_allmethods() {
 }
 initialize_and_train_allvideo_allmethods walking 6 1000 0.3 10
 initialize_and_train_allvideo_allmethods taekwondo 10 1000 0.3 10
+initialize_and_train_allvideo_allmethods boxing 6 1000 0.3 10
 
 initialize_and_train_allvideo_allmethods coffee_martini 30 1000 0.3 10
 initialize_and_train_allvideo_allmethods cook_spinach 30 1000 0.3 10
