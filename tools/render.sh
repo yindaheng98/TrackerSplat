@@ -9,15 +9,15 @@ rendering() {
 }
 renderall() {
     rendering $1 "refine/base-base-dot-cotracker3" $2 $3
-    rendering $1 "refine/base-propagate-dot-cotracker3" $2 $3
+    # rendering $1 "refine/base-propagate-dot-cotracker3" $2 $3
     rendering $1 "train/base" $2 $3
     rendering $1 "train/regularized" $2 $3
     rendering $1 "train/hexplane" $2 $3
-    rendering $1 "train/regularizedhexplane" $2 $3
+    # rendering $1 "train/regularizedhexplane" $2 $3
 }
-renderall "walking" 61 68
-renderall "stepin" 61 68
-renderall "basketball" 1 8
-renderall "tennis" 31 38
-renderall "taekwondo" 61 68
-renderall "coffee_martini" 1 8
+renderall "walking" 61 69
+renderall "stepin" 61 69
+renderall "basketball" 1 9
+renderall "tennis" 31 39
+renderall "taekwondo" 61 69
+renderall "coffee_martini" 1 9
