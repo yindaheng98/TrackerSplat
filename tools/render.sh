@@ -17,6 +17,7 @@ renderall() {
 }
 renderall "walking" 61 69
 renderall "discussion" 91 99
+renderall "trimming" 1 9
 renderall "stepin" 61 69
 renderall "basketball" 1 9
 # renderall "tennis" 1 9
