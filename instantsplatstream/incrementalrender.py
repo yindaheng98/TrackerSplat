@@ -16,10 +16,10 @@ import numpy as np
 
 def prepare_base(sh_degree: int, device: str, mode: str, load_ply: str) -> Tuple[CameraDataset, GaussianModel]:
     match mode:
-        case "pure" | "densify":
+        case "base" | "densify":
             gaussians = GaussianModel(sh_degree).to(device)
             gaussians.load_ply(load_ply)
-        case "camera":
+        case "camera" | "camera-densify":
             gaussians = CameraTrainableGaussianModel(sh_degree).to(device)
             gaussians.load_ply(load_ply)
         case _:
@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", required=True, type=int)
     parser.add_argument("--load_camera", default=None, type=str)
-    parser.add_argument("--mode", choices=["pure", "densify", "camera"], default="pure")
+    parser.add_argument("--mode", choices=["base", "densify", "camera", "camera-densify"], default="base")
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--destination_base", required=True, type=str)
     parser.add_argument("--iteration_base", default=None, type=int)
