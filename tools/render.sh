@@ -25,3 +25,5 @@ renderall "basketball" 1 9
 renderall "softball" 141 149
 renderall "taekwondo" 81 89
 renderall "coffee_martini" 1 9
+# renderall "cook_spinach" 21 29
+renderall "cut_roasted_beef" 91 99
