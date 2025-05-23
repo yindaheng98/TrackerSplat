@@ -352,5 +352,19 @@
                 "300",
             ]
         },
+        {
+            "name": "stack long videos",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "tools/merge_video.py",
+            "console": "integratedTerminal",
+            "args": [
+                "output",
+                "boxing",
+                "st-nerf",
+                "50",
+                "output/collected_videos",
+            ],
+        },
     ]
 }
