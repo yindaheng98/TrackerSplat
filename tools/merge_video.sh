@@ -21,8 +21,10 @@ merge trimming MeetingRoom 300
 merge vrheadset MeetingRoom 300
 
 merge basketball Dynamic3DGS 150
-merg boxese Dynamic3DGS 150
+merge boxes Dynamic3DGS 150
 merge football Dynamic3DGS 150
 merge juggle Dynamic3DGS 150
 merge softball Dynamic3DGS 150
 merge tennis Dynamic3DGS 150
+
+$FFMPEG -f concat -safe 0 -i tools/videos.txt -c copy videos.mp4

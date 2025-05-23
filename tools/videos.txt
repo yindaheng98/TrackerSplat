@@ -1,0 +1,21 @@
+file '../output/collected_videos/walking.mp4'
+file '../output/collected_videos/taekwondo.mp4'
+file '../output/collected_videos/boxing.mp4'
+
+file '../output/collected_videos/coffee_martini.mp4'
+file '../output/collected_videos/cook_spinach.mp4'
+file '../output/collected_videos/cut_roasted_beef.mp4'
+file '../output/collected_videos/flame_steak.mp4'
+file '../output/collected_videos/sear_steak.mp4'
+
+file '../output/collected_videos/discussion.mp4'
+file '../output/collected_videos/stepin.mp4'
+file '../output/collected_videos/trimming.mp4'
+file '../output/collected_videos/vrheadset.mp4'
+
+file '../output/collected_videos/basketball.mp4'
+file '../output/collected_videos/boxes.mp4'
+file '../output/collected_videos/football.mp4'
+file '../output/collected_videos/juggle.mp4'
+file '../output/collected_videos/softball.mp4'
+file '../output/collected_videos/tennis.mp4'
