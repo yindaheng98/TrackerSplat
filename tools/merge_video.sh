@@ -2,7 +2,7 @@
 FFMPEG="ffmpeg"
 merge() {
     python tools/merge_video.py output $1 $2 $3 output/collected_videos
-    $FFMPEG -y -f image2 -framerate 15 -i output/collected_videos/$1/%05d.png -vcodec libx264 -pix_fmt yuv420p -crf 20 -preset veryslow output/collected_videos/$1.mp4
+    $FFMPEG -y -f image2 -framerate 15 -i output/collected_videos/$1/%05d.png -vcodec libx264 -pix_fmt yuv420p -crf 22 -preset veryslow output/collected_videos/$1.mp4
 }
 merge walking st-nerf 75
 merge taekwondo st-nerf 101
