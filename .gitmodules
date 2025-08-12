@@ -9,9 +9,6 @@
 	path = submodules/motionfusion
 	url = https://github.com/yindaheng98/diff-gaussian-rasterization
 	branch = motionfusion
-[submodule "submodules/dinov2"]
-	path = submodules/dinov2
-	url = https://github.com/facebookresearch/dinov2
 [submodule "submodules/simple-knn"]
 	path = submodules/simple-knn
 	url = https://github.com/yindaheng98/simple-knn
