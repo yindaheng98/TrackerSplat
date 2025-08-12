@@ -26,6 +26,7 @@ speedtest_allmethods() {
 }
 
 speedtest_allmethods_alldevices() {
+    speedtest_allmethods $1 $2 $3 $4 1
     speedtest_allmethods $1 $2 $3 $4 2
     speedtest_allmethods $1 $2 $3 $4 4
     speedtest_allmethods $1 $2 $3 $4 8
