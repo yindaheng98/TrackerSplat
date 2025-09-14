@@ -34,6 +34,7 @@ cd InstantSplatStream
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
+pip install --upgrade --target . --no-deps git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master
 pip install --target . --upgrade .
 ```
 

@@ -5,6 +5,7 @@ scripts
 /instantsplatstream/utils/motionfusion/diff_gaussian_rasterization
 /instantsplatstream/utils/featurefusion/diff_gaussian_rasterization
 /instantsplatstream/utils/simple_knn
+/extrinterp
 /reduced_3dgs
 /dot
 /dust3r
