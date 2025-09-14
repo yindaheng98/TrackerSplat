@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--path", type=str, required=True, help="path to the video folder")
 parser.add_argument("--max_interval", type=int, default=100, help="maximum interval between timestamps")
 
+
 def frame_timestamps(root):
     """
     Extract and align frame timestamps from multiple camera videos in a given directory.
@@ -37,6 +38,15 @@ def frame_timestamps(root):
         frames.append(frame)
     return frames
 
+
+def combination_idx(frame):
+    idx = 0
+    for i, f in enumerate(frame):
+        if f is not None:
+            idx += 1 << i
+    return idx
+
+
 def filter_frames(frames):
     """
     Filter frames based on the number of valid timestamps.
@@ -44,18 +54,20 @@ def filter_frames(frames):
     frame_valid_count = [len([f for f in frame if f is not None]) for frame in frames]
     valid_threshold = np.bincount(frame_valid_count).argmax()
     filtered_frames = []
-    tmp = []
+    tmp, last_ci = [], combination_idx(frames[0])
     for valid_count, frame in zip(frame_valid_count, frames):
-        if valid_count >= valid_threshold:
+        if valid_count >= valid_threshold and combination_idx(frame) == last_ci:
             tmp.append(frame)
         else:
             if len(tmp) > len(filtered_frames):
                 filtered_frames = tmp
-            tmp = []
+            tmp = [frame]
+        last_ci = combination_idx(frame)
     if len(tmp) > len(filtered_frames):
         filtered_frames = tmp
     tmp = []
     return filtered_frames
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
