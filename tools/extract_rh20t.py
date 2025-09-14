@@ -37,10 +37,28 @@ def frame_timestamps(root):
         frames.append(frame)
     return frames
 
+def filter_frames(frames):
+    """
+    Filter frames based on the number of valid timestamps.
+    """
+    frame_valid_count = [len([f for f in frame if f is not None]) for frame in frames]
+    valid_threshold = np.bincount(frame_valid_count).argmax()
+    filtered_frames = []
+    tmp = []
+    for valid_count, frame in zip(frame_valid_count, frames):
+        if valid_count >= valid_threshold:
+            tmp.append(frame)
+        else:
+            if len(tmp) > len(filtered_frames):
+                filtered_frames = tmp
+            tmp = []
+    if len(tmp) > len(filtered_frames):
+        filtered_frames = tmp
+    tmp = []
+    return filtered_frames
+
 if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
-    frames = frame_timestamps(root)
-    valid_count = np.bincount([len([f for f in frame if f is not None]) for frame in frames])
-    valid_threshold = valid_count.argmax()
-    print(valid_count, valid_threshold)
+    frames = filter_frames(frame_timestamps(root))
+    print(frames)
