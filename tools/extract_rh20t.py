@@ -79,9 +79,22 @@ def filter_frames(frames):
     return filtered_frames
 
 
+def build_frame_dst(videos, frames):
+    frame_dst = {video: {} for video in videos}
+    for i, frame in enumerate(frames):
+        for video, timestamp in zip(videos, frame):
+            if timestamp is not None:
+                if timestamp not in frame_dst[video]:
+                    frame_dst[video][timestamp] = []
+                frame_dst[video][timestamp].append(i + 1)
+    return frame_dst
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
     videos = videos_in_dir(root)
-    frames = filter_frames(frame_timestamps(videos))
-    print(frames)
+    frames = frame_timestamps(videos)
+    frames = filter_frames(frames)
+    frame_dst = build_frame_dst(videos, frames)
+    print(frame_dst)
