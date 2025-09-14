@@ -29,18 +29,18 @@ def frame_timestamps(videos):
     """
     Extract and align frame timestamps from multiple camera videos in a given directory.
     """
-    timestamps_videos = {}
+    videos_timestamps = {}
     for video in videos:
-        timestamps_videos[video] = np.load(os.path.join(root, f"cam_{video}", "timestamps.npy"), allow_pickle=True).item()['color']
-    timestamps_name_by_length = sorted(timestamps_videos.keys(), key=lambda x: len(timestamps_videos[x]), reverse=True)
-    anchor_timestamps_name = timestamps_name_by_length[0]
+        videos_timestamps[video] = np.load(os.path.join(root, f"cam_{video}", "timestamps.npy"), allow_pickle=True).item()['color']
+    anchor_video = sorted(videos_timestamps.keys(), key=lambda x: len(videos_timestamps[x]), reverse=True)[0]
     frames = []
-    for anchor_timestamp in timestamps_videos[anchor_timestamps_name]:
+    for anchor_timestamp in videos_timestamps[anchor_video]:
         frame = [anchor_timestamp]
-        for timestamps_name in timestamps_name_by_length[1:]:
+        for video in videos:
+            if video == anchor_video:
+                continue
             frame_timestamp, max_interval = None, args.max_interval
-            timestamps = timestamps_videos[timestamps_name]
-            for timestamp in timestamps:
+            for timestamp in videos_timestamps[video]:
                 if abs(timestamp - anchor_timestamp) < max_interval:
                     frame_timestamp = timestamp
                     max_interval = abs(timestamp - anchor_timestamp)
