@@ -35,16 +35,16 @@ def frame_timestamps(videos):
     anchor_video = sorted(videos_timestamps.keys(), key=lambda x: len(videos_timestamps[x]), reverse=True)[0]
     frames = []
     for anchor_timestamp in videos_timestamps[anchor_video]:
-        frame = [anchor_timestamp]
-        for video in videos:
+        frame = [None] * len(videos)
+        for i, video in enumerate(videos):
             if video == anchor_video:
-                continue
+                frame[i] = anchor_timestamp
             frame_timestamp, max_interval = None, args.max_interval
             for timestamp in videos_timestamps[video]:
                 if abs(timestamp - anchor_timestamp) < max_interval:
                     frame_timestamp = timestamp
                     max_interval = abs(timestamp - anchor_timestamp)
-            frame.append(frame_timestamp)
+            frame[i] = frame_timestamp
         frames.append(frame)
     return frames
 
