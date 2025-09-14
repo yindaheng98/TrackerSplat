@@ -90,6 +90,25 @@ def build_frame_dst(videos, frames):
     return frame_dst
 
 
+def convert_color(root, video, frame_dst):
+    color_file = os.path.join(root, f"cam_{video}", "color.mp4")
+    color_timestamps = np.load(os.path.join(root, f"cam_{video}", "timestamps.npy"), allow_pickle=True).item()['color']
+    cap = cv2.VideoCapture(color_file)
+    cnt = 0
+    while True:
+        ret, frame = cap.read()
+        if ret:
+            color_timestamp = color_timestamps[cnt]
+            if color_timestamp in frame_dst:
+                for dst in frame_dst[color_timestamp]:
+                    os.makedirs(os.path.join(root, f"frame{dst}"), exist_ok=True)
+                    cv2.imwrite(os.path.join(root, f"frame{dst}", f'{video}.png'), frame)
+            cnt += 1
+        else:
+            break
+    cap.release()
+
+
 if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
@@ -97,4 +116,7 @@ if __name__ == "__main__":
     frames = frame_timestamps(videos)
     frames = filter_frames(frames)
     frame_dst = build_frame_dst(videos, frames)
-    print(frame_dst)
+    for video in videos:
+        print(f"Converting video cam_{video} ...")
+        convert_color(root, video, frame_dst[video])
+    print("Done.")
