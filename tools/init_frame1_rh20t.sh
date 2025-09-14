@@ -1,6 +1,6 @@
 #!/bin/bash
 ITERS=10000
-MODE=camera-shculling
+MODE=camera-prune-shculling
 ARGS=""
 train() {
     EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
@@ -29,6 +29,8 @@ ARGSCOMMON=$ARGSCOMMON" -odepth_from_iter=4000"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_kernel_radius=32"
 ARGSCOMMON=$ARGSCOMMON" -odepth_local_relative_stride=16"
 ARGSCOMMON=$ARGSCOMMON" -odepth_resize=577"
+ARGSCOMMON=$ARGSCOMMON" -omercy_type='redundancy_opacity_opacity'"
+ARGSCOMMON=$ARGSCOMMON" -oimportance_score_resize=1280"
 
 ARGSSTEPS=""
 # steps
@@ -41,6 +43,16 @@ ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocamera_position_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocamera_rotation_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocamera_exposure_lr_max_steps=10000"
+
+# steps for densify
+ARGSDENSIFY=$ARGSDENSIFY" -oprune_from_iter=2000"
+ARGSDENSIFY=$ARGSDENSIFY" -oprune_until_iter=8000"
+ARGSDENSIFY=$ARGSDENSIFY" -oprune_interval=1000"
+ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_from_iter=2000"
+ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_until_iter=8000"
+ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_interval=1000"
+# disable opacity reset
+ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_from_iter=10000"
 
 ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
 
