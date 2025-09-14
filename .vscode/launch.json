@@ -277,5 +277,33 @@
                 "output/collected_videos",
             ],
         },
+        {
+            "name": "render video",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "instantsplatstream.render",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "-d",
+                "output/coffee_martini/refine/masked-propagate-dot-cotracker3",
+                "-i",
+                "1000",
+                "--destination_init",
+                "output/coffee_martini/frame1",
+                "--iteration_init",
+                "10000",
+                "--frame_start",
+                "2",
+                "--frame_end",
+                "300",
+                "--mode",
+                "base",
+                "--load_camera",
+                "output/coffee_martini/frame1/cameras.json",
+                "--data_dir",
+                "output/coffee_martini/render",
+            ]
+        },
     ]
 }
