@@ -46,4 +46,7 @@ initialize_and_train_video_allmethods() {
     train $1 $2 $3 train/hexplane "" $5 $N "$CAMERAS"
     train $1 $2 $3 train/regularizedhexplane "-o neighbors=20" $5 $N "$CAMERAS"
 }
-initialize_and_train_video_allmethods RH20T_cfg3/task_0001_user_0016_scene_0002_cfg_0003 1 1000 1.0 9 # debug
+# initialize_and_train_video_allmethods RH20T_cfg3/task_0001_user_0016_scene_0002_cfg_0003 1 1000 1.0 9 # debug
+for s in data/RH20T_cfg3/task_*_user_*_scene_*_cfg_0003; do
+    initialize_and_train_video_allmethods ${s:5} 1 1000 1.0 9 # debug
+done

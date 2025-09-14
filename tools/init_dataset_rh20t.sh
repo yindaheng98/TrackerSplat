@@ -13,5 +13,8 @@ initialize() {
         n=$(expr $n + 1)
     done
 }
+# initialize RH20T_cfg3/task_0001_user_0016_scene_0002_cfg_0003 # debug
 
-initialize RH20T_cfg3/task_0001_user_0016_scene_0002_cfg_0003
+for s in data/RH20T_cfg3/task_*_user_*_scene_*_cfg_0003; do
+    initialize ${s:5}
+done
