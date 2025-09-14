@@ -101,8 +101,8 @@ def convert_color(root, video, frame_dst):
             color_timestamp = color_timestamps[cnt]
             if color_timestamp in frame_dst:
                 for dst in frame_dst[color_timestamp]:
-                    os.makedirs(os.path.join(root, f"frame{dst}"), exist_ok=True)
-                    cv2.imwrite(os.path.join(root, f"frame{dst}", f'{video}.png'), frame)
+                    os.makedirs(os.path.join(root, f"frame{dst}", "images"), exist_ok=True)
+                    cv2.imwrite(os.path.join(root, f"frame{dst}", "images", f'{video}.png'), frame)
             cnt += 1
         else:
             break
