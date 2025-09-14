@@ -7,6 +7,7 @@ import cv2
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", type=str, required=True, help="path to the video folder")
 parser.add_argument("--max_interval", type=int, default=100, help="maximum interval between timestamps")
+parser.add_argument("--excepts", type=str, action='append', default=[], help="camera to be excluded")
 
 
 def videos_in_dir(root):
@@ -113,6 +114,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
     videos = videos_in_dir(root)
+    videos = [v for v in videos if v not in args.excepts]
     frames = frame_timestamps(videos)
     frames = filter_frames(frames)
     frame_dst = build_frame_dst(videos, frames)

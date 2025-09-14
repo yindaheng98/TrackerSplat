@@ -2,7 +2,7 @@
 
 initialize() {
     rm -rf data/$1/frame*
-    python tools/extract_rh20t.py --path data/$1
+    python tools/extract_rh20t.py --path data/$1 --except 045322071843 --except 135122079769
     python -m instantsplat.initialize \
         -d data/$1/frame1 \
         --initializer dust3r
