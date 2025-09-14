@@ -2,17 +2,18 @@ import os
 import re
 import argparse
 import numpy as np
+import cv2
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--path", type=str, required=True, help="path to the video folder")
 parser.add_argument("--max_interval", type=int, default=100, help="maximum interval between timestamps")
 
 
-def frame_timestamps(root):
+def videos_in_dir(root):
     """
-    Extract and align frame timestamps from multiple camera videos in a given directory.
+    List all video files in the given directory.
     """
-    timestamps_videos = {}
+    videos = []
     for entry in os.scandir(root):
         if not os.path.exists(os.path.join(root, entry.name, "color.mp4")):
             continue
@@ -20,8 +21,17 @@ def frame_timestamps(root):
             continue
         if not re.match(r"cam_[a-z0-9]+", entry.name):
             continue
-        timestamps_name = entry.name[4:]
-        timestamps_videos[timestamps_name] = np.load(os.path.join(root, entry.name, "timestamps.npy"), allow_pickle=True).item()['color']
+        videos.append(entry.name[4:])
+    return videos
+
+
+def frame_timestamps(videos):
+    """
+    Extract and align frame timestamps from multiple camera videos in a given directory.
+    """
+    timestamps_videos = {}
+    for video in videos:
+        timestamps_videos[video] = np.load(os.path.join(root, f"cam_{video}", "timestamps.npy"), allow_pickle=True).item()['color']
     timestamps_name_by_length = sorted(timestamps_videos.keys(), key=lambda x: len(timestamps_videos[x]), reverse=True)
     anchor_timestamps_name = timestamps_name_by_length[0]
     frames = []
@@ -72,5 +82,6 @@ def filter_frames(frames):
 if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
-    frames = filter_frames(frame_timestamps(root))
+    videos = videos_in_dir(root)
+    frames = filter_frames(frame_timestamps(videos))
     print(frames)
