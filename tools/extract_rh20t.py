@@ -1,33 +1,36 @@
 import os
 import re
 import argparse
+import numpy as np
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--exec", type=str, required=True, help="path to the ffmpeg")
 parser.add_argument("--path", type=str, required=True, help="path to the video folder")
-parser.add_argument("--n_frames", type=int, required=True, help="number of frames")
-parser.add_argument("--fmt", type=str, default=r"cam_[a-z0-9]+[/]color.mp4", help="re format of mp4 file")
-parser.add_argument("--maxt", type=int, default=2, help="max num of thread")
+parser.add_argument("--fmt", type=str, default=r"cam_[a-z0-9]+", help="re format of mp4 file")
+parser.add_argument("--max_interval", type=int, default=30, help="maximum interval between timestamps")
 
 if __name__ == "__main__":
     args = parser.parse_args()
     root = args.path
-    t = args.maxt
-    names = []
-    for top, dirnames, filenames in os.walk(root):
-        for filename in filenames:
-            names.append(os.path.relpath(os.path.join(top, filename), root).replace("\\", "/"))
-    for name in names:
-        if not re.match(args.fmt, name):
+
+    timestamps_videos = {}
+    for entry in os.scandir(root):
+        if not re.match(args.fmt, entry.name):
             continue
-        cam = os.path.splitext(name)[0]
-        imgs_dir = root + "/frame%d/input/" + re.sub(r"[\\\\/]", "_", cam) + ".png"
-        for i in range(1, args.n_frames + 1):
-            os.makedirs(root + "/frame%d/input" % i, exist_ok=True)
-        cmd = f"{args.exec} -i {root + '/' + name} {imgs_dir} -y &"
-        print(cmd)
-        t -= 1
-        if t <= 0:
-            print("wait")
-            t = args.maxt
-    print("wait")
+        if not os.path.exists(os.path.join(root, entry.name, "color.mp4")):
+            continue
+        if not os.path.exists(os.path.join(root, entry.name, "timestamps.npy")):
+            continue
+        timestamps_videos[entry.name] = np.load(os.path.join(root, entry.name, "timestamps.npy"), allow_pickle=True).item()['color']
+    timestamps_name_by_length = sorted(timestamps_videos.keys(), key=lambda x: len(timestamps_videos[x]), reverse=True)
+    anchor_timestamps_name = timestamps_name_by_length[0]
+    for anchor_timestamp in timestamps_videos[anchor_timestamps_name]:
+        frame = [anchor_timestamp]
+        for timestamps_name in timestamps_name_by_length[1:]:
+            frame_timestamp, max_interval = None, args.max_interval
+            timestamps = timestamps_videos[timestamps_name]
+            for timestamp in timestamps:
+                if abs(timestamp - anchor_timestamp) < max_interval:
+                    frame_timestamp = timestamp
+                    max_interval = abs(timestamp - anchor_timestamp)
+            frame.append(frame_timestamp)
+        print(frame)
