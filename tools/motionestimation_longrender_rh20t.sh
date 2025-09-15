@@ -36,7 +36,7 @@ render_all() {
     render $1 train/hexplane $2 $3 2 $N
     render $1 train/regularizedhexplane $2 $3 2 $N
 }
-# render_all RH20T_cfg3/task_0001_user_0016_scene_0002_cfg_0003 10000 1000 # debug
-for s in data/RH20T_cfg3/task_*_user_*_scene_*_cfg_0003; do
+# render_all RH20T_cfg5/task_0001_user_0016_scene_0002_cfg_0005 10000 1000 # debug
+for s in data/RH20T_cfg5/task_*_user_*_scene_*_cfg_0005; do
     render_all ${s:5} 10000 1000 # debug
 done

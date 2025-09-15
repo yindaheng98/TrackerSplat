@@ -56,7 +56,7 @@ ARGSDENSIFY=$ARGSDENSIFY" -oopacity_reset_from_iter=10000"
 
 ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
 
-# train RH20T_cfg3/task_0001_user_0016_scene_0002_cfg_0003 1 # debug
-for s in data/RH20T_cfg3/task_*_user_*_scene_*_cfg_0003; do
+# train RH20T_cfg5/task_0001_user_0016_scene_0002_cfg_0005 1 # debug
+for s in data/RH20T_cfg5/task_*_user_*_scene_*_cfg_0005; do
     train ${s:5} 1
 done
