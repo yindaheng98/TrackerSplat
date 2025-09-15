@@ -17,7 +17,8 @@ render() {
         --frame_start $5 --frame_end $6 \
         --interp_n $7 \
         --load_camera output/$1/frame1/cameras.json \
-        --mode base
+        --mode base \
+        --use_intrinsics 'dict(image_width=640,FoVx=1.4749,image_height=360,FoVy=1.1990)'
     $FFMPEG -y -f image2 -i output/$1/$2/render/%05d.png -vf "crop=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -pix_fmt yuv420p -crf 10 output/$1/$2.mp4
     rm -rf output/$1/$2/render
 }
