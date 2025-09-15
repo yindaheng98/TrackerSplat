@@ -1,14 +1,32 @@
 #!/bin/bash
+
+# rm -rf data/RH20T_cfg5 && tar -zxvf data/RH20T_cfg5.tar.gz -C data
+init_dataset() {
+    rm -rf data/$1/frame*
+    python tools/extract_rh20t.py --path data/$1 --except 104422070042 --except 135122079702 --except 104422071090
+    python -m instantsplat.initialize \
+        -d data/$1/frame1 \
+        --initializer dust3r
+    n=2
+    while [ -d "data/$1/frame$n" ]; do
+        rm -rf data/$1/frame$n/sparse
+        cp -r data/$1/frame1/sparse data/$1/frame$n
+        n=$(expr $n + 1)
+    done
+}
+# initialize RH20T_cfg5/task_0001_user_0016_scene_0002_cfg_0005 # debug
+
 ITERS=10000
 MODE=camera-prune-shculling
 ARGS=""
-train() {
+init_dataset_and_frame1() {
     EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
     if [ -e "$EXISTSPATH" ]; then
         echo "(skip) exists: $EXISTSPATH"
         return
     fi
     echo "not exists: $EXISTSPATH"
+    init_dataset $1
     # echo \
     python -m reduced_3dgs.train \
         -s data/$1/frame$2 \
@@ -58,5 +76,5 @@ ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
 
 # train RH20T_cfg5/task_0001_user_0016_scene_0002_cfg_0005 1 # debug
 for s in data/RH20T_cfg5/task_*_user_*_scene_*_cfg_0005; do
-    train ${s:5} 1
+    init_dataset_and_frame1 ${s:5} 1
 done
