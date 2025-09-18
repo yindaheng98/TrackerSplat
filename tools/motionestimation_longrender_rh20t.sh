@@ -22,6 +22,10 @@ render() {
     $FFMPEG -y -f image2 -i output/$1/$2/render/%05d.png -vf "crop=trunc(iw/2)*2:trunc(ih/2)*2" -vcodec libx264 -pix_fmt yuv420p -crf 10 output/$1/$2.mp4
     rm -rf output/$1/$2/render
 }
+merge() {
+    python tools/merge_video.py output $1 $2 $3 output/collected_videos
+    $FFMPEG -y -f image2 -framerate 15 -i output/collected_videos/$1/%05d.png -vcodec libx264 -pix_fmt yuv420p -crf 22 -preset veryslow output/collected_videos/$1.mp4
+}
 n_frames() {
     n=0
     while [ -d "data/$1/frame$(expr $n + 1)" ]; do
@@ -38,6 +42,7 @@ render_all() {
     render $1 train/hicom $2 $3 2 $N $NI
     render $1 train/hexplane $2 $3 2 $N $NI
     render $1 train/regularizedhexplane $2 $3 2 $N $NI
+    merge $1 RH20T $N
 }
 # render_all RH20T_cfg5/task_0001_user_0016_scene_0002_cfg_0005 10000 1000 # debug
 for s in output/RH20T_cfg5/task_*_user_*_scene_*_cfg_0005; do
