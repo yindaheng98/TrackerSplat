@@ -17,6 +17,7 @@ pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@mai
 pip install -U xformers==0.0.12 --no-deps
 pip install -U scikit-learn taichi einops einshape timm tifffile triton jaxtyping
 pip install -U numpy==1.26.4
+pip install imageio==2.37.0 imageio-ffmpeg==0.4.7
 conda install conda-forge::colmap
 ```
 
