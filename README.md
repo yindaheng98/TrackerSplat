@@ -1,6 +1,6 @@
-# InstantSplatFlow
+# (SIGGRAPH Asia 2025) [TrackerSplat: Exploiting Point Tracking for Fast and Robust Dynamic 3D Gaussians Reconstruction](http://profile.yindaheng98.top/TrackerSplat2025SIGGRAPHAsia.pdf)
 
-Fast volumetric video reconstruction, just like InstantSplat
+![](assets/RepresentativeImage.jpg)
 
 ## Prerequisites
 
