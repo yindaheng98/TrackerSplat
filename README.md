@@ -146,11 +146,16 @@ Run scripts to convert and initialize camera poses for all datasets:
 
 Experiment on all our methods and baselines
 ```sh
-./tools/motionestimation_long.sh
+./tools/motionestimation_short.sh # Short video experiment
+./tools/motionestimation_long.sh # Long video experiment
 ```
 
 Then you can see the quality (PANR, SSIM, LIPIPS) of each training step in output folder: `output/<name of dataset>/<name of method>/frame2/log/iteration_1000/log.csv`
 
-### Long video experiment
+### Render long video
 
-TBD
+```sh
+./tools/motionestimation_longrender.sh # Render the videos
+./tools/merge_video.sh # Merge these rendered videos for comparison
+./tools/collect_longrender.sh # Collect these videos, move them into output/collected_videos
+```
