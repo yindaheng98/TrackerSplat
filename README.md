@@ -15,7 +15,6 @@ pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main --no-build-isolation
 pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main --no-build-isolation
 pip install --upgrade git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master --no-build-isolation
-pip install -U xformers==0.0.12 --no-deps
 conda install conda-forge::colmap
 ```
 
@@ -23,9 +22,10 @@ Install dependencies:
 
 ```sh
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
-pip install -U taichi einshape timm triton jaxtyping
+pip install -U taichi einshape timm jaxtyping
 pip install -U numpy==1.26.4
 pip install -U imageio==2.37.0 imageio-ffmpeg==0.4.7
+pip install -U triton
 ```
 
 ## PyPI Install

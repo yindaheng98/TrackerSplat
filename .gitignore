@@ -1,6 +1,7 @@
 data
 output
 scripts
+venv
 *.dist-info
 /trackersplat/utils/motionfusion/diff_gaussian_rasterization
 /trackersplat/utils/featurefusion/diff_gaussian_rasterization
