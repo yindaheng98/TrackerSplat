@@ -7,7 +7,7 @@ speedtest() {
     done
     echo $1/$4 -n $(expr $6 \* 3) -b $(expr $6 + 1)
     # echo \
-    python -m instantsplatstream.motionestimation_speedtest \
+    python -m trackersplat.motionestimation_speedtest \
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
         --pipeline $4 $5 \

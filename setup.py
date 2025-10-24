@@ -13,7 +13,7 @@ from setuptools import setup, find_packages, find_namespace_packages
 from torch.utils.cpp_extension import CUDAExtension, BuildExtension
 import os
 
-packages = ['instantsplatstream'] + ["instantsplatstream." + package for package in find_packages(where="instantsplatstream")]
+packages = ['trackersplat'] + ["trackersplat." + package for package in find_packages(where="trackersplat")]
 packages_dot = ['dot'] + ["dot." + package for package in find_namespace_packages(where="submodules/dot/dot")]
 featurefusion_root = "submodules/featurefusion"
 motionfusion_root = "submodules/motionfusion"
@@ -24,9 +24,9 @@ rasterizor_sources = [
     "rasterize_points.cu",
     "ext.cpp"]
 rasterizor_packages = {
-    'instantsplatstream.utils.featurefusion.diff_gaussian_rasterization': 'submodules/featurefusion/diff_gaussian_rasterization',
-    'instantsplatstream.utils.motionfusion.diff_gaussian_rasterization': 'submodules/motionfusion/diff_gaussian_rasterization',
-    'instantsplatstream.utils.simple_knn': 'submodules/simple-knn/simple_knn',
+    'trackersplat.utils.featurefusion.diff_gaussian_rasterization': 'submodules/featurefusion/diff_gaussian_rasterization',
+    'trackersplat.utils.motionfusion.diff_gaussian_rasterization': 'submodules/motionfusion/diff_gaussian_rasterization',
+    'trackersplat.utils.simple_knn': 'submodules/simple-knn/simple_knn',
 }
 simpleknn_root = "submodules/simple-knn"
 simpleknn_sources = [
@@ -42,26 +42,26 @@ if os.name == 'nt':
     nvcc_compiler_flags.append("-allow-unsupported-compiler")
 
 setup(
-    name="instantsplatstream",
+    name="trackersplat",
     packages=packages + packages_dot + list(rasterizor_packages.keys()),
     package_dir={
-        'instantsplatstream': 'instantsplatstream',
+        'trackersplat': 'trackersplat',
         'dot': 'submodules/dot/dot',
         **rasterizor_packages
     },
     ext_modules=[
         CUDAExtension(
-            name="instantsplatstream.utils.featurefusion.diff_gaussian_rasterization._C",
+            name="trackersplat.utils.featurefusion.diff_gaussian_rasterization._C",
             sources=[os.path.join(featurefusion_root, source) for source in rasterizor_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(featurefusion_root), "third_party/glm/")]}
         ),
         CUDAExtension(
-            name="instantsplatstream.utils.motionfusion.diff_gaussian_rasterization._C",
+            name="trackersplat.utils.motionfusion.diff_gaussian_rasterization._C",
             sources=[os.path.join(motionfusion_root, source) for source in rasterizor_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags + ["-I" + os.path.join(os.path.abspath(motionfusion_root), "third_party/glm/")]}
         ),
         CUDAExtension(
-            name="instantsplatstream.utils.simple_knn._C",
+            name="trackersplat.utils.simple_knn._C",
             sources=[os.path.join(simpleknn_root, source) for source in simpleknn_sources],
             extra_compile_args={"nvcc": nvcc_compiler_flags, "cxx": cxx_compiler_flags}
         ),

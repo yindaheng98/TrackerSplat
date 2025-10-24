@@ -14,11 +14,11 @@ from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.utils import psnr, ssim
 from gaussian_splatting.utils.lpipsPyTorch import LPIPS
 import gaussian_splatting.train
-from instantsplatstream.dataset import prepare_fixedview_dataset, VideoCameraDataset
-from instantsplatstream.motionestimator import FixedViewMotionEstimator, MotionCompensater
-from instantsplatstream.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
-from instantsplatstream.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
-from instantsplatstream.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, Incremental1StepTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
+from trackersplat.dataset import prepare_fixedview_dataset, VideoCameraDataset
+from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompensater
+from trackersplat.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
+from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
+from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, Incremental1StepTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:

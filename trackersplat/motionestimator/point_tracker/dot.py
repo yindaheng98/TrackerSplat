@@ -3,7 +3,7 @@ import torch
 from dot.models import DenseOpticalTracker
 from dot.utils.io import read_config
 from dot.utils.torch import get_grid
-from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
+from trackersplat.motionestimator import FixedViewFrameSequenceMeta
 from .abc import PointTracker, PointTrackMotionEstimator
 
 

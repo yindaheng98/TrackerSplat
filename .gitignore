@@ -2,9 +2,9 @@ data
 output
 scripts
 *.dist-info
-/instantsplatstream/utils/motionfusion/diff_gaussian_rasterization
-/instantsplatstream/utils/featurefusion/diff_gaussian_rasterization
-/instantsplatstream/utils/simple_knn
+/trackersplat/utils/motionfusion/diff_gaussian_rasterization
+/trackersplat/utils/featurefusion/diff_gaussian_rasterization
+/trackersplat/utils/simple_knn
 /extrinterp
 /reduced_3dgs
 /dot

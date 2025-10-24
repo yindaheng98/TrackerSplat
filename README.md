@@ -32,22 +32,22 @@ pip install -U imageio==2.37.0 imageio-ffmpeg==0.4.7
 
 ```shell
 pip install wheel setuptools
-pip install --upgrade git+https://github.com/yindaheng98/InstantSplatStream.git@main
+pip install --upgrade git+https://github.com/yindaheng98/TrackerSplat.git@main
 ```
 
 ### Development Install
 
 ```shell
-git clone --recursive https://github.com/yindaheng98/InstantSplatStream
-cd InstantSplatStream
+git clone --recursive https://github.com/yindaheng98/TrackerSplat
+cd TrackerSplat
 pip install --target . --upgrade --no-deps .
 ```
 
 (Optional) If you prefer not to install our custom packages in your environment, you can install it in your development directory:
 
 ```shell
-git clone --recursive https://github.com/yindaheng98/InstantSplatStream
-cd InstantSplatStream
+git clone --recursive https://github.com/yindaheng98/TrackerSplat
+cd TrackerSplat
 pip install --target . --upgrade --no-deps .
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main

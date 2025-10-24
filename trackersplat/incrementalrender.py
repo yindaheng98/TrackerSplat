@@ -9,7 +9,7 @@ from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.utils import psnr, ssim
 from gaussian_splatting.utils.lpipsPyTorch import lpips
 from gaussian_splatting.render import prepare_rendering
-from instantsplatstream.utils.motionfusion import compute_mean2D
+from trackersplat.utils.motionfusion import compute_mean2D
 import matplotlib.pyplot as plt
 import numpy as np
 

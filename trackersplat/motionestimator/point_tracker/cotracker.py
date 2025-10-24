@@ -1,7 +1,7 @@
 import torch
 from typing import Tuple
 from cotracker.predictor import CoTrackerPredictor
-from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
+from trackersplat.motionestimator import FixedViewFrameSequenceMeta
 from .abc import PointTrackSequence, PointTracker, PointTrackMotionEstimator
 
 

@@ -7,9 +7,9 @@ from tqdm import tqdm
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.dataset import CameraDataset
-from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 from gaussian_splatting.utils import quaternion_raw_multiply
-from instantsplatstream.utils import quaternion_invert
+from trackersplat.utils import quaternion_invert
 
 
 def compare(baseframe: GaussianModel, curframe: GaussianModel) -> Motion:

@@ -5,10 +5,10 @@ from typing import List
 
 from dot.utils.io import read_frame
 from dot.utils.io import write_video
-from instantsplatstream.dataset import prepare_fixedview_dataset
-from instantsplatstream.motionestimator import FixedViewFrameSequenceMeta
-from instantsplatstream.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_point_track_batch_motion_estimator
-from instantsplatstream.motionestimator.point_tracker.visualizer import Visualizer
+from trackersplat.dataset import prepare_fixedview_dataset
+from trackersplat.motionestimator import FixedViewFrameSequenceMeta
+from trackersplat.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_point_track_batch_motion_estimator
+from trackersplat.motionestimator.point_tracker.visualizer import Visualizer
 from cotracker.utils.visualizer import Visualizer as CoTrackerVisualizer
 
 

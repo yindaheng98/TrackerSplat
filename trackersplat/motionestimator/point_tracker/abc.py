@@ -3,8 +3,8 @@ from abc import ABCMeta, abstractmethod
 import torch
 from dot.utils.io import read_frame
 from gaussian_splatting import GaussianModel
-from instantsplatstream.dataset import DatasetCameraMeta
-from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
+from trackersplat.dataset import DatasetCameraMeta
+from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
 
 
 class PointTrackSequence(NamedTuple):

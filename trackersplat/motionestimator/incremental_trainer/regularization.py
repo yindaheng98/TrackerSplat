@@ -3,8 +3,8 @@ import torch.nn.functional as F
 from gaussian_splatting.utils import quaternion_to_matrix
 from gaussian_splatting import GaussianModel, Camera
 from gaussian_splatting.trainer import BaseTrainer
-from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
-from instantsplatstream.utils.simple_knn import knn_kernel
+from trackersplat.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
+from trackersplat.utils.simple_knn import knn_kernel
 from .abc import TrainerFactory
 from .base import BaseTrainer
 

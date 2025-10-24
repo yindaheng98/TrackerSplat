@@ -2,8 +2,8 @@ import copy
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from instantsplatstream.motionestimator import Motion
-from instantsplatstream.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
+from trackersplat.motionestimator import Motion
+from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
 
 from .base import transform_xyz, transform_rotation, transform_scaling
 from .filter import FilteredMotionCompensater

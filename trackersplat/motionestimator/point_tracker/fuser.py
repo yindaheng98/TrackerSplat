@@ -5,9 +5,9 @@ from typing import List
 from itertools import permutations
 from gaussian_splatting import Camera, GaussianModel
 from gaussian_splatting.utils import matrix_to_quaternion, quaternion_raw_multiply, build_rotation
-from instantsplatstream.utils import quaternion_invert, ILS_RotationScale, ISVD_Mean3D, ISVDSelectK_Mean3D
-from instantsplatstream.utils.featurefusion import feature_fusion
-from instantsplatstream.utils.motionfusion import motion_fusion, solve_transform
+from trackersplat.utils import quaternion_invert, ILS_RotationScale, ISVD_Mean3D, ISVDSelectK_Mean3D
+from trackersplat.utils.featurefusion import feature_fusion
+from trackersplat.utils.motionfusion import motion_fusion, solve_transform
 from .abc import Motion, MotionFuser, PointTrackSequence
 
 

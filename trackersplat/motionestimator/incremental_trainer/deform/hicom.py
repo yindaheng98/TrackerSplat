@@ -1,5 +1,5 @@
-from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory
-from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator.incremental_trainer import TrainerFactory
+from trackersplat.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
 from gaussian_splatting.utils.schedular import get_expon_lr_func
 from gaussian_splatting.utils import l1_loss, ssim
 from gaussian_splatting.trainer import BaseTrainer

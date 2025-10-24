@@ -36,7 +36,7 @@ train() {
         return
     fi
     # echo \
-    python -m instantsplatstream.motionestimation \
+    python -m trackersplat.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $3 \
         --pipeline $4 $5 \

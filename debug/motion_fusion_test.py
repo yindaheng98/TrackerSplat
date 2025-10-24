@@ -10,11 +10,11 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import psnr
 from gaussian_splatting.dataset import JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
-from instantsplatstream.dataset import VideoCameraDataset, ColmapVideoCameraDataset, FixedViewColmapVideoCameraDataset_from_json
-from instantsplatstream.motionestimator import FixedViewMotionEstimator
-from instantsplatstream.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser, PointTrackSequence
-from instantsplatstream.utils.motionfusion import motion_fusion
-from instantsplatstream.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
+from trackersplat.dataset import VideoCameraDataset, ColmapVideoCameraDataset, FixedViewColmapVideoCameraDataset_from_json
+from trackersplat.motionestimator import FixedViewMotionEstimator
+from trackersplat.motionestimator.point_tracker import Cotracker3DotMotionEstimator, BaseMotionFuser, PointTrackSequence
+from trackersplat.utils.motionfusion import motion_fusion
+from trackersplat.utils.motionfusion.diff_gaussian_rasterization.motion_utils import solve_cov3D, compute_T, compute_Jacobian, compute_cov2D, transform_cov2D, unflatten_symmetry_3x3
 
 parser = ArgumentParser()
 parser.add_argument("--sh_degree", default=3, type=int)

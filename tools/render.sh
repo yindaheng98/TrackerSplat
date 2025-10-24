@@ -1,7 +1,7 @@
 #!/bin/bash
 rendering() {
     # echo \
-    python -m instantsplatstream.incrementalrender \
+    python -m trackersplat.incrementalrender \
         -s data/$1/frame$4 \
         --destination_base output/$1/frame$3 \
         -d output/$1/$2/frame$4 \

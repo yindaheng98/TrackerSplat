@@ -1,7 +1,7 @@
 import copy
 from typing import List
 from gaussian_splatting import GaussianModel
-from instantsplatstream.motionestimator import Motion, FixedViewBatchMotionEstimator, MotionCompensater, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, MotionCompensater, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 
 from .abc import compare, IncrementalTrainingMotionEstimator
 

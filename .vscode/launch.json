@@ -81,7 +81,7 @@
             "name": "dot motionestimation",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.motionestimation",
+            "module": "trackersplat.motionestimation",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -117,7 +117,7 @@
             "name": "train/regularized motionestimation",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.motionestimation",
+            "module": "trackersplat.motionestimation",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -146,7 +146,7 @@
             "name": "dot motionestimation speedtest",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.motionestimation_speedtest",
+            "module": "trackersplat.motionestimation_speedtest",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -179,7 +179,7 @@
             "name": "point tracking",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.pointtracking",
+            "module": "trackersplat.pointtracking",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -206,7 +206,7 @@
             "name": "incremental training",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.incrementaltraining",
+            "module": "trackersplat.incrementaltraining",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -229,7 +229,7 @@
             "name": "incremental rendering",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.incrementalrender",
+            "module": "trackersplat.incrementalrender",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [
@@ -281,7 +281,7 @@
             "name": "render video",
             "type": "debugpy",
             "request": "launch",
-            "module": "instantsplatstream.render",
+            "module": "trackersplat.render",
             "console": "integratedTerminal",
             "justMyCode": false,
             "args": [

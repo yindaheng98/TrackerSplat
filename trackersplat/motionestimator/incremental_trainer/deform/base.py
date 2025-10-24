@@ -4,8 +4,8 @@ from gaussian_splatting import GaussianModel, Camera
 from gaussian_splatting.trainer import BaseTrainer
 from gaussian_splatting.utils import l1_loss, ssim
 from gaussian_splatting.utils.schedular import get_expon_lr_func
-from instantsplatstream.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
-from instantsplatstream.motionestimator.incremental_trainer import TrainerFactory
+from trackersplat.motionestimator.fixedview import FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator.incremental_trainer import TrainerFactory
 
 from .deformation import DeformNetwork
 

@@ -9,7 +9,7 @@ render() {
         fi
     done
     echo "all exists: output/$1/$2/frame<$5-$6>/point_cloud/iteration_$3/point_cloud.ply"
-    python -m instantsplatstream.render \
+    python -m trackersplat.render \
         -d output/$1/$2 \
         --data_dir output/$1/$2/render \
         --destination_init output/$1/frame1 \

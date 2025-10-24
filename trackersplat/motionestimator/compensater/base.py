@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_raw_multiply
-from instantsplatstream.motionestimator import Motion, MotionCompensater
+from trackersplat.motionestimator import Motion, MotionCompensater
 
 
 def transform_xyz(baseframe: GaussianModel, translation_vector: torch.Tensor, motion_mask_mean: torch.Tensor = None) -> torch.Tensor:

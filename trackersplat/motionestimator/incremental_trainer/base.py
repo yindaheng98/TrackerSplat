@@ -1,7 +1,7 @@
 import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import BaseTrainer
-from instantsplatstream.motionestimator import FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
 from .abc import TrainerFactory
 
 

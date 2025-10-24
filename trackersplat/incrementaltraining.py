@@ -6,7 +6,7 @@ from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
 from gaussian_splatting.dataset.colmap import ColmapCameraDataset
 from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
 from gaussian_splatting.train import save_cfg_args, training
-from instantsplatstream.motionestimator.incremental_trainer import BaseTrainer, RegularizedTrainer
+from trackersplat.motionestimator.incremental_trainer import BaseTrainer, RegularizedTrainer
 
 
 def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:

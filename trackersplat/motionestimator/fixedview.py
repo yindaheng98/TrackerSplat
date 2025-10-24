@@ -6,7 +6,7 @@ from gaussian_splatting.camera import build_camera
 from gaussian_splatting.dataset import CameraDataset
 from .abc import Motion, MotionEstimator
 
-from instantsplatstream.dataset import DatasetCameraMeta, VideoCameraDataset
+from trackersplat.dataset import DatasetCameraMeta, VideoCameraDataset
 
 
 class FixedViewFrameSequenceMeta(NamedTuple):
