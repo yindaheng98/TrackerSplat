@@ -68,5 +68,18 @@ setup(
     ],
     cmdclass={
         'build_ext': BuildExtension
-    }
+    },
+    install_requires=[
+        'gaussian-splatting',
+        'instantsplat',
+        'reduced-3dgs',
+        # TODO: Include https://github.com/yindaheng98/ExtrinsicInterpolator
+        'taichi',
+        'einshape',
+        'timm',
+        'jaxtyping',
+        'numpy==1.26.4',
+        'imageio==2.37.0',
+        'imageio-ffmpeg==0.4.7',
+    ]
 )

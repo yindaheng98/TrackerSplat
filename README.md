@@ -18,14 +18,11 @@ pip install --upgrade git+https://github.com/yindaheng98/ExtrinsicInterpolator.g
 conda install conda-forge::colmap
 ```
 
-Install dependencies:
+Install cotracker:
 
 ```sh
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
-pip install -U taichi einshape timm jaxtyping
-pip install -U numpy==1.26.4
-pip install -U imageio==2.37.0 imageio-ffmpeg==0.4.7
-pip install -U triton
+pip install --upgrade triton # (optional)
 ```
 
 ## PyPI Install
@@ -40,6 +37,7 @@ pip install --upgrade git+https://github.com/yindaheng98/TrackerSplat.git@main
 ```shell
 git clone --recursive https://github.com/yindaheng98/TrackerSplat
 cd TrackerSplat
+pip install -U taichi einshape timm jaxtyping numpy==1.26.4 imageio==2.37.0 imageio-ffmpeg==0.4.7
 pip install --target . --upgrade --no-deps .
 ```
 
