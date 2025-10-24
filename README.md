@@ -6,54 +6,66 @@
 
 * [Pytorch](https://pytorch.org/) (v2.4 or higher recommended)
 * [CUDA Toolkit](https://developer.nvidia.com/cuda-12-4-0-download-archive) (12.4 recommended, should match with PyTorch version)
-* [open-mmlab/mmsegmentation](https://github.com/open-mmlab/mmsegmentation) (mmsegmentation==1.2.2 mmcv==2.1.0)
 
-Install dependencies:
+Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting), [`InstantSplat`](https://github.com/yindaheng98/InstantSplat), [`reduced-3dgs`](https://github.com/yindaheng98/reduced-3dgs) and download related models:
+
 ```sh
-pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
-pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
-pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
-pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
+pip install wheel setuptools
+pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master --no-build-isolation
+pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main --no-build-isolation
+pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main --no-build-isolation
+pip install --upgrade git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master --no-build-isolation
 pip install -U xformers==0.0.12 --no-deps
-pip install -U scikit-learn taichi einops einshape timm tifffile triton jaxtyping
-pip install -U numpy==1.26.4
-pip install imageio==2.37.0 imageio-ffmpeg==0.4.7
 conda install conda-forge::colmap
 ```
 
-## Install (pip, build from source)
+Install dependencies:
+
+```sh
+pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
+pip install -U taichi einshape timm triton jaxtyping
+pip install -U numpy==1.26.4
+pip install -U imageio==2.37.0 imageio-ffmpeg==0.4.7
+```
+
+## PyPI Install
 
 ```shell
+pip install wheel setuptools
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplatStream.git@main
 ```
 
-## Install (Development)
+### Development Install
 
 ```shell
-git clone https://github.com/yindaheng98/InstantSplatStream --recursive
+git clone --recursive https://github.com/yindaheng98/InstantSplatStream
 cd InstantSplatStream
+pip install --target . --upgrade --no-deps .
+```
+
+(Optional) If you prefer not to install our custom packages in your environment, you can install it in your development directory:
+
+```shell
+git clone --recursive https://github.com/yindaheng98/InstantSplatStream
+cd InstantSplatStream
+pip install --target . --upgrade --no-deps .
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
 pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
-pip install --upgrade --target . --no-deps git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master
-pip install --target . --upgrade .
+pip install --target . --upgrade --no-deps git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master
 ```
 
 ## Download pth
 
-Depth Anything V2
-```sh
-wget -P checkpoints/ https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth
-wget -P checkpoints/ https://huggingface.co/depth-anything/Depth-Anything-V2-Base/resolve/main/depth_anything_v2_vitb.pth
-wget -P checkpoints/ https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth
-```
-
-DUST3R
+For `InstantSplat`:
 ```sh
 wget -P checkpoints/ https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge_BaseDecoder_224_linear.pth
 wget -P checkpoints/ https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge_BaseDecoder_512_linear.pth
 wget -P checkpoints/ https://download.europe.naverlabs.com/ComputerVision/DUSt3R/DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth
 wget -P checkpoints/ https://download.europe.naverlabs.com/ComputerVision/MASt3R/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth
+wget -P checkpoints/ https://huggingface.co/depth-anything/Depth-Anything-V2-Small/resolve/main/depth_anything_v2_vits.pth
+wget -P checkpoints/ https://huggingface.co/depth-anything/Depth-Anything-V2-Base/resolve/main/depth_anything_v2_vitb.pth
+wget -P checkpoints/ https://huggingface.co/depth-anything/Depth-Anything-V2-Large/resolve/main/depth_anything_v2_vitl.pth
 ```
 
 dot
