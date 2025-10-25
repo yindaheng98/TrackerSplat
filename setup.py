@@ -73,7 +73,7 @@ setup(
         'gaussian-splatting',
         'instantsplat',
         'reduced-3dgs',
-        # TODO: Include https://github.com/yindaheng98/ExtrinsicInterpolator
+        'extrinterp @ git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master',
         'taichi',
         'einshape',
         'timm',
