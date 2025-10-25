@@ -14,8 +14,8 @@ extract_SIGA2025VVC() {
             if [ ! -e $ROOT/images/$(printf "%02d" $((view-1))) ] || [ ! -e $ROOT/masks/$(printf "%02d" $((view-1))) ]; then
                 continue
             fi
-            mv $ROOT/images/$(printf "%02d" $((view-1)))/$(printf "%06d" $((frame-1))).jpg $ROOT/frame$frame/images/$(printf "%02d" $((view-1))).jpg
-            mv $ROOT/masks/$(printf "%02d" $((view-1)))/$(printf "%06d" $((frame-1))).png $ROOT/frame$frame/images/$(printf "%02d" $((view-1)))_mask.png
+            ln $ROOT/images/$(printf "%02d" $((view-1)))/$(printf "%06d" $((frame-1))).jpg $ROOT/frame$frame/images/$(printf "%02d" $((view-1))).jpg
+            ln $ROOT/masks/$(printf "%02d" $((view-1)))/$(printf "%06d" $((frame-1))).png $ROOT/frame$frame/images/$(printf "%02d" $((view-1)))_mask.png
         done
     done
 }
