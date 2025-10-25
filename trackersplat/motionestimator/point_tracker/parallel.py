@@ -37,12 +37,12 @@ def parallel_worker(
             view = trackview
             n, h, w, c = view.track.shape
             assert c == 2
-            assert list(view.mask.shape) == [n, h, w]
+            assert list(view.visibility.shape) == [n, h, w]
             assert view.image_height == h and view.image_width == w
             assert n == n_frames
             # stage 1.2: split frames an send to fuser
             for queue_out_fuser, frame_idx in zip(itertools.cycle(queues_out_fuser), range(n)):
-                queue_out_fuser.put((frame_idx, view._replace(track=view.track[frame_idx:frame_idx+1].cpu(), mask=view.mask[frame_idx:frame_idx+1].cpu())))
+                queue_out_fuser.put((frame_idx, view._replace(track=view.track[frame_idx:frame_idx+1].cpu(), visibility=view.visibility[frame_idx:frame_idx+1].cpu())))
 
         # stage 2: fuse each frames
         trackviews = {}
@@ -51,7 +51,7 @@ def parallel_worker(
             frame_idx, view = queue_in_fuser.get()
             if frame_idx not in trackviews:
                 trackviews[frame_idx] = []
-            trackviews[frame_idx].append(view._replace(track=view.track.to('cuda'), mask=view.mask.to('cuda')))
+            trackviews[frame_idx].append(view._replace(track=view.track.to('cuda'), visibility=view.visibility.to('cuda')))
             # stage 1.2: fuse if all views are gathered
             if len(trackviews[frame_idx]) == n_views:
                 motions = fuser(trackviews[frame_idx])

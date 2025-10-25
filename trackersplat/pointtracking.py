@@ -72,8 +72,8 @@ if __name__ == "__main__":
                 xy.unsqueeze(0),
                 track.track], dim=0),
             torch.cat([
-                torch.ones((1, h, w), device=track.mask.device),
-                track.mask], dim=0).unsqueeze(-1)
+                torch.ones((1, h, w), device=track.visibility.device),
+                track.visibility], dim=0).unsqueeze(-1)
         ], dim=-1)
         mask = torch.ones(h, w).bool().to(track.device)
         n += 1

@@ -15,7 +15,7 @@ class PointTrackSequence(NamedTuple):
     R: torch.Tensor  # TODO: quaternion maybe better?
     T: torch.Tensor
     track: torch.Tensor
-    mask: torch.Tensor
+    visibility: torch.Tensor
 
     def build_camera(self, device=torch.device("cuda")):
         return build_camera(
@@ -56,7 +56,7 @@ class PointTracker(metaclass=ABCMeta):
             R=frames.R,
             T=frames.T,
             track=track,
-            mask=visibility,
+            visibility=visibility,
         )
 
     @abstractmethod
@@ -95,7 +95,7 @@ class PointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         for view in trackviews:
             n, h, w, c = view.track.shape
             assert c == 2
-            assert list(view.mask.shape) == [n, h, w]
+            assert list(view.visibility.shape) == [n, h, w]
             assert view.image_height == h and view.image_width == w
         return self.fuser(trackviews)
 
