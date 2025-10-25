@@ -22,7 +22,7 @@ Install cotracker:
 
 ```sh
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
-pip install --upgrade triton # (optional)
+pip install triton # (optional)
 ```
 
 ## PyPI Install
