@@ -7,15 +7,19 @@ from gaussian_splatting.dataset import CameraDataset
 
 
 class DatasetCameraMeta(NamedTuple):
+    # Same with gaussian_splatting.dataset.colmap.ColmapCamera
     image_height: int
     image_width: int
     FoVx: float
     FoVy: float
     R: torch.Tensor
     T: torch.Tensor
-    image_path: str = None
+    image_path: str
+    image_mask_path: str
+    depth_path: str
+    depth_mask_path: str
     # only used for video dataset
-    frame_idx: int = None
+    frame_idx: int
 
     def build_camera(self, device=torch.device("cuda")) -> Camera:
         params = self._asdict()

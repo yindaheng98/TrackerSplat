@@ -20,13 +20,7 @@ def read_colmap_framemetas(video_folder: str, frame_folder_fmt: str = "frame%d",
         if not os.path.exists(frame_folder):
             break
         framemeta = [DatasetCameraMeta(
-            image_height=camera.image_height,
-            image_width=camera.image_width,
-            FoVx=camera.FoVx,
-            FoVy=camera.FoVy,
-            R=camera.R,
-            T=camera.T,
-            image_path=camera.image_path,
+            **camera._asdict(),
             frame_idx=frame_idx,
         ) for camera in read_colmap_cameras(frame_folder)]
         framemeta = sorted(framemeta, key=lambda x: x.image_path)
@@ -68,7 +62,7 @@ def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=tor
     jsoncameras = JSONCameraDataset(jsonpath)
     cam_idx_in_json = [None] * len(jsoncameras)
     assert len(framemetas[0]) == len(jsoncameras)
-    for i, framemeta in enumerate(framemetas[0]):
+    for i, framemeta in enumerate(framemetas[0]):  # should load the first camera
         for j, jsoncamera in enumerate(jsoncameras):
             if os.path.normpath(framemeta.image_path) == os.path.normpath(jsoncamera.ground_truth_image_path):
                 assert framemeta.image_height == jsoncamera.image_height
@@ -76,14 +70,14 @@ def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=tor
                 cam_idx_in_json[i] = j
     assert None not in cam_idx_in_json
     framemetas = [[DatasetCameraMeta(
-        image_height=camera.image_height,
-        image_width=camera.image_width,
-        FoVx=jsoncameras[idx].FoVx,
-        FoVy=jsoncameras[idx].FoVy,
-        R=jsoncameras[idx].R,
-        T=jsoncameras[idx].T,
-        image_path=camera.image_path,
-        frame_idx=camera.frame_idx,
+        **{
+            **camera._asdict(),
+            **dict(  # use loaded camera pose
+                FoVx=jsoncameras[idx].FoVx,
+                FoVy=jsoncameras[idx].FoVy,
+                R=jsoncameras[idx].R,
+                T=jsoncameras[idx].T,
+            )}
     ) for idx, camera in zip(cam_idx_in_json, framemeta)] for framemeta in framemetas]
     fixedview_validate(framemetas)
     return VideoCameraDataset(frames=framemetas, device=device)
