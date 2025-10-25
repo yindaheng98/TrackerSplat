@@ -62,7 +62,7 @@ class DotPointTracker(PointTracker):
                 sim_tracks=self.n_tracks_batch,
             )
         tracks = pred["tracks"].squeeze(0)
-        return tracks[1:, ..., :2], tracks[1:, ..., 2]
+        return tracks[1:, ..., :2], tracks[1:, ..., 2]  # (tracks, visibility mask)
 
 
 def DotMotionEstimator(fuser, device=torch.device("cuda"), **kwargs):

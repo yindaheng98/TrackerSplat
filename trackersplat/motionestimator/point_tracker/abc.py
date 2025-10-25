@@ -43,10 +43,10 @@ class PointTracker(metaclass=ABCMeta):
     def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
         height, width = self.compute_rescale(frames)
         video = self.read_frames(frames, height, width)
-        track, mask = self.track(video)
+        track, visibility = self.track(video)
         n, h, w, c = track.shape
         assert h == height and w == width and c == 2
-        assert mask.shape == (n, h, w)
+        assert visibility.shape == (n, h, w)
         return PointTrackSequence(
             image_height=height,
             image_width=width,
@@ -55,12 +55,12 @@ class PointTracker(metaclass=ABCMeta):
             R=frames.R,
             T=frames.T,
             track=track,
-            mask=mask,
+            mask=visibility,
         )
 
     @abstractmethod
     def track(self, video: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
-        raise NotImplementedError
+        raise NotImplementedError  # return (tracks, visibility mask)
 
 
 class MotionFuser(metaclass=ABCMeta):

@@ -37,7 +37,7 @@ class Cotracker3PointTracker(PointTracker):
             pred_tracks, pred_visibility = self.model(video[None].to(self.device))
         track = pred_tracks.squeeze(0).reshape(-1, height, width, 2)
         mask = pred_visibility.squeeze(0).reshape(-1, height, width)
-        return track[1:, ...], mask[1:, ...]
+        return track[1:, ...], mask[1:, ...]  # (tracks, visibility mask)
 
 
 def Cotracker3MotionEstimator(fuser, device=torch.device("cuda"), **kwargs):
