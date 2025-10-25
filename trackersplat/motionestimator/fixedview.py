@@ -16,7 +16,11 @@ class FixedViewFrameSequenceMeta(NamedTuple):
     FoVy: float
     R: torch.Tensor  # TODO: quaternion maybe better?
     T: torch.Tensor
+    # Similar to trackersplat.dataset.DatasetCameraMeta
     frames_path: List[str]
+    frame_masks_path: List[str]
+    depths_path: List[int]
+    depth_masks_path: List[int]
     frame_idx: List[int]
 
     @classmethod
@@ -36,6 +40,9 @@ class FixedViewFrameSequenceMeta(NamedTuple):
             R=camera.R,
             T=camera.T,
             frames_path=[camera.image_path for camera in cameras],
+            frame_masks_path=[camera.image_mask_path for camera in cameras],
+            depths_path=[camera.depth_path for camera in cameras],
+            depth_masks_path=[camera.depth_mask_path for camera in cameras],
             frame_idx=[camera.frame_idx for camera in cameras],
         )
 
@@ -101,12 +108,26 @@ class FixedViewMotionEstimator(MotionEstimator):
                 self.cameras = cameras
                 for camera in self.cameras:
                     assert len(camera.frames_path) == len(self.cameras[0].frames_path)
+                    assert len(camera.frame_masks_path) == len(self.cameras[0].frame_masks_path)
+                    assert len(camera.depths_path) == len(self.cameras[0].depths_path)
+                    assert len(camera.depth_masks_path) == len(self.cameras[0].depth_masks_path)
+                    assert len(camera.frame_idx) == len(self.cameras[0].frame_idx)
 
             def __getitem__(self, frame_idx: Union[int, slice]) -> List[FixedViewFrameSequenceMeta]:
                 if isinstance(frame_idx, slice):
-                    return [camera._replace(frames_path=camera.frames_path[frame_idx], frame_idx=camera.frame_idx[frame_idx]) for camera in self.cameras]
+                    return [camera._replace(
+                        frames_path=camera.frames_path[frame_idx],
+                        frame_masks_path=camera.frame_masks_path[frame_idx],
+                        depths_path=camera.depths_path[frame_idx],
+                        depth_masks_path=camera.depth_masks_path[frame_idx],
+                        frame_idx=camera.frame_idx[frame_idx]) for camera in self.cameras]
                 if isinstance(frame_idx, int):
-                    return [camera._replace(frames_path=[camera.frames_path[frame_idx]], frame_idx=[camera.frame_idx[frame_idx]]) for camera in self.cameras]
+                    return [camera._replace(
+                        frames_path=[camera.frames_path[frame_idx]],
+                        frame_masks_path=[camera.frame_masks_path[frame_idx]],
+                        depths_path=[camera.depths_path[frame_idx]],
+                        depth_masks_path=[camera.depth_masks_path[frame_idx]],
+                        frame_idx=[camera.frame_idx[frame_idx]]) for camera in self.cameras]
                 raise ValueError("frame_idx must be either an integer or a slice")
         return ViewCollector(self.cameras)
 
