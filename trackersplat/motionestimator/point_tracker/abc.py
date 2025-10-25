@@ -8,19 +8,29 @@ from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, 
 
 
 class PointTrackSequence(NamedTuple):
+    # Same as trackersplat.motionestimator.FixedViewFrameSequenceMeta
     image_height: int
     image_width: int
     FoVx: float
     FoVy: float
-    R: torch.Tensor  # TODO: quaternion maybe better?
+    R: torch.Tensor
     T: torch.Tensor
+    frames_path: List[str]
+    frame_masks_path: List[str]
+    depths_path: List[int]
+    depth_masks_path: List[int]
+    frame_idx: List[int]
+
+    # Point tracking results
+    track_height: int
+    track_width: int
     track: torch.Tensor
     visibility: torch.Tensor
 
-    def build_camera(self, device=torch.device("cuda")):
+    def build_track_camera(self, device=torch.device("cuda")):
         return build_camera(
-            image_height=self.image_height,
-            image_width=self.image_width,
+            image_height=self.track_height,
+            image_width=self.track_width,
             FoVx=self.FoVx,
             FoVy=self.FoVy,
             R=self.R,
@@ -49,12 +59,9 @@ class PointTracker(metaclass=ABCMeta):
         assert h == height and w == width and c == 2
         assert visibility.shape == (n, h, w)
         return PointTrackSequence(
-            image_height=height,
-            image_width=width,
-            FoVx=frames.FoVx,
-            FoVy=frames.FoVy,
-            R=frames.R,
-            T=frames.T,
+            **frames._asdict(),
+            track_height=height,
+            track_width=width,
             track=track,
             visibility=visibility,
         )
@@ -96,7 +103,7 @@ class PointTrackMotionEstimator(FixedViewBatchMotionEstimator):
             n, h, w, c = view.track.shape
             assert c == 2
             assert list(view.visibility.shape) == [n, h, w]
-            assert view.image_height == h and view.image_width == w
+            assert view.track_height == h and view.track_width == w
         return self.fuser(trackviews)
 
     def update_baseframe(self, frame: GaussianModel) -> 'PointTrackMotionEstimator':

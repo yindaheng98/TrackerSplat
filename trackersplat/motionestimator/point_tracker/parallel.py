@@ -38,7 +38,7 @@ def parallel_worker(
             n, h, w, c = view.track.shape
             assert c == 2
             assert list(view.visibility.shape) == [n, h, w]
-            assert view.image_height == h and view.image_width == w
+            assert view.track_height == h and view.track_width == w
             assert n == n_frames
             # stage 1.2: split frames an send to fuser
             for queue_out_fuser, frame_idx in zip(itertools.cycle(queues_out_fuser), range(n)):
