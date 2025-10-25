@@ -60,6 +60,9 @@ class FixedViewFrameSequenceMetaDataset(CameraDataset):
             FoVx=cam.FoVx, FoVy=cam.FoVy,
             R=cam.R.to(device), T=cam.T.to(device),
             image_path=cam.frames_path[self.frame_idx],
+            image_mask_path=cam.frame_masks_path[self.frame_idx],
+            depth_path=cam.depths_path[self.frame_idx],
+            depth_mask_path=cam.depth_masks_path[self.frame_idx],
             device=device
         ) for cam in self.raw_cameras]
         return self

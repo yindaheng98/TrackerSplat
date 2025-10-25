@@ -3,7 +3,7 @@ from abc import ABCMeta, abstractmethod
 import torch
 from dot.utils.io import read_frame
 from gaussian_splatting import GaussianModel
-from trackersplat.dataset import DatasetCameraMeta
+from gaussian_splatting.camera import build_camera
 from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
 
 
@@ -18,14 +18,15 @@ class PointTrackSequence(NamedTuple):
     mask: torch.Tensor
 
     def build_camera(self, device=torch.device("cuda")):
-        return DatasetCameraMeta(
+        return build_camera(
             image_height=self.image_height,
             image_width=self.image_width,
             FoVx=self.FoVx,
             FoVy=self.FoVy,
             R=self.R,
             T=self.T,
-        ).build_camera(device=device)
+            device=device
+        )
 
 
 class PointTracker(metaclass=ABCMeta):
