@@ -41,18 +41,6 @@ pip install -U taichi einshape timm jaxtyping numpy==1.26.4 imageio==2.37.0 imag
 pip install --target . --upgrade --no-deps .
 ```
 
-(Optional) If you prefer not to install our custom packages in your environment, you can install it in your development directory:
-
-```shell
-git clone --recursive https://github.com/yindaheng98/TrackerSplat
-cd TrackerSplat
-pip install --target . --upgrade --no-deps .
-pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master
-pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main
-pip install --target . --no-deps --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main
-pip install --target . --upgrade --no-deps git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master
-```
-
 ## Download pth
 
 For `InstantSplat`:
