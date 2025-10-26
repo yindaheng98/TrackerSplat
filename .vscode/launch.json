@@ -293,6 +293,18 @@
             ]
         },
         {
+            "name": "parse camera SIGA2025VVC",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "tools/parse_camera_SIGA2025VVC.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--path",
+                "data/SIGA2025VVC-Dataset/compression/test/004_1_seq1",
+            ]
+        },
+        {
             "name": "stack long videos",
             "type": "debugpy",
             "request": "launch",
