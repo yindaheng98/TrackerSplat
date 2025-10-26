@@ -299,6 +299,11 @@ def build_frame_folder_SIGA2025VVC(camera_meta, folder, frame):
         if os.path.isfile(img_dst):
             os.remove(img_dst)
         os.link(img_src, img_dst)
+        msk_src = os.path.join(args.path, "masks", i, f"{frame:06d}.png")
+        msk_dst = os.path.join(folder, "images", f"{i}_mask.png")
+        if os.path.isfile(msk_dst):
+            os.remove(msk_dst)
+        os.link(msk_src, msk_dst)
     return cameras, images
 
 
@@ -312,4 +317,15 @@ if __name__ == "__main__":
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
         cameras, images = build_frame_folder_SIGA2025VVC(camera_meta, folder, frame)
-        print(cameras, images)
+
+        sparse_path = os.path.join(folder, "sparse", "0")
+        os.makedirs(sparse_path, exist_ok=True)
+        with open(os.path.join(sparse_path, "cameras.txt"), "w") as f:
+            for img_name in sorted(cameras.keys()):
+                cam_id = int(os.path.splitext(img_name)[0])
+                f.write(f"{cam_id} {cameras[img_name]}\n")
+        with open(os.path.join(sparse_path, "images.txt"), "w") as f:
+            for img_name in sorted(images.keys()):
+                image_id = int(os.path.splitext(img_name)[0])
+                f.write(f"{image_id} {images[img_name]} {image_id} {img_name}\n\n")
+        open(os.path.join(sparse_path, "points3D.txt"), "w").close()
