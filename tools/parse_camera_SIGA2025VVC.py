@@ -5,6 +5,7 @@ import os
 from os.path import dirname, exists, join
 import argparse
 from argparse import Namespace
+import shutil
 from tqdm import tqdm
 import numpy as np
 import cv2
@@ -316,6 +317,7 @@ if __name__ == "__main__":
     camera_meta = read_camera_new(args.path, intri_name="train_intri.yml", extri_name="train_extri.yml")
     for frame in tqdm(range(args.n_frames), desc="Linking frames"):
         folder = os.path.join(args.path, "frame%d" % (frame + 1))
+        shutil.rmtree(folder, ignore_errors=True)
         cameras, images = build_frame_folder_SIGA2025VVC(camera_meta, folder, frame)
 
         sparse_path = os.path.join(folder, "sparse", "0")
@@ -328,4 +330,4 @@ if __name__ == "__main__":
             for img_name in sorted(images.keys()):
                 image_id = int(os.path.splitext(img_name)[0])
                 f.write(f"{image_id} {images[img_name]} {image_id} {img_name}\n\n")
-        open(os.path.join(sparse_path, "points3D.txt"), "w").close()
+    os.link(os.path.join(args.path, "pcds/000000.ply"), os.path.join(args.path, "frame1/sparse/0/points3D.ply"))
