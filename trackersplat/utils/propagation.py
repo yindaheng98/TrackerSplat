@@ -1,6 +1,5 @@
 import torch
 import taichi as ti
-import torch
 ti.init(arch=ti.gpu, kernel_profiler=True)
 
 

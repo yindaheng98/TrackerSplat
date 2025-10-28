@@ -7,6 +7,11 @@ from gaussian_splatting.camera import build_camera
 from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
 
 
+def read_mask(*args, **kwargs):
+    frame = read_frame(*args, **kwargs)
+    return frame[0, ...] * 299/1000 + frame[1, ...] * 587/1000 + frame[2, ...] * 114/1000  # ITU-R 601-2 luma transform
+
+
 class PointTrackSequence(NamedTuple):
     # Same as trackersplat.motionestimator.FixedViewFrameSequenceMeta
     image_height: int
@@ -48,16 +53,27 @@ class PointTracker(metaclass=ABCMeta):
     def compute_rescale(self, frames: FixedViewFrameSequenceMeta) -> Tuple[int, int]:
         return frames.image_height, frames.image_width
 
-    def read_frames(self, frames: FixedViewFrameSequenceMeta, height: int, width: int) -> List[torch.Tensor]:
-        return torch.stack([read_frame(path, resolution=(height, width)) for path in frames.frames_path])
+    def read_frames(self, frames: FixedViewFrameSequenceMeta, height: int, width: int, apply_mask=True) -> List[torch.Tensor]:
+        video = []
+        for path, mask_path in zip(frames.frames_path, frames.frame_masks_path):
+            frame = read_frame(path, resolution=(height, width))
+            if apply_mask and None not in frames.frame_masks_path:
+                mask = read_frame(mask_path, resolution=(height, width))
+                frame *= (mask > 0.5).float()
+            video.append(frame)
+        return torch.stack(video)
 
-    def __call__(self, frames: FixedViewFrameSequenceMeta) -> PointTrackSequence:
+    # If you only mask frame before tracking, there will be more inaccurate tracks, mask after tracking is necessary
+    def __call__(self, frames: FixedViewFrameSequenceMeta, mask_input=True, mask_output=True) -> PointTrackSequence:
         height, width = self.compute_rescale(frames)
-        video = self.read_frames(frames, height, width)
+        video = self.read_frames(frames, height, width, apply_mask=mask_input)
         track, visibility = self.track(video)
         n, h, w, c = track.shape
         assert h == height and w == width and c == 2
         assert visibility.shape == (n, h, w)
+        if mask_output and frames.frame_masks_path[0] is not None:
+            mask = read_mask(frames.frame_masks_path[0], resolution=(height, width))
+            track *= mask.to(track.device).unsqueeze(0).unsqueeze(-1)
         return PointTrackSequence(
             **frames._asdict(),
             track_height=height,
