@@ -3,8 +3,7 @@ import os
 import torch
 from typing import List
 
-from dot.utils.io import read_frame
-from dot.utils.io import write_video
+from dot.utils.io import read_frame, write_video
 from trackersplat.dataset import prepare_fixedview_dataset
 from trackersplat.motionestimator import FixedViewFrameSequenceMeta
 from trackersplat.motionestimator.point_tracker import PointTrackSequence, MotionFuser, build_point_track_batch_motion_estimator
@@ -62,6 +61,7 @@ if __name__ == "__main__":
         assert len(frame) == len(cameras[0])
     views = [FixedViewFrameSequenceMeta.from_datasetcameras(frame) for frame in zip(*cameras)]
     for view in views:
+        torch.cuda.empty_cache()
         track = estimator.tracker(view)
         n, h, w, c = track.track.shape
         x = torch.arange(w, dtype=torch.float, device=track.track.device)
