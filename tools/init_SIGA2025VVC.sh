@@ -24,6 +24,7 @@ ITERS=10000
 
 # hyperparams
 ARGSCOMMON=$ARGSCOMMON" --with_scale_reg"
+ARGSCOMMON=$ARGSCOMMON" --no_depth_data"
 ARGSCOMMON=$ARGSCOMMON" --empty_cache_every_step"
 ARGSCOMMON=$ARGSCOMMON" -oscale_reg_thr_scale=0.2"
 ARGSCOMMON=$ARGSCOMMON" -odensify_percent_too_big=0.15"
@@ -65,7 +66,7 @@ ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_interval=100"
 train_camera() {
     MODE=camera-densify-prune-shculling
     ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY $ARGSCAMERA"
-    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
+    EXISTSPATH="output/$1/frame$2/camera/point_cloud/iteration_$ITERS/point_cloud.ply"
     if [ -e "$EXISTSPATH" ]; then
         echo "(skip) exists: $EXISTSPATH"
         return
@@ -76,7 +77,8 @@ train_camera() {
         -s data/$1/frame$2 \
         -d output/$1/frame$2/camera \
         --mode $MODE \
-        -i $ITERS $ARGS
+        -i $ITERS $ARGS \
+        -omask_mode='none'
 }
 
 train_scene() {
@@ -91,9 +93,10 @@ train_scene() {
     # echo \
     python -m reduced_3dgs.train \
         -s data/$1/frame$2 \
-        -d output/$1/frame$2/camera \
+        -d output/$1/frame$2 \
         --mode $MODE \
         -i $ITERS $ARGS \
+        -omask_mode='bg_color' \
         --load_camera "output/$1/frame$2/camera/cameras.json"
 }
 
