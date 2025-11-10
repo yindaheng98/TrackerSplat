@@ -21,25 +21,7 @@ extract_SIGA2025VVC compression/val/001_1_seq0 300
 extract_SIGA2025VVC compression/val/012_0_seq0 300
 
 ITERS=10000
-MODE=camera-densify-prune-shculling
-ARGS=""
-train() {
-    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
-    if [ -e "$EXISTSPATH" ]; then
-        echo "(skip) exists: $EXISTSPATH"
-        return
-    fi
-    echo "not exists: $EXISTSPATH"
-    # echo \
-    python -m reduced_3dgs.train \
-        -s data/$1/frame$2 \
-        -d output/$1/frame$2 \
-        --mode $MODE \
-        -i $ITERS $ARGS
-}
-# train walking 1 # debug
 
-ARGSCOMMON=""
 # hyperparams
 ARGSCOMMON=$ARGSCOMMON" --with_scale_reg"
 ARGSCOMMON=$ARGSCOMMON" --empty_cache_every_step"
@@ -54,17 +36,17 @@ ARGSCOMMON=$ARGSCOMMON" -odepth_resize=577"
 ARGSCOMMON=$ARGSCOMMON" -omercy_type='redundancy_opacity_opacity'"
 ARGSCOMMON=$ARGSCOMMON" -oimportance_score_resize=1280"
 
-ARGSSTEPS=""
 # steps
 ARGSSTEPS=$ARGSSTEPS" --save_iterations=10000"
 ARGSSTEPS=$ARGSSTEPS" -oposition_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocull_at_steps=[9000]"
 ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
 ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
+
 # steps for camera
-ARGSSTEPS=$ARGSSTEPS" -ocamera_position_lr_max_steps=10000"
-ARGSSTEPS=$ARGSSTEPS" -ocamera_rotation_lr_max_steps=10000"
-ARGSSTEPS=$ARGSSTEPS" -ocamera_exposure_lr_max_steps=10000"
+ARGSCAMERA=$ARGSCAMERA" -ocamera_position_lr_max_steps=10000"
+ARGSCAMERA=$ARGSCAMERA" -ocamera_rotation_lr_max_steps=10000"
+ARGSCAMERA=$ARGSCAMERA" -ocamera_exposure_lr_max_steps=10000"
 
 # steps for densify
 ARGSDENSIFY=$ARGSDENSIFY" -odensify_from_iter=1000"
@@ -80,7 +62,45 @@ ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_from_iter=2000"
 ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_until_iter=8500"
 ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_interval=100"
 
-ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
+train_camera() {
+    MODE=camera-densify-prune-shculling
+    ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY $ARGSCAMERA"
+    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
+    if [ -e "$EXISTSPATH" ]; then
+        echo "(skip) exists: $EXISTSPATH"
+        return
+    fi
+    echo "not exists: $EXISTSPATH"
+    # echo \
+    python -m reduced_3dgs.train \
+        -s data/$1/frame$2 \
+        -d output/$1/frame$2/camera \
+        --mode $MODE \
+        -i $ITERS $ARGS
+}
+
+train_scene() {
+    MODE=densify-prune-shculling
+    ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
+    EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
+    if [ -e "$EXISTSPATH" ]; then
+        echo "(skip) exists: $EXISTSPATH"
+        return
+    fi
+    echo "not exists: $EXISTSPATH"
+    # echo \
+    python -m reduced_3dgs.train \
+        -s data/$1/frame$2 \
+        -d output/$1/frame$2/camera \
+        --mode $MODE \
+        -i $ITERS $ARGS \
+        --load_camera "output/$1/frame$2/camera/cameras.json"
+}
+
+train() {
+    train_camera $1 $2
+    train_scene $1 $2
+}
 
 train SIGA2025VVC-Dataset/compression/test/004_1_seq1 1
 train SIGA2025VVC-Dataset/compression/test/006_1_seq1 1
