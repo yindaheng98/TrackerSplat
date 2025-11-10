@@ -11,14 +11,14 @@ extract_SIGA2025VVC() {
     done
     python tools/parse_camera_SIGA2025VVC.py --path $ROOT --n_frames $2
 }
-extract_SIGA2025VVC compression/test/004_1_seq1 300
-extract_SIGA2025VVC compression/test/006_1_seq1 300
-extract_SIGA2025VVC compression/test/007_0_seq1 300
-extract_SIGA2025VVC compression/test/008_2_seq1 300
-extract_SIGA2025VVC compression/test/008_2_seq1 300
-extract_SIGA2025VVC compression/test/011_0_seq1 300
-extract_SIGA2025VVC compression/val/001_1_seq0 300
-extract_SIGA2025VVC compression/val/012_0_seq0 300
+# extract_SIGA2025VVC compression/test/004_1_seq1 300
+# extract_SIGA2025VVC compression/test/006_1_seq1 300
+# extract_SIGA2025VVC compression/test/007_0_seq1 300
+# extract_SIGA2025VVC compression/test/008_2_seq1 300
+# extract_SIGA2025VVC compression/test/008_2_seq1 300
+# extract_SIGA2025VVC compression/test/011_0_seq1 300
+# extract_SIGA2025VVC compression/val/001_1_seq0 300
+# extract_SIGA2025VVC compression/val/012_0_seq0 300
 
 ITERS=10000
 
@@ -78,7 +78,7 @@ train_camera() {
         -d output/$1/frame$2/camera \
         --mode $MODE \
         -i $ITERS $ARGS \
-        -omask_mode='none'
+        "-omask_mode='none'"
 }
 
 train_scene() {
@@ -96,7 +96,7 @@ train_scene() {
         -d output/$1/frame$2 \
         --mode $MODE \
         -i $ITERS $ARGS \
-        -omask_mode='bg_color' \
+        "-omask_mode='bg_color'" \
         --load_camera "output/$1/frame$2/camera/cameras.json"
 }
 
