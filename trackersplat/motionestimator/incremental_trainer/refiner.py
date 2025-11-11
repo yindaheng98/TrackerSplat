@@ -2,8 +2,9 @@ import copy
 from typing import List
 from gaussian_splatting import GaussianModel
 from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, MotionCompensater, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator.utils import compare
 
-from .abc import compare, IncrementalTrainingMotionEstimator
+from .abc import IncrementalTrainingMotionEstimator
 
 
 class IncrementalTrainingRefiner(IncrementalTrainingMotionEstimator):
