@@ -82,18 +82,3 @@ class IncrementalTrainingMotionEstimator(FixedViewBatchMotionEstimator):
     def update_baseframe(self, frame: GaussianModel) -> 'IncrementalTrainingMotionEstimator':
         self.baseframe = frame
         return self
-
-
-class Incremental1StepTrainingMotionEstimator(IncrementalTrainingMotionEstimator):
-
-    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        motions = []
-        last_frame = self.baseframe
-        for i in range(1, len(views[0].frames_path)):
-            curr_frame = copy.deepcopy(last_frame)
-            dataset = FixedViewFrameSequenceMetaDataset(views, i, self.device)
-            trainer = self.trainer_factory(curr_frame, self.baseframe, dataset, False)
-            self.training(dataset, trainer, self.iteration, views[0].frame_idx[i])
-            motions.append(compare(self.baseframe, curr_frame))
-            last_frame = curr_frame
-        return motions
