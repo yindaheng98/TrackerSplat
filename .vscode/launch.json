@@ -95,15 +95,15 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/discussion",
+                "data/SIGA2025VVC-Dataset/compression/test/004_1_seq1",
                 "-d",
-                "output/discussion",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1",
                 "-i",
                 "1000",
                 "--pipeline",
-                // "refine/base-propagate-dot-cotracker3",
+                "refine/base-propagate-dot-cotracker3",
                 // "refine/regularized-propagate-dot-cotracker3",
-                "refine/maskregularized-propagate-dot-cotracker3",
+                // "refine/maskregularized-propagate-dot-cotracker3",
                 // "refine/base-base-dot-cotracker3",
                 // "track/propagate-dot-cotracker3",
                 // "track/filter-dot-cotracker3",
@@ -119,7 +119,7 @@
                 "-rposition_lr_max_steps=4000",
                 "-rscaling_lr=0.000001",
                 "--load_camera",
-                "output/discussion/frame1/cameras.json",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/cameras.json",
             ]
         },
         {
