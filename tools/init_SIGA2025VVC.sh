@@ -11,14 +11,14 @@ extract_SIGA2025VVC() {
     done
     python tools/parse_camera_SIGA2025VVC.py --path $ROOT --n_frames $2
 }
-# extract_SIGA2025VVC compression/test/004_1_seq1 300
-# extract_SIGA2025VVC compression/test/006_1_seq1 300
-# extract_SIGA2025VVC compression/test/007_0_seq1 300
-# extract_SIGA2025VVC compression/test/008_2_seq1 300
-# extract_SIGA2025VVC compression/test/008_2_seq1 300
-# extract_SIGA2025VVC compression/test/011_0_seq1 300
-# extract_SIGA2025VVC compression/val/001_1_seq0 300
-# extract_SIGA2025VVC compression/val/012_0_seq0 300
+extract_SIGA2025VVC compression/test/004_1_seq1 300
+extract_SIGA2025VVC compression/test/006_1_seq1 300
+extract_SIGA2025VVC compression/test/007_0_seq1 300
+extract_SIGA2025VVC compression/test/008_2_seq1 300
+extract_SIGA2025VVC compression/test/008_2_seq1 300
+extract_SIGA2025VVC compression/test/011_0_seq1 300
+extract_SIGA2025VVC compression/val/001_1_seq0 300
+extract_SIGA2025VVC compression/val/012_0_seq0 300
 
 ITERS=10000
 
@@ -44,11 +44,6 @@ ARGSSTEPS=$ARGSSTEPS" -ocull_at_steps=[9000]"
 ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
 ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
 
-# steps for camera
-ARGSCAMERA=$ARGSCAMERA" -ocamera_position_lr_max_steps=10000"
-ARGSCAMERA=$ARGSCAMERA" -ocamera_rotation_lr_max_steps=10000"
-ARGSCAMERA=$ARGSCAMERA" -ocamera_exposure_lr_max_steps=10000"
-
 # steps for densify
 ARGSDENSIFY=$ARGSDENSIFY" -odensify_from_iter=1000"
 ARGSDENSIFY=$ARGSDENSIFY" -odensify_until_iter=7500"
@@ -63,25 +58,7 @@ ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_from_iter=2000"
 ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_until_iter=8500"
 ARGSDENSIFY=$ARGSDENSIFY" -oimportance_prune_interval=100"
 
-train_camera() {
-    MODE=camera-densify-prune-shculling
-    ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY $ARGSCAMERA"
-    EXISTSPATH="output/$1/frame$2/camera/point_cloud/iteration_$ITERS/point_cloud.ply"
-    if [ -e "$EXISTSPATH" ]; then
-        echo "(skip) exists: $EXISTSPATH"
-        return
-    fi
-    echo "not exists: $EXISTSPATH"
-    # echo \
-    python -m reduced_3dgs.train \
-        -s data/$1/frame$2 \
-        -d output/$1/frame$2/camera \
-        --mode $MODE \
-        -i $ITERS $ARGS \
-        "-omask_mode='none'"
-}
-
-train_scene() {
+train() {
     MODE=densify-prune-shculling
     ARGS="$ARGSCOMMON $ARGSSTEPS $ARGSDENSIFY"
     EXISTSPATH="output/$1/frame$2/point_cloud/iteration_$ITERS/point_cloud.ply"
@@ -96,13 +73,7 @@ train_scene() {
         -d output/$1/frame$2 \
         --mode $MODE \
         -i $ITERS $ARGS \
-        "-omask_mode='bg_color'" "-obg_color='random'" \
-        --load_camera "output/$1/frame$2/camera/cameras.json"
-}
-
-train() {
-    train_camera $1 $2
-    train_scene $1 $2
+        "-omask_mode='bg_color'" "-obg_color='random'"
 }
 
 train SIGA2025VVC-Dataset/compression/test/004_1_seq1 1
