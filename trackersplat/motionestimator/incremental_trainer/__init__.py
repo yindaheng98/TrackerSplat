@@ -1,4 +1,11 @@
-from .abc import IncrementalTrainingMotionEstimator, Incremental1StepTrainingMotionEstimator, TrainingProcess, BaseTrainingProcess, TrainerFactory
+"""
+This module implements motion estimation algorithms based on incremental training.
+Core abstract class: IncrementalTrainingMotionEstimator
+Tool abstract classes: TrainingProcess, TrainerFactory
+This module also implements refinement based on incremental training.
+Core abstract class: IncrementalTrainingRefiner
+"""
+from .abc import IncrementalTrainingMotionEstimator, TrainingProcess, BaseTrainingProcess, TrainerFactory
 from .refiner import IncrementalTrainingRefiner
 from .abc import TrainerFactory
 from .base import BaseTrainer, BaseTrainerFactory

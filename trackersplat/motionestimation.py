@@ -18,7 +18,7 @@ from trackersplat.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompensater
 from trackersplat.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
-from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, Incremental1StepTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
+from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -87,7 +87,7 @@ estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "co
 compensater_choices = ["base", "propagate", "filter"]
 trainer_choices = ["base", "regularized", "masked", "maskregularized", "hexplane", "regularizedhexplane", "hicom"]
 
-train_choices = [traintype + "/" + trainer for traintype, trainer in itertools.product(["train", "train1step"], trainer_choices)]
+train_choices = ["train/" + trainer for trainer in trainer_choices]
 refine_choices = ["refine/" + trainer + "-" + compensater + "-" + estimator for trainer, compensater, estimator in itertools.product(trainer_choices, compensater_choices, estimator_choices)]
 track_choices = ["track/" + compensater + "-" + estimator for compensater, estimator in itertools.product(compensater_choices, estimator_choices)]
 
@@ -98,10 +98,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
     mode, estimator = pipeline.split("/", 1)
     if mode[:5] == "train":
         trainer = estimator
-        if mode[5:] == "1step":
-            batch_func = Incremental1StepTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer, **kwargs), training_proc=training_proc, iteration=iteration, device=device)
-        else:
-            batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer, **kwargs), training_proc=training_proc, iteration=iteration, device=device)
+        batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer, **kwargs), training_proc=training_proc, iteration=iteration, device=device)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "track":

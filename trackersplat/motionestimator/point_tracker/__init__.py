@@ -1,3 +1,8 @@
+"""
+This module implements motion estimation algorithms based on point tracking.
+Core abstract class: PointTrackMotionEstimator
+Tool abstract classes: PointTracker, MotionFuser
+"""
 from .abc import PointTrackSequence, PointTracker, MotionFuser, PointTrackMotionEstimator
 from .dot import DotPointTracker, DotMotionEstimator, Cotracker3DotMotionEstimator, TapirDotMotionEstimator, BootsTapirDotMotionEstimator
 from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimator
