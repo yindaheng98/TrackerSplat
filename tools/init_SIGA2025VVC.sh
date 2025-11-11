@@ -96,7 +96,7 @@ train_scene() {
         -d output/$1/frame$2 \
         --mode $MODE \
         -i $ITERS $ARGS \
-        "-omask_mode='bg_color'" \
+        "-omask_mode='bg_color'" "-obg_color='random'" \
         --load_camera "output/$1/frame$2/camera/cameras.json"
 }
 
