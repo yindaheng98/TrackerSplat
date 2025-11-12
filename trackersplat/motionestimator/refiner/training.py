@@ -15,7 +15,7 @@ class IncrementalTrainingRefiner(MotionRefiner):
             iteration=1000,
             device=torch.device("cuda"),  # 1 of 3 basic args
     ):
-        super().__init__(base_batch_func=base_batch_func, base_compensater=base_compensater, device=device)
+        super().__init__(base_batch_func=base_batch_func, base_compensater=base_compensater, device=device)  # 3 basic args
         self.trainer_factory = trainer_factory
         self.training = training_proc
         self.iteration = iteration
@@ -36,9 +36,9 @@ def build_training_refiner(
         device=torch.device("cuda"),  # 1 of 3 basic args
         *args, **kwargs) -> IncrementalTrainingRefiner:
     return IncrementalTrainingRefiner(
-        base_batch_func=base_batch_func, base_compensater=base_compensater,
+        base_batch_func=base_batch_func, base_compensater=base_compensater,  # 2 of 3 basic args
         trainer_factory=build_trainer_factory(trainer, *args, **kwargs),
         training_proc=training_proc,
         iteration=iteration,
-        device=device,
+        device=device,  # 1 of 3 basic args
     )
