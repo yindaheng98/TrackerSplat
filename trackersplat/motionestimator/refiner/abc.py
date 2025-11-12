@@ -8,7 +8,10 @@ from trackersplat.motionestimator.utils import compare
 
 
 class MotionRefiner(FixedViewBatchMotionEstimator, metaclass=ABCMeta):
-    def __init__(self, base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater, device=torch.device("cuda")):
+    def __init__(
+        self,
+        base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater, device=torch.device("cuda")  # 3 basic args
+    ):
         self.base_batch_func = base_batch_func
         self.base_compensater = base_compensater
         self.to(device)

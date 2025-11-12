@@ -9,11 +9,12 @@ from .abc import MotionRefiner
 class IncrementalTrainingRefiner(MotionRefiner):
     def __init__(
             self,
-            base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater,
+            base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater,  # 2 of 3 basic args
             trainer_factory: TrainerFactory,
             training_proc: TrainingProcess = BaseTrainingProcess(),
             iteration=1000,
-            device=torch.device("cuda")):
+            device=torch.device("cuda"),  # 1 of 3 basic args
+    ):
         super().__init__(base_batch_func=base_batch_func, base_compensater=base_compensater, device=device)
         self.trainer_factory = trainer_factory
         self.training = training_proc
@@ -29,10 +30,11 @@ class IncrementalTrainingRefiner(MotionRefiner):
 
 def build_training_refiner(
         trainer: str,
-        base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater,
+        base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater,  # 2 of 3 basic args
         training_proc: TrainingProcess = BaseTrainingProcess(),
         iteration=1000,
-        device=torch.device("cuda"), *args, **kwargs) -> IncrementalTrainingRefiner:
+        device=torch.device("cuda"),  # 1 of 3 basic args
+        *args, **kwargs) -> IncrementalTrainingRefiner:
     return IncrementalTrainingRefiner(
         base_batch_func=base_batch_func, base_compensater=base_compensater,
         trainer_factory=build_trainer_factory(trainer, *args, **kwargs),
