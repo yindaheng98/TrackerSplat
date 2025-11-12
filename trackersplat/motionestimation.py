@@ -113,8 +113,9 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
         motion_compensater = build_compensater_with_refine(
-            type="training", gaussians=gaussians, dataset=dataset, batch_size=batch_size,
+            type="training", trainer=trainer, gaussians=gaussians, dataset=dataset, batch_size=batch_size,
             base_batch_func=batch_func, base_compensater=motion_compensater, device=device,
+            training_proc=training_proc,
             **configs_refining)
     else:
         ValueError(f"Unknown estimator: {estimator}")

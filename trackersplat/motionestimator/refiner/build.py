@@ -7,12 +7,13 @@ from .training import build_training_refiner
 
 
 def build_compensater_with_refine(
-        type: str, gaussians: GaussianModel, dataset: VideoCameraDataset, batch_size: int,
+        type: str, trainer: str, gaussians: GaussianModel, dataset: VideoCameraDataset, batch_size: int,
         base_batch_func: FixedViewBatchMotionEstimator, base_compensater: MotionCompensater, device=torch.device("cuda"),  # 3 basic args
         *args, **kwargs):
     batch_func = {
         "training": build_training_refiner,
     }[type](
+        trainer=trainer,
         base_batch_func=base_batch_func, base_compensater=base_compensater, device=device,  # 3 basic args
         *args, **kwargs)
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
