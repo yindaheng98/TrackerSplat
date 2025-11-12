@@ -18,7 +18,10 @@ class MotionRefiner(FixedViewBatchMotionEstimator, metaclass=ABCMeta):
         return self
 
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        motions = self.base_batch_func(views)
+        motions = []
+        for motion in self.base_batch_func(views):
+            motion.validate()
+            motions.append(motion)
         frames = [copy.deepcopy(self.base_compensater.compensate(self.baseframe, motion)) for motion in motions]
         return [compare(self.baseframe, frame) for frame in self.refine(motions, frames, views, self.baseframe)]
 
