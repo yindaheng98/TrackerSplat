@@ -72,8 +72,9 @@ class PointTracker(metaclass=ABCMeta):
         assert h == height and w == width and c == 2
         assert visibility.shape == (n, h, w)
         if mask_output and frames.frame_masks_path[0] is not None:
-            mask = read_mask(frames.frame_masks_path[0], resolution=(height, width))
-            track *= mask.to(track.device).unsqueeze(0).unsqueeze(-1)
+            mask = read_mask(frames.frame_masks_path[0], resolution=(height, width)).to(track.device).unsqueeze(0).unsqueeze(-1)
+            pix = torch.stack(torch.meshgrid(torch.arange(track.shape[1]), torch.arange(track.shape[2]), indexing='ij'), dim=-1)[..., [1, 0]].to(device=track.device, dtype=track.dtype).unsqueeze(0)
+            track = track * mask + pix * (1 - mask)
         return PointTrackSequence(
             **frames._asdict(),
             track_height=height,
@@ -103,6 +104,9 @@ class MotionFuser(metaclass=ABCMeta):
 
 
 class PointTrackMotionEstimator(FixedViewBatchMotionEstimator):
+    mask_input: bool = True
+    mask_output: bool = True
+
     def __init__(self, tracker: PointTracker, fuser: MotionFuser, device=torch.device("cuda")):
         self.tracker = tracker
         self.fuser = fuser
@@ -114,7 +118,7 @@ class PointTrackMotionEstimator(FixedViewBatchMotionEstimator):
         return self
 
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        trackviews = [self.tracker(view) for view in views]
+        trackviews = [self.tracker(view, mask_input=self.mask_input, mask_output=self.mask_output) for view in views]
         for view in trackviews:
             n, h, w, c = view.track.shape
             assert c == 2
