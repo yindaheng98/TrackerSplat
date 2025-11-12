@@ -140,7 +140,7 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", required=True, type=int)
     parser.add_argument("--load_camera", default=None, type=str)
-    parser.add_argument("--no_image_mask", action="store_true")
+    parser.add_argument("--with_image_mask", action="store_true")
     parser.add_argument("--with_depth_data", action="store_true")
     parser.add_argument("--device", default="cuda", type=str)
 
@@ -164,7 +164,7 @@ if __name__ == "__main__":
         source=args.source, device=args.device,
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
         load_camera=args.load_camera,
-        load_mask=not args.no_image_mask, load_depth=args.with_depth_data)
+        load_mask=args.with_image_mask, load_depth=args.with_depth_data)
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
     motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, configs_refining, **configs)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
