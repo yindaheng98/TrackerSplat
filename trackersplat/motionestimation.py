@@ -162,7 +162,7 @@ if __name__ == "__main__":
         load_ply=load_ply)
     dataset = prepare_fixedview_dataset(
         source=args.source, device=args.device,
-        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
+        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=args.n_frames,
         load_camera=args.load_camera,
         load_mask=args.with_image_mask, load_depth=args.with_depth_data)
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
