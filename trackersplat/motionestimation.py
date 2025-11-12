@@ -19,6 +19,7 @@ from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompens
 from trackersplat.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
+from trackersplat.motionestimator.refiner import build_compensater_with_refine
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -111,9 +112,10 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
-        batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer, **configs_refining), training_proc=training_proc, iteration=iteration, device=device)
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-        motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+        motion_compensater = build_compensater_with_refine(
+            type="training", gaussians=gaussians, dataset=dataset, batch_size=batch_size,
+            base_batch_func=batch_func, base_compensater=motion_compensater, device=device,
+            **configs_refining)
     else:
         ValueError(f"Unknown estimator: {estimator}")
     return motion_compensater
