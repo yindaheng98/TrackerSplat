@@ -48,7 +48,7 @@ class LoggerTrainingProcess(BaseTrainingProcess):
         with open(log_path, "w") as f:
             f.write(f"epoch,camera,psnr,ssim,lpips,masked_psnr,masked_ssim,masked_lpips\n")
         lpips = LPIPS(net_type='alex', version='0.1').to(self.device)
-        pbar = tqdm(range(iteration), desc=f"Training frame {frame_idx}")
+        pbar = tqdm(range(iteration), desc=f"Training frame {frame_idx}", dynamic_ncols=True)
         epoch = list(range(len(dataset)))
         random.shuffle(epoch)
         avg_psnr_for_log = 0.0
