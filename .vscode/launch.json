@@ -275,15 +275,18 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/walking/frame69",
+                "data/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame9",
                 "-d",
-                "output/walking/frame69",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/track/base-dot-cotracker3/frame9",
                 "-i",
-                "10000",
+                "1000",
                 "--destination_base",
-                "output/walking/frame61",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1",
                 "--iteration_base",
                 "10000",
+                "--load_camera",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/track/base-dot-cotracker3/frame9/cameras.json",
+                "--with_image_mask",
             ]
         },
         {
