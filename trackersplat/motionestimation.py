@@ -82,8 +82,13 @@ class LoggerTrainingProcess(BaseTrainingProcess):
                     epoch_masklpips[epoch_idx] = lpips(rendered_maskimage, ground_truth_maskimage).to(self.device)
                 epoch_camids.append(idx)
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log,
-                                     'masked psnr': avg_maskpsnr_for_log, 'masked ssim': avg_maskssim_for_log, 'masked lpips': avg_masklpips_for_log})
+                    pbar.set_postfix({
+                        'epoch': step // len(dataset),
+                        'loss': ema_loss_for_log,
+                        'psnr': f"{avg_psnr_for_log:.2f} (masked: {avg_maskpsnr_for_log:.2f})",
+                        'ssim': f"{avg_ssim_for_log:.2f} (masked: {avg_maskssim_for_log:.2f})",
+                        'lpips': f"{avg_lpips_for_log:.4f} (masked: {avg_masklpips_for_log:.4f})",
+                    })
             if epoch_idx + 1 == len(dataset):
                 random.shuffle(epoch)
                 avg_psnr_for_log = epoch_psnr.mean().item()
@@ -94,8 +99,10 @@ class LoggerTrainingProcess(BaseTrainingProcess):
                 avg_masklpips_for_log = epoch_masklpips.mean().item()
                 with open(log_path, "a") as f:
                     for i in range(len(dataset)):
-                        f.write(
-                            f"{step // len(dataset) + 1},{epoch_camids[i] + 1},{epoch_psnr[i].mean().item()},{epoch_ssim[i].item()},{epoch_lpips[i].item()},{epoch_maskpsnr[i].mean().item()},{epoch_maskssim[i].mean().item()},{epoch_masklpips[i].mean().item()}\n")
+                        data = f"{step // len(dataset) + 1},{epoch_camids[i] + 1},"
+                        data += f"{epoch_psnr[i].mean().item()},{epoch_ssim[i].item()},{epoch_lpips[i].item()},"
+                        data += f"{epoch_maskpsnr[i].mean().item()},{epoch_maskssim[i].mean().item()},{epoch_masklpips[i].mean().item()}\n"
+                        f.write(data)
                 epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
                 epoch_ssim = torch.zeros(len(dataset), device=self.device)
                 epoch_lpips = torch.zeros(len(dataset), device=self.device)
