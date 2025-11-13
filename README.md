@@ -21,9 +21,15 @@ conda install conda-forge::colmap
 Install cotracker:
 
 ```sh
-pip install --upgrade git+https://github.com/google-deepmind/tapnet.git@main
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
 pip install triton # (optional)
+```
+
+Install tapnet:
+
+```sh
+pip install --upgrade git+https://github.com/google-deepmind/tapnet.git@main
+pip install tensorflow tensorflow-datasets
 ```
 
 ## PyPI Install

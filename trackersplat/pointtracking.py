@@ -33,7 +33,7 @@ if __name__ == "__main__":
     parser.add_argument("--with_depth_data", action="store_true")
     parser.add_argument("--device", default="cuda", type=str)
 
-    parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"], default="dot-cotracker3")
+    parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3", "tapnext"], default="dot-cotracker3")
     parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
     parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")

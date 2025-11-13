@@ -28,7 +28,7 @@ class TAPNextPointTracker(PointTracker):
     def track(self, video: torch.Tensor) -> PointTrackSequence:
         _, _, height, width = video.shape
         with torch.no_grad():
-            pred_tracks, pred_visibility = self.model(video[None].to(self.device))
+            pred_tracks, pred_visibility = self.model(video.permute(0, 2, 3, 1)[None].to(self.device))  # chw->hwc
         track = pred_tracks.squeeze(0).reshape(-1, height, width, 2)
         mask = pred_visibility.squeeze(0).reshape(-1, height, width)
         return track[1:, ...], mask[1:, ...]  # (tracks, visibility mask)
