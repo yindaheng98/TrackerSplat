@@ -19,6 +19,7 @@ from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompens
 from trackersplat.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
+from trackersplat.motionestimator.refiner import build_compensater_with_refine
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -45,17 +46,23 @@ class LoggerTrainingProcess(BaseTrainingProcess):
         log_path = self.log_path(frame_idx)
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, "w") as f:
-            f.write(f"epoch,camera,psnr,ssim,lpips\n")
+            f.write(f"epoch,camera,psnr,ssim,lpips,masked_psnr,masked_ssim,masked_lpips\n")
         lpips = LPIPS(net_type='alex', version='0.1').to(self.device)
-        pbar = tqdm(range(iteration), desc=f"Training frame {frame_idx}")
+        pbar = tqdm(range(iteration), desc=f"Training frame {frame_idx}", dynamic_ncols=True)
         epoch = list(range(len(dataset)))
         random.shuffle(epoch)
         avg_psnr_for_log = 0.0
         avg_ssim_for_log = 0.0
         avg_lpips_for_log = 0.0
+        avg_maskpsnr_for_log = 0.0
+        avg_maskssim_for_log = 0.0
+        avg_masklpips_for_log = 0.0
         epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
         epoch_ssim = torch.zeros(len(dataset), device=self.device)
         epoch_lpips = torch.zeros(len(dataset), device=self.device)
+        epoch_maskpsnr = torch.zeros(len(dataset), 3, device=self.device)
+        epoch_maskssim = torch.zeros(len(dataset), 3, device=self.device)
+        epoch_masklpips = torch.zeros(len(dataset), 3, device=self.device)
         epoch_camids = []
         ema_loss_for_log = 0.0
         for step in pbar:
@@ -67,20 +74,41 @@ class LoggerTrainingProcess(BaseTrainingProcess):
                 epoch_psnr[epoch_idx] = psnr(out["render"], dataset[idx].ground_truth_image).squeeze(-1).to(self.device)
                 epoch_ssim[epoch_idx] = ssim(out["render"], dataset[idx].ground_truth_image).to(self.device)
                 epoch_lpips[epoch_idx] = lpips(out["render"], dataset[idx].ground_truth_image).to(self.device)
+                if dataset[idx].ground_truth_image_mask is not None:
+                    ground_truth_maskimage = dataset[idx].ground_truth_image * dataset[idx].ground_truth_image_mask
+                    rendered_maskimage = out["render"] * dataset[idx].ground_truth_image_mask
+                    epoch_maskpsnr[epoch_idx] = psnr(rendered_maskimage, ground_truth_maskimage).squeeze(-1).to(self.device)
+                    epoch_maskssim[epoch_idx] = ssim(rendered_maskimage, ground_truth_maskimage).to(self.device)
+                    epoch_masklpips[epoch_idx] = lpips(rendered_maskimage, ground_truth_maskimage).to(self.device)
                 epoch_camids.append(idx)
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log})
+                    pbar.set_postfix({
+                        'epoch': step // len(dataset),
+                        'loss': ema_loss_for_log,
+                        'psnr': f"{avg_psnr_for_log:.2f} (masked: {avg_maskpsnr_for_log:.2f})",
+                        'ssim': f"{avg_ssim_for_log:.2f} (masked: {avg_maskssim_for_log:.2f})",
+                        'lpips': f"{avg_lpips_for_log:.4f} (masked: {avg_masklpips_for_log:.4f})",
+                    })
             if epoch_idx + 1 == len(dataset):
                 random.shuffle(epoch)
                 avg_psnr_for_log = epoch_psnr.mean().item()
                 avg_ssim_for_log = epoch_ssim.mean().item()
                 avg_lpips_for_log = epoch_lpips.mean().item()
+                avg_maskpsnr_for_log = epoch_maskpsnr.mean().item()
+                avg_maskssim_for_log = epoch_maskssim.mean().item()
+                avg_masklpips_for_log = epoch_masklpips.mean().item()
                 with open(log_path, "a") as f:
                     for i in range(len(dataset)):
-                        f.write(f"{step // len(dataset) + 1},{epoch_camids[i] + 1},{epoch_psnr[i].mean().item()},{epoch_ssim[i].item()},{epoch_lpips[i].item()}\n")
+                        data = f"{step // len(dataset) + 1},{epoch_camids[i] + 1},"
+                        data += f"{epoch_psnr[i].mean().item()},{epoch_ssim[i].item()},{epoch_lpips[i].item()},"
+                        data += f"{epoch_maskpsnr[i].mean().item()},{epoch_maskssim[i].mean().item()},{epoch_masklpips[i].mean().item()}\n"
+                        f.write(data)
                 epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
                 epoch_ssim = torch.zeros(len(dataset), device=self.device)
                 epoch_lpips = torch.zeros(len(dataset), device=self.device)
+                epoch_maskpsnr = torch.empty(len(dataset), 3, device=self.device)
+                epoch_maskssim = torch.empty(len(dataset), 3, device=self.device)
+                epoch_masklpips = torch.empty(len(dataset), 3, device=self.device)
 
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
@@ -111,9 +139,11 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
-        batch_func = IncrementalTrainingRefiner(base_batch_func=batch_func, base_compensater=motion_compensater, trainer_factory=build_trainer_factory(trainer, **configs_refining), training_proc=training_proc, iteration=iteration, device=device)
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-        motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
+        motion_compensater = build_compensater_with_refine(
+            type="training", trainer=trainer, gaussians=gaussians, dataset=dataset, batch_size=batch_size,
+            base_batch_func=batch_func, base_compensater=motion_compensater, device=device,
+            training_proc=training_proc,
+            **configs_refining)
     else:
         ValueError(f"Unknown estimator: {estimator}")
     return motion_compensater
@@ -137,6 +167,8 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", required=True, type=int)
     parser.add_argument("--load_camera", default=None, type=str)
+    parser.add_argument("--with_image_mask", action="store_true")
+    parser.add_argument("--with_depth_data", action="store_true")
     parser.add_argument("--device", default="cuda", type=str)
 
     parser.add_argument("--pipeline", choices=pipeline_choices, default="track/base-dot-cotracker3")
@@ -157,8 +189,9 @@ if __name__ == "__main__":
         load_ply=load_ply)
     dataset = prepare_fixedview_dataset(
         source=args.source, device=args.device,
-        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=None,
-        load_camera=args.load_camera)
+        frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=args.n_frames,
+        load_camera=args.load_camera,
+        load_mask=args.with_image_mask, load_depth=args.with_depth_data)
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
     motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, configs_refining, **configs)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)

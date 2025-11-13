@@ -118,6 +118,10 @@
                 "-rloss_weight_overall=0.1",
                 "-rposition_lr_max_steps=4000",
                 "-rscaling_lr=0.000001",
+                // "-rmask_mode='bg_color'",
+                "-omask_input=False",
+                "-omask_output=False",
+                "--with_image_mask",
                 "--load_camera",
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/cameras.json",
             ]
@@ -232,7 +236,8 @@
                 "--tracking_rescale",
                 "0.3",
                 "--downsample_rate",
-                "8"
+                "8",
+                "--with_image_mask",
             ],
             "env": {
                 "PYTHONPATH": "${workspaceFolder}"

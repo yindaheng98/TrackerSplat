@@ -7,7 +7,7 @@ from gaussian_splatting.dataset.colmap.dataset import read_colmap_cameras
 from .dataset import DatasetCameraMeta, VideoCameraDataset
 
 
-def read_colmap_framemetas(video_folder: str, frame_folder_fmt: str = "frame%d", start_frame=1, n_frames=None):
+def read_colmap_framemetas(video_folder: str, frame_folder_fmt: str = "frame%d", start_frame=1, n_frames=None, load_mask=True, load_depth=True):
     """
     Load a video dataset from a sequence of COLMAP workspaces.
     """
@@ -22,7 +22,7 @@ def read_colmap_framemetas(video_folder: str, frame_folder_fmt: str = "frame%d",
         framemeta = [DatasetCameraMeta(
             **camera._asdict(),
             frame_idx=frame_idx,
-        ) for camera in read_colmap_cameras(frame_folder)]
+        ) for camera in read_colmap_cameras(frame_folder, load_mask=load_mask, load_depth=load_depth)]
         framemeta = sorted(framemeta, key=lambda x: x.image_path)
         framemetas.append(framemeta)
         cameras_count += len(framemeta)
@@ -57,9 +57,9 @@ def FixedViewColmapVideoCameraDataset(*args, device=torch.device("cuda"), **kwar
     return VideoCameraDataset(frames=framemetas, device=device)
 
 
-def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, device=torch.device("cuda"), **kwargs) -> VideoCameraDataset:
-    framemetas = read_colmap_framemetas(*args, **kwargs)
-    jsoncameras = JSONCameraDataset(jsonpath)
+def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, load_mask=True, load_depth=True, device=torch.device("cuda"), **kwargs) -> VideoCameraDataset:
+    framemetas = read_colmap_framemetas(*args, load_mask=load_mask, load_depth=load_depth, **kwargs)
+    jsoncameras = JSONCameraDataset(jsonpath, load_mask=load_mask, load_depth=load_depth)
     cam_idx_in_json = [None] * len(jsoncameras)
     assert len(framemetas[0]) == len(jsoncameras)
     for i, framemeta in enumerate(framemetas[0]):  # should load the first camera

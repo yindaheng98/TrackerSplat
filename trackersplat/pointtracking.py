@@ -29,7 +29,10 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--source", required=True, type=str)
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("--load_camera", default=None, type=str)
+    parser.add_argument("--with_image_mask", action="store_true")
+    parser.add_argument("--with_depth_data", action="store_true")
     parser.add_argument("--device", default="cuda", type=str)
+
     parser.add_argument("--estimator", choices=["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"], default="dot-cotracker3")
     parser.add_argument("-f", "--frame_folder_fmt", default="frame%d", type=str, help="frame folder format string")
     parser.add_argument("-n", "--n_frames", default=None, type=int, help="number of frames to process")
@@ -47,7 +50,8 @@ if __name__ == "__main__":
     dataset = prepare_fixedview_dataset(
         source=args.source, device=args.device,
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame, n_frames=args.n_frames,
-        load_camera=args.load_camera)
+        load_camera=args.load_camera,
+        load_mask=args.with_image_mask, load_depth=args.with_depth_data)
     estimator = build_point_track_batch_motion_estimator(estimator=args.estimator, fuser=FakeFuser(), device=args.device, rescale_factor=args.tracking_rescale)
     frame_dirname = args.frame_folder_fmt % args.start_frame + "-" + ((args.frame_folder_fmt % (args.start_frame + args.n_frames - 1)) if args.n_frames is not None else "")
     result_path = os.path.join(args.destination, "tracks", frame_dirname)
@@ -62,7 +66,8 @@ if __name__ == "__main__":
     views = [FixedViewFrameSequenceMeta.from_datasetcameras(frame) for frame in zip(*cameras)]
     for view in views:
         torch.cuda.empty_cache()
-        track = estimator.tracker(view)
+        # track = estimator.tracker(view, mask_input=True, mask_output=True)
+        track = estimator.tracker(view, mask_input=False, mask_output=False)
         n, h, w, c = track.track.shape
         x = torch.arange(w, dtype=torch.float, device=track.track.device)
         y = torch.arange(h, dtype=torch.float, device=track.track.device)
