@@ -46,7 +46,7 @@ class LoggerTrainingProcess(BaseTrainingProcess):
         log_path = self.log_path(frame_idx)
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, "w") as f:
-            f.write(f"epoch,camera,psnr,ssim,lpips\n")
+            f.write(f"epoch,camera,psnr,ssim,lpips,masked_psnr,masked_ssim,masked_lpips\n")
         lpips = LPIPS(net_type='alex', version='0.1').to(self.device)
         pbar = tqdm(range(iteration), desc=f"Training frame {frame_idx}")
         epoch = list(range(len(dataset)))
@@ -54,9 +54,15 @@ class LoggerTrainingProcess(BaseTrainingProcess):
         avg_psnr_for_log = 0.0
         avg_ssim_for_log = 0.0
         avg_lpips_for_log = 0.0
+        avg_maskpsnr_for_log = 0.0
+        avg_maskssim_for_log = 0.0
+        avg_masklpips_for_log = 0.0
         epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
         epoch_ssim = torch.zeros(len(dataset), device=self.device)
         epoch_lpips = torch.zeros(len(dataset), device=self.device)
+        epoch_maskpsnr = torch.zeros(len(dataset), 3, device=self.device)
+        epoch_maskssim = torch.zeros(len(dataset), 3, device=self.device)
+        epoch_masklpips = torch.zeros(len(dataset), 3, device=self.device)
         epoch_camids = []
         ema_loss_for_log = 0.0
         for step in pbar:
@@ -68,20 +74,34 @@ class LoggerTrainingProcess(BaseTrainingProcess):
                 epoch_psnr[epoch_idx] = psnr(out["render"], dataset[idx].ground_truth_image).squeeze(-1).to(self.device)
                 epoch_ssim[epoch_idx] = ssim(out["render"], dataset[idx].ground_truth_image).to(self.device)
                 epoch_lpips[epoch_idx] = lpips(out["render"], dataset[idx].ground_truth_image).to(self.device)
+                if dataset[idx].ground_truth_image_mask is not None:
+                    ground_truth_maskimage = dataset[idx].ground_truth_image * dataset[idx].ground_truth_image_mask
+                    rendered_maskimage = out["render"] * dataset[idx].ground_truth_image_mask
+                    epoch_maskpsnr[epoch_idx] = psnr(rendered_maskimage, ground_truth_maskimage).squeeze(-1).to(self.device)
+                    epoch_maskssim[epoch_idx] = ssim(rendered_maskimage, ground_truth_maskimage).to(self.device)
+                    epoch_masklpips[epoch_idx] = lpips(rendered_maskimage, ground_truth_maskimage).to(self.device)
                 epoch_camids.append(idx)
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log})
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'psnr': avg_psnr_for_log, 'ssim': avg_ssim_for_log, 'lpips': avg_lpips_for_log,
+                                     'masked psnr': avg_maskpsnr_for_log, 'masked ssim': avg_maskssim_for_log, 'masked lpips': avg_masklpips_for_log})
             if epoch_idx + 1 == len(dataset):
                 random.shuffle(epoch)
                 avg_psnr_for_log = epoch_psnr.mean().item()
                 avg_ssim_for_log = epoch_ssim.mean().item()
                 avg_lpips_for_log = epoch_lpips.mean().item()
+                avg_maskpsnr_for_log = epoch_maskpsnr.mean().item()
+                avg_maskssim_for_log = epoch_maskssim.mean().item()
+                avg_masklpips_for_log = epoch_masklpips.mean().item()
                 with open(log_path, "a") as f:
                     for i in range(len(dataset)):
-                        f.write(f"{step // len(dataset) + 1},{epoch_camids[i] + 1},{epoch_psnr[i].mean().item()},{epoch_ssim[i].item()},{epoch_lpips[i].item()}\n")
+                        f.write(
+                            f"{step // len(dataset) + 1},{epoch_camids[i] + 1},{epoch_psnr[i].mean().item()},{epoch_ssim[i].item()},{epoch_lpips[i].item()},{epoch_maskpsnr[i].mean().item()},{epoch_maskssim[i].mean().item()},{epoch_masklpips[i].mean().item()}\n")
                 epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
                 epoch_ssim = torch.zeros(len(dataset), device=self.device)
                 epoch_lpips = torch.zeros(len(dataset), device=self.device)
+                epoch_maskpsnr = torch.empty(len(dataset), 3, device=self.device)
+                epoch_maskssim = torch.empty(len(dataset), 3, device=self.device)
+                epoch_masklpips = torch.empty(len(dataset), 3, device=self.device)
 
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
