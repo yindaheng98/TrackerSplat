@@ -1,30 +1,17 @@
-from typing import Tuple
 import torch
 import os
 from tqdm import tqdm
 from os import makedirs
 import torchvision
-from gaussian_splatting import GaussianModel, CameraTrainableGaussianModel
+from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.utils import psnr, ssim
 from gaussian_splatting.utils.lpipsPyTorch import lpips
 from gaussian_splatting.render import prepare_rendering
+from gaussian_splatting.prepare import prepare_gaussians
 from trackersplat.utils.motionfusion import compute_mean2D
 import matplotlib.pyplot as plt
 import numpy as np
-
-
-def prepare_base(sh_degree: int, device: str, mode: str, load_ply: str) -> Tuple[CameraDataset, GaussianModel]:
-    match mode:
-        case "base" | "densify":
-            gaussians = GaussianModel(sh_degree).to(device)
-            gaussians.load_ply(load_ply)
-        case "camera" | "camera-densify":
-            gaussians = CameraTrainableGaussianModel(sh_degree).to(device)
-            gaussians.load_ply(load_ply)
-        case _:
-            raise ValueError(f"Unknown mode: {mode}")
-    return gaussians
 
 
 def draw_motion(rendering, point_image, point_image_after, save_path, threshold=16):
@@ -49,25 +36,29 @@ def draw_motion(rendering, point_image, point_image_after, save_path, threshold=
 
 
 def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: GaussianModel, save: str):
+    os.makedirs(save, exist_ok=True)
+    dataset.save_cameras(os.path.join(save, "cameras.json"))
     render_path = os.path.join(save, "renders")
     gt_path = os.path.join(save, "gt")
-    motion_path = os.path.join(save, "motion")
     makedirs(render_path, exist_ok=True)
     makedirs(gt_path, exist_ok=True)
+    motion_path = os.path.join(save, "motion")
     makedirs(motion_path, exist_ok=True)
-    log_path = os.path.join(save, "log.csv")
-    with open(log_path, "w") as f:
+    pbar = tqdm(dataset, dynamic_ncols=True, desc="Rendering progress")
+    with open(os.path.join(save, "log.csv"), "w") as f:
         f.write(f"cam,psnr,ssim,lpips\n")
-    pbar = tqdm(dataset, desc="Rendering progress")
     for idx, camera in enumerate(pbar):
         out = gaussians(camera)
         rendering = out["render"]
         gt = camera.ground_truth_image
+        if camera.ground_truth_image_mask is not None:
+            gt *= camera.ground_truth_image_mask
+            rendering *= camera.ground_truth_image_mask
         psnr_log = psnr(rendering, gt).mean().item()
         ssim_log = ssim(rendering, gt).mean().item()
         lpips_log = lpips(rendering, gt).mean().item()
         pbar.set_postfix({"PSNR": psnr_log, "SSIM": ssim_log, "LPIPS": lpips_log})
-        with open(log_path, "a") as f:
+        with open(os.path.join(save, "log.csv"), "a") as f:
             f.write(f"{idx},{psnr_log},{ssim_log},{lpips_log}\n")
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
@@ -85,8 +76,9 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", required=True, type=int)
     parser.add_argument("--load_camera", default=None, type=str)
-    parser.add_argument("--mode", choices=["base", "densify", "camera", "camera-densify"], default="base")
+    parser.add_argument("--mode", choices=["base", "camera"], default="base")
     parser.add_argument("--device", default="cuda", type=str)
+    parser.add_argument("--with_image_mask", action="store_true")
     parser.add_argument("--destination_base", required=True, type=str)
     parser.add_argument("--iteration_base", default=None, type=int)
     args = parser.parse_args()
@@ -96,7 +88,8 @@ if __name__ == "__main__":
     save = os.path.join(args.destination, "ours_{}".format(args.iteration))
     with torch.no_grad():
         dataset, gaussians = prepare_rendering(
-            sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
-            load_ply=load_ply, load_camera=args.load_camera)
-        gaussians_base = prepare_base(sh_degree=args.sh_degree, device=args.device, mode=args.mode, load_ply=load_ply_base)
+            sh_degree=args.sh_degree, source=args.source, device=args.device, trainable_camera=args.mode == "camera",
+            load_ply=load_ply, load_camera=args.load_camera,
+            load_mask=args.with_image_mask, load_depth=False)
+        gaussians_base = prepare_gaussians(sh_degree=args.sh_degree, source=args.source, device=args.device, trainable_camera=args.mode == "camera", load_ply=load_ply_base)
         rendering(dataset, gaussians, gaussians_base, save)
