@@ -27,7 +27,7 @@ train() {
         --pipeline $4 $5 \
         -b $6 -n $7 $REFININGARGS \
         --load_camera $8 \
-        --with_image_mask -omask_input=False -omask_output=False
+        --with_image_mask "-rmask_mode='bg_color'" -omask_input=False -omask_output=False
 }
 # train "walking" 1 1000 track/propagate-dot-cotracker3 "" 9 100 "output/walking/frame1/cameras.json" # debug
 initialize_and_train_video_allmethods() {
