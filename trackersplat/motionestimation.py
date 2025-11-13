@@ -16,7 +16,7 @@ from gaussian_splatting.utils.lpipsPyTorch import LPIPS
 import gaussian_splatting.train
 from trackersplat.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompensater
-from trackersplat.motionestimator.point_tracker import BaseMotionFuser, build_point_track_batch_motion_estimator
+from trackersplat.motionestimator.point_tracker import BaseMotionFuser, DetectFixMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 from trackersplat.motionestimator.refiner import build_compensater_with_refine
@@ -131,12 +131,12 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
         motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "track":
         compensater, estimator = estimator.split("-", 1)
-        batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
+        batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=DetectFixMotionFuser(gaussians), device=device, **kwargs)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "refine":
         trainer, compensater, estimator = estimator.split("-", 2)
-        batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=BaseMotionFuser(gaussians), device=device, **kwargs)
+        batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=DetectFixMotionFuser(gaussians), device=device, **kwargs)
         motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
         motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
         motion_compensater = build_compensater_with_refine(

@@ -11,14 +11,13 @@ from .abc import Motion, MotionFuser, PointTrackSequence
 
 
 class BaseMotionFuser(MotionFuser):
-    def __init__(self, gaussians: GaussianModel, motion_threshold=0.2, device=torch.device("cuda")):
+    def __init__(self, gaussians: GaussianModel, device=torch.device("cuda")):
         '''
         Base class for motion fusion.
         `motion_threshold` is the threshold for detecting static gaussians, unit is pixel.
         '''
         super().__init__()
         self.gaussians = gaussians
-        self.motion_threshold = motion_threshold
         self.to(device)
 
     def to(self, device: torch.device) -> 'MotionFuser':
@@ -137,23 +136,23 @@ class BaseMotionFuser(MotionFuser):
             viewhits[valid_mask] += 1
 
         # solve cov and mean mask
-        translation_vector, valid_mask_mean, weights_mean = self._solve_translation(isvd, viewhits, weights, pixhits)
-        rotation_transform, scaling_transform, valid_mask_cov, weights_cov = self._solve_transformation(ils, viewhits, weights, pixhits)
+        valid_mask_mean, weights_mean = self.precompute_valid_mask_and_weights_mean3D(isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count, viewhits, weights, pixhits)
+        valid_mask_cov, weights_cov = self.precompute_valid_mask_and_weights_cov3D(ils.v11, ils.v12, viewhits, weights, pixhits)
+        translation_vector, valid_mask_mean, weights_mean = self._compute_translation(isvd, valid_mask_mean, weights_mean, viewhits, weights, pixhits)
+        rotation_transform, scaling_transform, valid_mask_cov, weights_cov = self._compute_transformation(ils, valid_mask_cov, weights_cov, viewhits, weights, pixhits)
         return Motion(
-            fixed_mask=None,
+            fixed_mask=torch.zeros((gaussians.get_xyz.shape[0],), device=self.device, dtype=torch.bool),
             motion_mask_cov=valid_mask_cov,
             motion_mask_mean=valid_mask_mean,
             rotation_quaternion=rotation_transform,
             # scaling_modifier_log=scaling_transform, # change scaling has no benefit but produce some thin and long gaussians, bad
             translation_vector=translation_vector,
-            confidence_fix=None,
+            confidence_fix=torch.empty(0, device=self.device, dtype=torch.float),
             confidence_cov=weights_cov,
             confidence_mean=weights_mean,
         )
 
-    def _solve_translation(self, isvd: ISVD_Mean3D, viewhits, weights, pixhits):
-        valid_mask_mean, weights_mean = self.precompute_valid_mask_and_weights_mean3D(isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count, viewhits, weights, pixhits)
-
+    def _compute_translation(self, isvd: ISVD_Mean3D, valid_mask_mean, weights_mean, viewhits, weights, pixhits):
         # solve mean3D
         mean3D, mean3Derror, valid_mask_mean_solved = isvd.solve(valid_mask_mean)  # ! Solve mean3D may be time consuming
         # select mean3D
@@ -165,9 +164,7 @@ class BaseMotionFuser(MotionFuser):
 
         return translation_vector, valid_mask_mean, weights_mean
 
-    def _solve_transformation(self, ils: ILS_RotationScale, viewhits, weights, pixhits):
-        valid_mask_cov, weights_cov = self.precompute_valid_mask_and_weights_cov3D(ils.v11, ils.v12, viewhits, weights, pixhits)
-
+    def _compute_transformation(self, ils: ILS_RotationScale, valid_mask_cov, weights_cov, viewhits, weights, pixhits):
         # solve R and S matrix
         R, S, coverror, valid_mask_cov_solved = ils.solve(valid_mask_cov)  # ! Solve R,S may consume a lot of memory
         # select mean3D
