@@ -6,6 +6,7 @@ Tool abstract classes: PointTracker, MotionFuser
 from .abc import PointTrackSequence, PointTracker, MotionFuser, PointTrackMotionEstimator
 from .dot import DotPointTracker, DotMotionEstimator, Cotracker3DotMotionEstimator, TapirDotMotionEstimator, BootsTapirDotMotionEstimator
 from .cotracker import Cotracker3PointTracker, Cotracker3MotionEstimator
+from .tapnet import TAPNextPointTracker, TAPNextMotionEstimator
 from .fuser import BaseMotionFuser
 from .parallel import DataParallelPointTrackMotionEstimator
 
@@ -20,6 +21,7 @@ def build_point_track_batch_motion_estimator(
         "dot-bootstapir": BootsTapirDotMotionEstimator,
         "dot-cotracker3": Cotracker3DotMotionEstimator,
         "cotracker3": Cotracker3MotionEstimator,
+        "tapnext": TAPNextMotionEstimator,
     }[estimator](fuser=fuser, device=device, *args, **kwargs)
     estimator.mask_input = mask_input
     estimator.mask_output = mask_output

@@ -21,6 +21,7 @@ conda install conda-forge::colmap
 Install cotracker:
 
 ```sh
+pip install --upgrade git+https://github.com/google-deepmind/tapnet.git@main
 pip install --upgrade git+https://github.com/facebookresearch/co-tracker.git@main
 pip install triton # (optional)
 ```
@@ -67,6 +68,12 @@ wget -P checkpoints https://huggingface.co/16lemoing/dot/resolve/main/panning_mo
 cotracker
 ```shell
 wget -P checkpoints https://huggingface.co/facebook/cotracker3/resolve/main/scaled_offline.pth
+```
+
+tapnet
+```shell
+wget -P checkpoints https://storage.googleapis.com/dm-tapnet/tapnext/bootstapnext_ckpt.npz
+wget -P checkpoints https://storage.googleapis.com/dm-tapnet/tapnext/tapnext_ckpt.npz
 ```
 
 ## Quick Start
