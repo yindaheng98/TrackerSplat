@@ -12,7 +12,7 @@ class TAPNextPointTracker(PointTracker):
             checkpoint="./checkpoints/bootstapnext_ckpt.npz",
             rescale_factor=1.0,
             device=torch.device("cuda")):
-        self.model = TAPNext(image_size=(256, 256))
+        self.model = TAPNext(image_size=(256, 256))  # fuck it, TAPNext only supports 256x256
         self.model = restore_model_from_jax_checkpoint(self.model, checkpoint)
         self.rescale_factor = rescale_factor
         self.to(device)
