@@ -52,8 +52,9 @@ def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: 
         rendering = out["render"]
         gt = camera.ground_truth_image
         if camera.ground_truth_image_mask is not None:
-            gt *= camera.ground_truth_image_mask
-            rendering *= camera.ground_truth_image_mask
+            gt_nomask, rendering_nomask = gt, rendering
+            gt = gt * camera.ground_truth_image_mask
+            rendering = rendering * camera.ground_truth_image_mask
         psnr_log = psnr(rendering, gt).mean().item()
         ssim_log = ssim(rendering, gt).mean().item()
         lpips_log = lpips(rendering, gt).mean().item()
@@ -62,10 +63,15 @@ def rendering(dataset: CameraDataset, gaussians: GaussianModel, gaussians_base: 
             f.write(f"{idx},{psnr_log},{ssim_log},{lpips_log}\n")
         torchvision.utils.save_image(rendering, os.path.join(render_path, '{0:05d}'.format(idx) + ".png"))
         torchvision.utils.save_image(gt, os.path.join(gt_path, '{0:05d}'.format(idx) + ".png"))
+        if camera.ground_truth_image_mask is not None:
+            torchvision.utils.save_image(gt_nomask, os.path.join(gt_path, '{0:05d}'.format(idx) + "_nomask.png"))
+            torchvision.utils.save_image(rendering_nomask, os.path.join(render_path, '{0:05d}'.format(idx) + "_nomask.png"))
         point_image_base = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians_base.get_xyz.detach())
         point_image = compute_mean2D(camera.full_proj_transform, camera.image_width, camera.image_height, gaussians.get_xyz.detach())
         valid_mask = (out['radii'] > 0) & (0 < point_image).all(-1) & (point_image[:, 0] < camera.image_width) & (point_image[:, 1] < camera.image_height)
         draw_motion(rendering, point_image_base[valid_mask], point_image[valid_mask], os.path.join(motion_path, '{0:05d}'.format(idx) + ".png"))
+        if camera.ground_truth_image_mask is not None:
+            draw_motion(rendering_nomask, point_image_base[valid_mask], point_image[valid_mask], os.path.join(motion_path, '{0:05d}'.format(idx) + "_nomask.png"))
 
 
 if __name__ == "__main__":

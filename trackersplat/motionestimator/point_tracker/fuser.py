@@ -137,10 +137,22 @@ class BaseMotionFuser(MotionFuser):
             viewhits[valid_mask] += 1
 
         # solve cov and mean mask
-        U, S, A_count = isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count
-        v11, v12 = ils.v11, ils.v12
-        valid_mask_cov, weights_cov = self.precompute_valid_mask_and_weights_cov3D(v11, v12, viewhits, weights, pixhits)
-        valid_mask_mean, weights_mean = self.precompute_valid_mask_and_weights_mean3D(U, S, A_count, viewhits, weights, pixhits)
+        translation_vector, valid_mask_mean, weights_mean = self._solve_translation(isvd, viewhits, weights, pixhits)
+        rotation_transform, scaling_transform, valid_mask_cov, weights_cov = self._solve_transformation(ils, viewhits, weights, pixhits)
+        return Motion(
+            fixed_mask=None,
+            motion_mask_cov=valid_mask_cov,
+            motion_mask_mean=valid_mask_mean,
+            rotation_quaternion=rotation_transform,
+            # scaling_modifier_log=scaling_transform, # change scaling has no benefit but produce some thin and long gaussians, bad
+            translation_vector=translation_vector,
+            confidence_fix=None,
+            confidence_cov=weights_cov,
+            confidence_mean=weights_mean,
+        )
+
+    def _solve_translation(self, isvd: ISVD_Mean3D, viewhits, weights, pixhits):
+        valid_mask_mean, weights_mean = self.precompute_valid_mask_and_weights_mean3D(isvd.U, torch.diagonal(isvd.S, dim1=-2, dim2=-1), isvd.A_count, viewhits, weights, pixhits)
 
         # solve mean3D
         mean3D, mean3Derror, valid_mask_mean_solved = isvd.solve(valid_mask_mean)  # ! Solve mean3D may be time consuming
@@ -149,7 +161,12 @@ class BaseMotionFuser(MotionFuser):
         mean3D, valid_mask_mean, weights_mean = self.postcompute_valid_mask_and_weights_mean3D(mean3D, mean3Derror, weights_mean, valid_mask_mean_solved, viewhits, weights, pixhits)
 
         # mean3D motion vector
-        translation_vector = mean3D - gaussians.get_xyz[valid_mask_mean]
+        translation_vector = mean3D - self.gaussians.get_xyz[valid_mask_mean]
+
+        return translation_vector, valid_mask_mean, weights_mean
+
+    def _solve_transformation(self, ils: ILS_RotationScale, viewhits, weights, pixhits):
+        valid_mask_cov, weights_cov = self.precompute_valid_mask_and_weights_cov3D(ils.v11, ils.v12, viewhits, weights, pixhits)
 
         # solve R and S matrix
         R, S, coverror, valid_mask_cov_solved = ils.solve(valid_mask_cov)  # ! Solve R,S may consume a lot of memory
@@ -168,14 +185,4 @@ class BaseMotionFuser(MotionFuser):
         rotation_curr = matrix_to_quaternion(R_best) / torch.nn.functional.normalize(rotation_base) * rotation_base
         scale_curr = self.gaussians.scaling_inverse_activation(S_best)
         rotation_transform, scaling_transform = self.compute_transformation(rotation_curr, scale_curr, rotation_base, scaling_base)
-        return Motion(
-            fixed_mask=None,
-            motion_mask_cov=valid_mask_cov,
-            motion_mask_mean=valid_mask_mean,
-            rotation_quaternion=rotation_transform,
-            # scaling_modifier_log=scaling_transform, # change scaling has no benefit but produce some thin and long gaussians, bad
-            translation_vector=translation_vector,
-            confidence_fix=None,
-            confidence_cov=weights_cov,
-            confidence_mean=weights_mean,
-        )
+        return rotation_transform, scaling_transform, valid_mask_cov, weights_cov
