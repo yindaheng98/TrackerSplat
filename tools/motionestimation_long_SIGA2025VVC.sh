@@ -43,7 +43,7 @@ TRAINARGS="$TRAINARGS -oposition_lr_max_steps=$REFININGITERS"
 TRAINARGS="$TRAINARGS -oscaling_lr=0.000001"
 TRAINARGS="$TRAINARGS -oopacity_lr=0.000001"
 TRAINARGS="$TRAINARGS -omask_mode='bg_color'"
-TRAINARGS="$TRAINARGS -orbg_color='random'"
+TRAINARGS="$TRAINARGS -obg_color='random'"
 
 initialize_and_train_video_allmethods() {
     CAMERAS="output/$1/frame$2/cameras.json"
