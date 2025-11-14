@@ -114,7 +114,7 @@
                 "1",
                 "-n300",
                 "-b9",
-                "-orescale_factor=0.16",
+                "-orescale_factor=0.25",
                 "-omask_input=False",
                 "-omask_output=False",
                 // "-rloss_weight_overall=0.1",
@@ -124,6 +124,8 @@
                 "--with_image_mask",
                 "--load_camera",
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/cameras.json",
+                "-rposition_lr_init=0.0016",
+                "-rposition_lr_max_steps=1000",
             ]
         },
         {
@@ -149,7 +151,6 @@
                 "1",
                 "-n300",
                 "-b9",
-                "-oneighbors=20",
                 "-oloss_weight_overall=0.1",
                 "-oscaling_lr=0.000001",
                 "-omask_mode='bg_color'",
@@ -157,6 +158,9 @@
                 "--with_image_mask",
                 "--load_camera",
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/cameras.json",
+                "-oposition_lr_init=0.0016",
+                "-oposition_lr_max_steps=1000",
+                "-oopacity_lr=0.000001",
             ]
         },
         {
@@ -240,7 +244,7 @@
                 "-n",
                 "9",
                 "--tracking_rescale",
-                "0.16",
+                "0.25",
                 "--downsample_rate",
                 "4",
                 "--with_image_mask",
@@ -262,7 +266,7 @@
                 "-d",
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame9",
                 "-i",
-                "1000",
+                "10000",
                 "--mode",
                 "regularized",
                 // "base",
@@ -270,12 +274,15 @@
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1",
                 "--iteration_base",
                 "10000",
-                "-oneighbors=20",
+                // "-oneighbors=20",
                 "-oloss_weight_overall=0.1",
                 "-oscaling_lr=0.000001",
                 "-omask_mode='bg_color'",
                 "-obg_color='random'",
                 "--with_image_mask",
+                "-oposition_lr_init=0.0016",
+                "-oposition_lr_max_steps=10000",
+                "-oopacity_lr=0.000001"
             ]
         },
         {
