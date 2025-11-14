@@ -10,20 +10,20 @@
             "args": [
                 "-s",
                 "data/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1",
-                "-d",
-                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/camera",
-                "-omask_mode='none'",
                 // "-d",
                 // "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/camera",
-                // "-omask_mode='bg_color'",
-                // "-obg_color='random'",
+                // "-omask_mode='none'",
+                "-d",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1",
+                "-omask_mode='bg_color'",
+                "-obg_color='random'",
                 // "--load_camera",
                 // "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/camera/cameras.json",
                 "-i",
                 "10000",
                 "--mode",
-                "camera-densify-prune-shculling",
-                // "camera-prune-shculling",
+                // "camera-densify-prune-shculling",
+                "densify-prune-shculling",
                 "--with_scale_reg",
                 "--no_depth_data",
                 "--empty_cache_every_step",
@@ -44,10 +44,10 @@
                 "-ocull_at_steps=[9000]",
                 "-oscale_reg_from_iter=500",
                 "-odepth_l1_weight_max_steps=10000",
-                // steps for camera
-                "-ocamera_position_lr_max_steps=10000",
-                "-ocamera_rotation_lr_max_steps=10000",
-                "-ocamera_exposure_lr_max_steps=10000",
+                // // steps for camera
+                // "-ocamera_position_lr_max_steps=10000",
+                // "-ocamera_rotation_lr_max_steps=10000",
+                // "-ocamera_exposure_lr_max_steps=10000",
                 // steps for densify
                 // tips: depth will make the training unstable, and the pruning strategy may prune too many points
                 // densification of points would slower than pruning, so more densify and less pruning
