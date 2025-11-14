@@ -298,7 +298,7 @@
                 "-d",
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame9",
                 "-i",
-                "1000",
+                "10000",
                 "--destination_base",
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1",
                 "--iteration_base",
