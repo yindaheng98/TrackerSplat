@@ -2,17 +2,19 @@ import os
 from typing import Tuple
 import torch
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.dataset import CameraDataset, JSONCameraDataset
-from gaussian_splatting.dataset.colmap import ColmapCameraDataset
+from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer, BaseTrainer
 from gaussian_splatting.train import save_cfg_args, training
+from gaussian_splatting.prepare import prepare_dataset, prepare_gaussians
 from trackersplat.motionestimator.incremental_trainer import BaseTrainer, RegularizedTrainer
 
 
-def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_ply: str, load_camera: str = None, configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
-    gaussians = GaussianModel(sh_degree).to(device)
-    gaussians.load_ply(load_ply)
-    dataset = (JSONCameraDataset(load_camera) if load_camera else ColmapCameraDataset(source)).to(device)
+def prepare_training(
+        sh_degree: int, source: str, device: str, mode: str, load_ply: str,
+        load_camera: str = None, load_mask=True,
+        configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
+    dataset = prepare_dataset(source=source, device=device, trainable_camera=False, load_camera=load_camera, load_mask=load_mask, load_depth=False)
+    gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=False, load_ply=load_ply)
     match mode:
         case "base":
             trainer = BaseTrainer(
@@ -30,8 +32,6 @@ def prepare_training(sh_degree: int, source: str, device: str, mode: str, load_p
             )
         case _:
             raise ValueError(f"Unknown mode: {mode}")
-    if load_ply:
-        gaussians.activate_all_sh_degree()
     return dataset, gaussians, trainer
 
 
@@ -43,7 +43,8 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", default=1000, type=int)
     parser.add_argument("--load_camera", default=None, type=str)
-    parser.add_argument("--mode", choices=["base", "regularized"], default="pure")
+    parser.add_argument("--with_image_mask", action="store_true")
+    parser.add_argument("--mode", choices=["base", "regularized"], default="base")
     parser.add_argument("--device", default="cuda", type=str)
     parser.add_argument("--destination_base", required=True, type=str)
     parser.add_argument("--iteration_base", default=None, type=int)
@@ -55,9 +56,10 @@ if __name__ == "__main__":
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option}
     load_ply_base = os.path.join(args.destination_base, "point_cloud", "iteration_" + str(args.iteration_base), "point_cloud.ply")
     dataset, gaussians, trainer = prepare_training(
-        sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode,
-        load_ply=load_ply_base, load_camera=args.load_camera, configs=configs)
+        sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode, load_ply=load_ply_base,
+        load_camera=args.load_camera, load_mask=args.with_image_mask, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
+    torch.cuda.empty_cache()
     training(
         dataset=dataset, gaussians=gaussians, trainer=trainer,
         destination=args.destination, iteration=args.iteration, save_iterations=[],
