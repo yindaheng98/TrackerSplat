@@ -35,8 +35,17 @@ class Cotracker3PointTracker(PointTracker):
         _, _, height, width = video.shape
         with torch.no_grad():
             pred_tracks, pred_visibility = self.model(video[None].to(self.device))
-        track = pred_tracks.squeeze(0).reshape(-1, height, width, 2)
-        mask = pred_visibility.squeeze(0).reshape(-1, height, width)
+        track_seq = pred_tracks.squeeze(0)
+        mask_seq = pred_visibility.squeeze(0)
+        idx_seq = track_seq[0, ..., :2].round().int()
+        track = torch.zeros_like(track_seq)
+        mask = torch.zeros_like(mask_seq)
+        w_idx, h_idx = idx_seq[..., 0], idx_seq[..., 1]
+        idx = h_idx * width + w_idx
+        track[:, idx, ...] = track_seq
+        mask[:, idx, ...] = mask_seq
+        track = track.reshape(-1, height, width, 2)
+        mask = mask.reshape(-1, height, width)
         return track[1:, ...], mask[1:, ...]  # (tracks, visibility mask)
 
 
