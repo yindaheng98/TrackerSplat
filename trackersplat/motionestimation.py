@@ -18,7 +18,7 @@ from trackersplat.dataset import prepare_fixedview_dataset, VideoCameraDataset
 from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompensater
 from trackersplat.motionestimator.point_tracker import BaseMotionFuser, DetectFixMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
-from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, IncrementalTrainingRefiner, build_trainer_factory, TrainingProcess, BaseTrainingProcess
+from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 from trackersplat.motionestimator.refiner import build_compensater_with_refine
 
 
