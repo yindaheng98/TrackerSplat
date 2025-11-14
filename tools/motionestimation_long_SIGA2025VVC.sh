@@ -47,16 +47,15 @@ TRAINARGS="$TRAINARGS -orbg_color='random'"
 
 initialize_and_train_video_allmethods() {
     CAMERAS="output/$1/frame$2/cameras.json"
-    train $1 $2 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$3 $REFINEARGS" $4 $5 "$CAMERAS"
-    train $1 $2 train/regularized "-o neighbors=8 -o loss_weight_overall=0.1 $TRAINARGS" $4 $5 "$CAMERAS"
+    train $1 $2 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$3 $REFINEARGS" 5 $4 "$CAMERAS"
+    train $1 $2 train/regularized "-o neighbors=8 -o loss_weight_overall=0.1 $TRAINARGS" 2 $4 "$CAMERAS"
 }
-# BATCHSIZE=9
-BATCHSIZE=2
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/004_1_seq1 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/006_1_seq1 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/007_0_seq1 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/008_2_seq1 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/008_2_seq1 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/011_0_seq1 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/val/001_1_seq0 1 0.25 $BATCHSIZE 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/val/012_0_seq0 1 0.25 $BATCHSIZE 300
+
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/004_1_seq1 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/006_1_seq1 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/007_0_seq1 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/008_2_seq1 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/008_2_seq1 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/011_0_seq1 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/val/001_1_seq0 1 0.25 300
+initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/val/012_0_seq0 1 0.25 300
