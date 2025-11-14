@@ -11,9 +11,12 @@ from trackersplat.motionestimator.incremental_trainer import BaseTrainer, Regula
 
 def prepare_training(
         sh_degree: int, source: str, device: str, mode: str, load_ply: str,
-        load_camera: str = None, load_mask=True,
+        load_mask=True,
         configs={}) -> Tuple[CameraDataset, GaussianModel, AbstractTrainer]:
-    dataset = prepare_dataset(source=source, device=device, trainable_camera=False, load_camera=load_camera, load_mask=load_mask, load_depth=False)
+    # do not support load_camera:
+    # if we need to load, we typically load from frame1/cameras.json, since frame9/cameras.json is currently not exists
+    # but frame1/cameras.json contains the image path for frame1 rather than frame9
+    dataset = prepare_dataset(source=source, device=device, trainable_camera=False, load_camera=None, load_mask=load_mask, load_depth=False)
     gaussians = prepare_gaussians(sh_degree=sh_degree, source=source, device=device, trainable_camera=False, load_ply=load_ply)
     match mode:
         case "base":
@@ -42,7 +45,6 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--source", required=True, type=str)
     parser.add_argument("-d", "--destination", required=True, type=str)
     parser.add_argument("-i", "--iteration", default=1000, type=int)
-    parser.add_argument("--load_camera", default=None, type=str)
     parser.add_argument("--with_image_mask", action="store_true")
     parser.add_argument("--mode", choices=["base", "regularized"], default="base")
     parser.add_argument("--device", default="cuda", type=str)
@@ -57,7 +59,7 @@ if __name__ == "__main__":
     load_ply_base = os.path.join(args.destination_base, "point_cloud", "iteration_" + str(args.iteration_base), "point_cloud.ply")
     dataset, gaussians, trainer = prepare_training(
         sh_degree=args.sh_degree, source=args.source, device=args.device, mode=args.mode, load_ply=load_ply_base,
-        load_camera=args.load_camera, load_mask=args.with_image_mask, configs=configs)
+        load_mask=args.with_image_mask, configs=configs)
     dataset.save_cameras(os.path.join(args.destination, "cameras.json"))
     torch.cuda.empty_cache()
     training(
