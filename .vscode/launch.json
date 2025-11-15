@@ -27,6 +27,7 @@
                 "--with_scale_reg",
                 "--no_depth_data",
                 "--empty_cache_every_step",
+                "-odensify_grad_threshold=0.0001",
                 // hyperparams
                 "-oscale_reg_thr_scale=0.2",
                 "-odensify_percent_too_big=0.15",
