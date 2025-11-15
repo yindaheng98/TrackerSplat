@@ -1,4 +1,6 @@
+import copy
 import torch
+import torch.nn as nn
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_raw_multiply
 from trackersplat.utils import quaternion_invert
@@ -46,3 +48,24 @@ def transform_scaling(baseframe: GaussianModel, scaling_modifier_log: torch.Tens
         scaling = baseframe._scaling.clone()
         scaling[motion_mask_cov] = scaling_modifier_log + baseframe._scaling[motion_mask_cov]
         return scaling
+
+
+def compensate(baseframe: GaussianModel, motion: Motion) -> GaussianModel:
+    '''Overload this method to make your own compensation'''
+    currframe = copy.deepcopy(baseframe)
+    if motion.translation_vector is not None:
+        currframe._xyz = nn.Parameter(transform_xyz(baseframe, motion.translation_vector, motion.motion_mask_mean))
+    if motion.rotation_quaternion is not None:
+        currframe._rotation = nn.Parameter(transform_rotation(baseframe, motion.rotation_quaternion, motion.motion_mask_cov))
+    if motion.scaling_modifier_log is not None:
+        currframe._scaling = nn.Parameter(transform_scaling(baseframe, motion.scaling_modifier_log, motion.motion_mask_cov))
+    if motion.opacity_modifier_log is not None:
+        with torch.no_grad():
+            currframe._opacity = nn.Parameter(motion.opacity_modifier_log + baseframe._opacity)
+    if motion.features_dc_modifier is not None:
+        with torch.no_grad():
+            currframe._features_dc = nn.Parameter(motion.features_dc_modifier + baseframe._features_dc)
+    if motion.features_rest_modifier is not None:
+        with torch.no_grad():
+            currframe._features_rest = nn.Parameter(motion.features_rest_modifier + baseframe._features_rest)
+    return currframe
