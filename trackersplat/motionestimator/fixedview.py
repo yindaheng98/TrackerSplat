@@ -94,11 +94,13 @@ class FixedViewBatchMotionEstimatorWrapper(FixedViewBatchMotionEstimator):
     Without this class, you should modify a FixedViewBatchMotionEstimator directly.
     '''
 
-    def __init__(self, base_batch_func: FixedViewBatchMotionEstimator):
+    def __init__(self, base_batch_func: FixedViewBatchMotionEstimator, device=torch.device("cuda")):
         self.base_batch_func = base_batch_func
+        self.to(device)
 
     def to(self, device: torch.device) -> 'FixedViewBatchMotionEstimatorWrapper':
         self.base_batch_func = self.base_batch_func.to(device)
+        self.device = device
         return self
 
     def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
