@@ -2,7 +2,6 @@ import torch
 from gaussian_splatting import GaussianModel
 from trackersplat.dataset import VideoCameraDataset
 from trackersplat.motionestimator import FixedViewMotionEstimator, FixedViewBatchMotionEstimator, MotionCompensater
-from trackersplat.motionestimator.compensater import BaseMotionCompensater
 from .training import build_training_refiner
 
 
