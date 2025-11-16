@@ -1,9 +1,43 @@
-from gaussian_splatting import GaussianModel
+import random
+from abc import ABCMeta, abstractmethod
+from tqdm import tqdm
 import torch
+from gaussian_splatting.trainer import AbstractTrainer
+from gaussian_splatting.dataset import CameraDataset
+from gaussian_splatting import GaussianModel
 from trackersplat import MotionEstimator
 from trackersplat.dataset import VideoCameraDataset, FrameCameraDataset
-from trackersplat.motionestimator.incremental_trainer import TrainerFactory, TrainingProcess, BaseTrainingProcess
 from .abc import PatchCompensater
+
+
+class TrainerFactory(metaclass=ABCMeta):
+    @abstractmethod
+    def __call__(self, model: GaussianModel, dataset: FrameCameraDataset) -> AbstractTrainer:
+        raise NotImplementedError
+
+
+class TrainingProcess(metaclass=ABCMeta):
+    @abstractmethod
+    def __call__(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int, frame_idx: int):
+        raise NotImplementedError
+
+
+class BaseTrainingProcess(TrainingProcess):
+    def __call__(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int, frame_idx: int):
+        '''Overload this method to make your own training'''
+        pbar = tqdm(range(1, iteration+1))
+        epoch = list(range(len(dataset)))
+        ema_loss_for_log = 0.0
+        for step in pbar:
+            epoch_idx = step % len(dataset)
+            if epoch_idx == 0:
+                random.shuffle(epoch)
+            idx = epoch[epoch_idx]
+            loss, out = trainer.step(dataset[idx])
+            with torch.no_grad():
+                ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
+                if step % 10 == 0:
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log})
 
 
 class TrainingPatchCompensater(PatchCompensater):
