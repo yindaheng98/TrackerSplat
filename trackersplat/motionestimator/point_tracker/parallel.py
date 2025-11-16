@@ -4,7 +4,8 @@ import torch
 import torch.multiprocessing as mp
 import os
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
+from trackersplat import Motion
+from trackersplat.motionestimator import FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
 from .abc import PointTrackMotionEstimator
 
 

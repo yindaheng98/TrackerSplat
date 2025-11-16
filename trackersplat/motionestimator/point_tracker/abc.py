@@ -4,7 +4,8 @@ import torch
 from dot.utils.io import read_frame
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.camera import build_camera
-from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
+from trackersplat import Motion
+from trackersplat.motionestimator import FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta
 
 
 def read_mask(*args, **kwargs):

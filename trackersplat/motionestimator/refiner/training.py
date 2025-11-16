@@ -1,9 +1,9 @@
 from typing import Iterable, List, Tuple
 import torch
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimatorWrapper, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
+from trackersplat.motionestimator import FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimatorWrapper, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 from trackersplat.motionestimator.incremental_trainer import TrainerFactory, TrainingProcess, BaseTrainingProcess, build_trainer_factory
-from trackersplat.motionestimator import compare, compensate
+from trackersplat import Motion, compare, compensate
 
 
 class IncrementalTrainingRefiner(FixedViewBatchMotionEstimatorWrapper):

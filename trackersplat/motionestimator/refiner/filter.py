@@ -3,10 +3,10 @@ import torch
 import torch.nn.functional as F
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_to_matrix
-from trackersplat.motionestimator import Motion
+from trackersplat import Motion
 from trackersplat.utils.simple_knn import knn_kernel
 from trackersplat.utils import motion_median_filter
-from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimatorWrapper, FixedViewFrameSequenceMeta
+from trackersplat.motionestimator import FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimatorWrapper, FixedViewFrameSequenceMeta
 
 
 class FilteredMotionRefiner(FixedViewBatchMotionEstimatorWrapper):

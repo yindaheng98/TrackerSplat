@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_raw_multiply
-from trackersplat.utils import quaternion_invert
+from .utils import quaternion_invert
 
 
 class Motion(NamedTuple):
