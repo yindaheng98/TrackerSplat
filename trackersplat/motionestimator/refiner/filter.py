@@ -42,6 +42,7 @@ class FilteredMotionRefiner(FixedViewBatchMotionEstimatorWrapper):
         return self
 
     def update_baseframe(self, frame) -> 'FilteredMotionRefiner':
+        frame = frame.to(self.device)
         self.baseframe = frame
         return super().update_baseframe(frame).update_knn(frame, self.k)
 

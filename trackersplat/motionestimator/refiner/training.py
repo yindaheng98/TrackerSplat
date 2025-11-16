@@ -21,6 +21,7 @@ class IncrementalTrainingRefiner(FixedViewBatchMotionEstimatorWrapper):
         self.iteration = iteration
 
     def update_baseframe(self, frame: GaussianModel) -> 'FixedViewBatchMotionEstimatorWrapper':
+        frame = frame.to(self.device)
         self.baseframe = frame
         return super().update_baseframe(frame)
 
