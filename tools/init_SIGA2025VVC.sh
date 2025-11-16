@@ -23,11 +23,11 @@ extract_SIGA2025VVC compression/val/012_0_seq0 300
 ITERS=10000
 
 # hyperparams
-ARGSCOMMON=$ARGSCOMMON" --with_scale_reg"
+# ARGSCOMMON=$ARGSCOMMON" --with_scale_reg"
 ARGSCOMMON=$ARGSCOMMON" --no_depth_data"
 ARGSCOMMON=$ARGSCOMMON" --empty_cache_every_step"
 ARGSCOMMON=$ARGSCOMMON" -odensify_grad_threshold=0.0001"
-ARGSCOMMON=$ARGSCOMMON" -oscale_reg_thr_scale=0.2"
+# ARGSCOMMON=$ARGSCOMMON" -oscale_reg_thr_scale=0.2"
 ARGSCOMMON=$ARGSCOMMON" -odensify_percent_too_big=0.15"
 ARGSCOMMON=$ARGSCOMMON" -odepth_l1_weight_init=1.0"
 ARGSCOMMON=$ARGSCOMMON" -odepth_l1_weight_final=1.0"
