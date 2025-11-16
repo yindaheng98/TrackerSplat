@@ -22,6 +22,9 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
         return self
 
     def __next__(self) -> GaussianModel:
+        # TODO: a solution to batch processing:
+        # TODO: run self.estimator.__next__() multiple times until motion.update_baseframe is true
+        # TODO: collect all the frames to be patched
         motion = self.estimator.__next__()
         motion.validate()
         currframe = self.compensate(self.baseframe, motion)
