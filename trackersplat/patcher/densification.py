@@ -35,18 +35,18 @@ class DensificationTrainerFactory(TrainerFactory):
 
 
 def build_densification_patcher(
-        dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator,  # 3 of 4 basic args
+        dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator,  # 3 of 6 basic args
         *args,
         training_proc: TrainingProcess = BaseTrainingProcess(),
         iteration: int = 1000,
-        device: torch.device = "cuda",  # 1 of 4 basic args
+        device: torch.device = "cuda",  # 1 of 6 basic args
+        patch_every_n_frames: int = 1, patch_every_n_updates: int = 1,  # 2 of 6 basic args
         **kwargs) -> PatchCompensater:
     return TrainingPatchCompensater(
         trainer_factory=DensificationTrainerFactory(*args, **kwargs),
-        dataset=dataset,
-        gaussians=gaussians,
-        estimator=estimator,
+        dataset=dataset, gaussians=gaussians, estimator=estimator,  # 3 of 6 basic args
         training_proc=training_proc,
         iteration=iteration,
-        device=device,
+        device=device,  # 1 of 6 basic args
+        patch_every_n_frames=patch_every_n_frames, patch_every_n_updates=patch_every_n_updates,  # 2 of 6 basic args
     )

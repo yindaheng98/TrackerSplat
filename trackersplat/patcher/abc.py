@@ -6,8 +6,15 @@ from trackersplat.dataset import VideoCameraDataset, FrameCameraDataset
 
 
 class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
-    def __init__(self, dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator, device: torch.device = "cuda"):  # 4 basic args
+    def __init__(
+        self,
+        dataset: VideoCameraDataset,
+        gaussians: GaussianModel, estimator: MotionEstimator, device: torch.device = "cuda",  # 3 basic args
+        patch_every_n_frames: int = 1, patch_every_n_updates: int = 1,
+    ):
         self.dataset = dataset
+        self.patch_every_n_frames = patch_every_n_frames
+        self.patch_every_n_updates = patch_every_n_updates
         super().__init__(gaussians=gaussians, estimator=estimator, device=device)  # 3 basic args for MotionCompensater
 
     def to(self, device):
@@ -18,6 +25,7 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
         self.estimator = self.estimator.__iter__()
         self.update_baseframe(self.initframe)
         self.frame_idx = 1
+        self.update_idx = 1
         return self
 
     def __next__(self) -> GaussianModel:
@@ -28,11 +36,13 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
         motion.validate()
         currframe = self.compensate(self.baseframe, motion)
 
-        currframe = self.patch(currframe, self.dataset[self.frame_idx], self.frame_idx)
+        if (self.frame_idx % self.patch_every_n_frames == 0) or (motion.update_baseframe and (self.update_idx % self.patch_every_n_updates == 0)):
+            currframe = self.patch(currframe, self.dataset[self.frame_idx], self.frame_idx)
         self.frame_idx += 1
 
         if motion.update_baseframe:
             self.update_baseframe(currframe)
+            self.update_idx += 1
         return currframe
 
     @abstractmethod

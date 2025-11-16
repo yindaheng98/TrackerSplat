@@ -44,12 +44,16 @@ class TrainingPatchCompensater(PatchCompensater):
     def __init__(
             self,
             trainer_factory: TrainerFactory,
-            dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator,  # 3 of 4 basic args
+            dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator,  # 3 of 6 basic args
             training_proc: TrainingProcess = BaseTrainingProcess(),
             iteration=1000,
-            device: torch.device = "cuda",  # 1 of 4 basic args
+            device: torch.device = "cuda",  # 1 of 6 basic args
+            patch_every_n_frames: int = 1, patch_every_n_updates: int = 1,  # 2 of 6 basic args
     ):
-        super().__init__(dataset=dataset, gaussians=gaussians, estimator=estimator, device=device)  # 4 basic args for PatchCompensater
+        super().__init__(
+            dataset=dataset, gaussians=gaussians, estimator=estimator, device=device,
+            patch_every_n_frames=patch_every_n_frames, patch_every_n_updates=patch_every_n_updates
+        )  # 6 basic args for PatchCompensater
         self.trainer_factory = trainer_factory
         self.training = training_proc
         self.iteration = iteration
