@@ -88,6 +88,27 @@ class FixedViewBatchMotionEstimator(metaclass=ABCMeta):
         return self
 
 
+class FixedViewBatchMotionEstimatorWrapper(FixedViewBatchMotionEstimator):
+    '''
+    This class is designed to wrap a FixedViewBatchMotionEstimator and add additional functionality.
+    Without this class, you should modify a FixedViewBatchMotionEstimator directly.
+    '''
+
+    def __init__(self, base_batch_func: FixedViewBatchMotionEstimator):
+        self.base_batch_func = base_batch_func
+
+    def to(self, device: torch.device) -> 'FixedViewBatchMotionEstimatorWrapper':
+        self.base_batch_func = self.base_batch_func.to(device)
+        return self
+
+    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
+        return self.base_batch_func(views)
+
+    def update_baseframe(self, frame: GaussianModel) -> 'FixedViewBatchMotionEstimatorWrapper':
+        self.base_batch_func = self.base_batch_func.update_baseframe(frame)
+        return self
+
+
 class FixedViewMotionEstimator(MotionEstimator):
     def __init__(self, dataset: VideoCameraDataset, batch_func: FixedViewBatchMotionEstimator, batch_size=2, device=torch.device("cuda")):
         super().__init__()
