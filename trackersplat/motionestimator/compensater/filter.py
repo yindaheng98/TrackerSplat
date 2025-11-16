@@ -9,12 +9,12 @@ from trackersplat.utils import motion_median_filter
 from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimatorWrapper, FixedViewFrameSequenceMeta
 
 
-class FilteredMotionCompensater(FixedViewBatchMotionEstimatorWrapper):
+class FilteredMotionRefiner(FixedViewBatchMotionEstimatorWrapper):
     def __init__(self, base_batch_func: FixedViewBatchMotionEstimator, k: int = 8, device=torch.device("cuda")):
         super().__init__(base_batch_func=base_batch_func, device=device)
         self.k = k
 
-    def update_knn(self, gaussians: GaussianModel, k: int) -> 'FilteredMotionCompensater':
+    def update_knn(self, gaussians: GaussianModel, k: int) -> 'FilteredMotionRefiner':
         xyz = gaussians.get_xyz.detach()
         assert k <= xyz.size(0), "k should be less than the number of points"
 
@@ -36,7 +36,7 @@ class FilteredMotionCompensater(FixedViewBatchMotionEstimatorWrapper):
         ).squeeze(-1)
         return self
 
-    def update_baseframe(self, frame) -> 'FilteredMotionCompensater':
+    def update_baseframe(self, frame) -> 'FilteredMotionRefiner':
         self.baseframe = frame
         return super().update_baseframe(frame).update_knn(frame, self.k)
 

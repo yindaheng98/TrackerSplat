@@ -8,7 +8,7 @@ from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angl
 from .filter import FilteredMotionCompensater
 
 
-class PropagatedMotionCompensater(FilteredMotionCompensater):
+class PropagatedMotionRefiner(FilteredMotionCompensater):
 
     def compute_neighbor_rotation(self, rotation_quaternion: torch.Tensor, motion_mask_cov: torch.Tensor, confidence_cov: torch.Tensor, fixed_mask: torch.Tensor) -> torch.Tensor:
         assert rotation_quaternion is not None, "Rotation quaternion is required"
