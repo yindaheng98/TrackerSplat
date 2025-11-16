@@ -1,9 +1,8 @@
 import copy
-from typing import List
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import Motion, FixedViewFrameSequenceMeta, transform_xyz, transform_rotation, transform_scaling
+from trackersplat.motionestimator import Motion, transform_xyz, transform_rotation, transform_scaling, compare
 from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
 from .filter import FilteredMotionRefiner
 
@@ -71,7 +70,8 @@ class PropagatedMotionRefiner(FilteredMotionRefiner):
         if motion.features_rest_modifier is not None:
             with torch.no_grad():
                 currframe._features_rest = nn.Parameter(motion.features_rest_modifier + baseframe._features_rest)
-        return currframe
+        return compare(baseframe, currframe)
 
-    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
-        return [self.propagate(self.baseframe, motion) for motion in super().__call__(views)]
+    def filter(self, motion: Motion) -> GaussianModel:
+        '''Overload this method to make your own compensation'''
+        return self.propagate(self.baseframe, motion)
