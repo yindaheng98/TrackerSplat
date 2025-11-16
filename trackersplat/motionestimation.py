@@ -15,7 +15,8 @@ from gaussian_splatting.utils import psnr, ssim
 from gaussian_splatting.utils.lpipsPyTorch import LPIPS
 import gaussian_splatting.train
 from trackersplat.dataset import prepare_fixedview_dataset, VideoCameraDataset
-from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompensater
+from trackersplat import MotionCompensater
+from trackersplat.motionestimator import FixedViewMotionEstimator
 from trackersplat.motionestimator.point_tracker import DetectFixMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 from trackersplat.motionestimator.refiner import build_training_refiner, build_regularization_refiner

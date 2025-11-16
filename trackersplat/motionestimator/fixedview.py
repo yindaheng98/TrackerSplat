@@ -4,8 +4,8 @@ import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.camera import build_camera
 from gaussian_splatting.dataset import CameraDataset
-from .abc import Motion, MotionEstimator
 
+from trackersplat import Motion, MotionEstimator
 from trackersplat.dataset import DatasetCameraMeta, VideoCameraDataset
 
 

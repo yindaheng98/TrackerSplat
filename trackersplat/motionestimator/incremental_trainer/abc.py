@@ -7,8 +7,8 @@ from tqdm import tqdm
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import AbstractTrainer
 from gaussian_splatting.dataset import CameraDataset
-from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
-from trackersplat.motionestimator.utils import compare
+from trackersplat import Motion, compare
+from trackersplat.motionestimator import FixedViewBatchMotionEstimator, FixedViewFrameSequenceMeta, FixedViewFrameSequenceMetaDataset
 
 
 class TrainerFactory(metaclass=ABCMeta):

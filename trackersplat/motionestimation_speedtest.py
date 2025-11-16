@@ -9,11 +9,11 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting.trainer import AbstractTrainer
 from trackersplat.dataset import prepare_fixedview_dataset, VideoCameraDataset
-from trackersplat.motionestimator import FixedViewMotionEstimator, MotionCompensater
+from trackersplat import MotionCompensater
+from trackersplat.motionestimator import FixedViewMotionEstimator
 from trackersplat.motionestimator.point_tracker import DetectFixMotionFuser, build_point_track_batch_motion_estimator, DataParallelPointTrackMotionEstimator
-from trackersplat.motionestimator.compensater import BaseMotionCompensater, build_motion_compensater
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, build_trainer_factory, BaseTrainingProcess
-from trackersplat.motionestimator.refiner import build_compensater_with_refine
+from trackersplat.motionestimator.refiner import build_training_refiner, build_regularization_refiner
 from trackersplat.motionestimation import save_cfg_args, prepare_gaussians, pipeline_choices
 
 
@@ -61,35 +61,29 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
     if mode[:5] == "train":
         trainer = estimator
         batch_func = IncrementalTrainingMotionEstimator(trainer_factory=build_trainer_factory(trainer, **kwargs), training_proc=training_proc, iteration=iteration, device=device)
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-        motion_compensater = BaseMotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     elif mode == "track":
-        compensater, estimator = estimator.split("-", 1)
+        refiner, estimator = estimator.split("-", 1)
         batch_func = TimingDataParallelPointTrackMotionEstimator(
             build_estimator=point_track_builder, build_estimator_kwargs=dict(estimator=estimator, gaussians=gaussians, **kwargs),
             base_gaussians=gaussians,
             master_device=device, slave_device_ids=device_ids)
         batch_func.log_path = log_path
         batch_func_return = batch_func
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-        motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
+        batch_func = build_regularization_refiner(refiner=refiner, base_batch_func=batch_func, device=device)
     elif mode == "refine":
-        trainer, compensater, estimator = estimator.split("-", 2)
+        trainer, refiner, estimator = estimator.split("-", 2)
         batch_func = TimingDataParallelPointTrackMotionEstimator(
             build_estimator=point_track_builder, build_estimator_kwargs=dict(estimator=estimator, gaussians=gaussians, **kwargs),
             base_gaussians=gaussians,
             master_device=device, slave_device_ids=device_ids)
         batch_func.log_path = log_path
         batch_func_return = batch_func
-        motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
-        motion_compensater = build_motion_compensater(compensater=compensater, gaussians=gaussians, estimator=motion_estimator, device=device)
-        motion_compensater = build_compensater_with_refine(
-            type="training", trainer=trainer, gaussians=gaussians, dataset=dataset, batch_size=batch_size,
-            base_batch_func=batch_func, base_compensater=motion_compensater, device=device,
-            training_proc=training_proc,
-            **configs_refining)
+        batch_func = build_regularization_refiner(refiner=refiner, base_batch_func=batch_func, device=device)
+        batch_func = build_training_refiner(trainer=trainer, base_batch_func=batch_func, device=device, training_proc=training_proc, iteration=iteration, **configs_refining)
     else:
         ValueError(f"Unknown estimator: {estimator}")
+    motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, device=device, batch_size=batch_size)
+    motion_compensater = MotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
     return batch_func_return, motion_compensater
 
 

@@ -2,7 +2,7 @@ import copy
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import Motion, transform_xyz, transform_rotation, transform_scaling, compare
+from trackersplat import Motion, transform_xyz, transform_rotation, transform_scaling, compare
 from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
 from .filter import FilteredMotionRefiner
 

@@ -1,5 +1,5 @@
 from abc import ABCMeta
-from .abc import MotionEstimator
+from trackersplat import MotionEstimator
 
 
 class DynamicViewMotionEstimator(MotionEstimator, metaclass=ABCMeta):
