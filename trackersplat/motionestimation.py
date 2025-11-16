@@ -176,7 +176,6 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--option_refining", default=[], action='append', type=str)
 
     parser.add_argument("--patcher", choices=["none", "densify"], default="none")
-    parser.add_argument("--iteration_patch", default=None, type=int)
     parser.add_argument("-p", "--option_patching", default=[], action='append', type=str)
 
     args = parser.parse_args()
@@ -195,9 +194,8 @@ if __name__ == "__main__":
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
     motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, configs_refining, **configs)
 
-    configs_patching = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_patching}
     if args.patcher == "densify":
-        assert args.iteration_patch is not None, "Please specify --iteration_patch for densification patcher"
+        configs_patching = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_patching}
         motion_compensater = build_densification_patcher(dataset=dataset, gaussians=gaussians, estimator=motion_compensater.estimator, device=args.device, **configs_patching)
 
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
