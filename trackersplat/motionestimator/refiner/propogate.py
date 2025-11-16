@@ -5,10 +5,10 @@ import torch.nn as nn
 from gaussian_splatting import GaussianModel
 from trackersplat.motionestimator import Motion, FixedViewFrameSequenceMeta, transform_xyz, transform_rotation, transform_scaling
 from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
-from .filter import FilteredMotionCompensater
+from .filter import FilteredMotionRefiner
 
 
-class PropagatedMotionRefiner(FilteredMotionCompensater):
+class PropagatedMotionRefiner(FilteredMotionRefiner):
 
     def compute_neighbor_rotation(self, rotation_quaternion: torch.Tensor, motion_mask_cov: torch.Tensor, confidence_cov: torch.Tensor, fixed_mask: torch.Tensor) -> torch.Tensor:
         assert rotation_quaternion is not None, "Rotation quaternion is required"
