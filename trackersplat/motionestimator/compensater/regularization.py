@@ -1,11 +1,10 @@
 import copy
+from typing import List
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import Motion
+from trackersplat.motionestimator import Motion, FixedViewFrameSequenceMeta, transform_xyz, transform_rotation, transform_scaling
 from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
-
-from .base import transform_xyz, transform_rotation, transform_scaling
 from .filter import FilteredMotionCompensater
 
 
@@ -45,7 +44,7 @@ class PropagatedMotionCompensater(FilteredMotionCompensater):
                 break
         return fixed_mask
 
-    def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
+    def propagate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
         median_translation_vector = self.median_filter_neighbor_transformation(motion.translation_vector, motion.motion_mask_mean)
@@ -73,3 +72,6 @@ class PropagatedMotionCompensater(FilteredMotionCompensater):
             with torch.no_grad():
                 currframe._features_rest = nn.Parameter(motion.features_rest_modifier + baseframe._features_rest)
         return currframe
+
+    def __call__(self, views: List[FixedViewFrameSequenceMeta]) -> List[Motion]:
+        return [self.propagate(self.baseframe, motion) for motion in super().__call__(views)]

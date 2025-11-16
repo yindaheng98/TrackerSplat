@@ -1,1 +1,0 @@
-from trackersplat.motionestimator import MotionCompensater as BaseMotionCompensater
