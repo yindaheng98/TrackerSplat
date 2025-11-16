@@ -105,9 +105,9 @@ class LoggerTrainingProcess(BaseTrainingProcess):
                 epoch_psnr = torch.zeros(len(dataset), 3, device=self.device)
                 epoch_ssim = torch.zeros(len(dataset), device=self.device)
                 epoch_lpips = torch.zeros(len(dataset), device=self.device)
-                epoch_maskpsnr = torch.empty(len(dataset), 3, device=self.device)
-                epoch_maskssim = torch.empty(len(dataset), 3, device=self.device)
-                epoch_masklpips = torch.empty(len(dataset), 3, device=self.device)
+                epoch_maskpsnr = torch.zeros(len(dataset), 3, device=self.device)
+                epoch_maskssim = torch.zeros(len(dataset), 3, device=self.device)
+                epoch_masklpips = torch.zeros(len(dataset), 3, device=self.device)
 
 
 estimator_choices = ["dot", "dot-tapir", "dot-bootstapir", "dot-cotracker3", "cotracker3"]
