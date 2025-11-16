@@ -1,18 +1,16 @@
 import torch
-from gaussian_splatting import GaussianModel
-from trackersplat.dataset import VideoCameraDataset
-from trackersplat.motionestimator import FixedViewMotionEstimator, FixedViewBatchMotionEstimator, MotionCompensater
+from trackersplat.motionestimator import FixedViewBatchMotionEstimator, FixedViewBatchMotionEstimatorWrapper
 from .training import build_training_refiner
 from .filter import FilteredMotionRefiner
 from .propogate import PropagatedMotionRefiner
 
 
-def build_refiner(
+def build_regularization_refiner(
         refiner: str,
         base_batch_func: FixedViewBatchMotionEstimator, device=torch.device("cuda"),  # 2 basic args
         *args, **kwargs):
     return {
-        "training": build_training_refiner,
+        "base": FixedViewBatchMotionEstimatorWrapper,
         "filter": FilteredMotionRefiner,
         "propagate": PropagatedMotionRefiner,
     }[refiner](
@@ -20,10 +18,10 @@ def build_refiner(
         *args, **kwargs)
 
 
-def build_motion_estimator_with_refine(
-        refiner: str, dataset: VideoCameraDataset, batch_size: int,
+def build_refiner(
+        refiner: str,
         base_batch_func: FixedViewBatchMotionEstimator, device=torch.device("cuda"),  # 2 basic args
         *args, **kwargs):
-    batch_func = build_refiner(refiner=refiner, base_batch_func=base_batch_func, device=device, *args, **kwargs)
-    motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, batch_size=batch_size, device=device)
-    return motion_estimator
+    return (build_training_refiner if refiner == "training" else build_regularization_refiner)(
+        base_batch_func=base_batch_func, device=device,  # 2 basic args
+        *args, **kwargs)
