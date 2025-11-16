@@ -1,8 +1,7 @@
 from abc import ABCMeta, abstractmethod
 import torch
 from gaussian_splatting import GaussianModel
-from .motion import Motion
-from .utils import compensate
+from .motion import Motion, compensate
 
 
 class MotionEstimator(metaclass=ABCMeta):
