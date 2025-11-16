@@ -5,7 +5,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.utils import quaternion_raw_multiply
 from trackersplat.utils import quaternion_invert
 
-from .abc import GaussianModel, Motion
+from .motion import Motion
 
 
 def compare(baseframe: GaussianModel, curframe: GaussianModel) -> Motion:
