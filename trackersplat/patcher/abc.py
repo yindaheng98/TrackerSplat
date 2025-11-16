@@ -1,8 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from gaussian_splatting import GaussianModel
 import torch
-from trackersplat import MotionCompensater
-from trackersplat import MotionEstimator
+from trackersplat import MotionCompensater, MotionEstimator
 from trackersplat.dataset import VideoCameraDataset, FrameCameraDataset
 
 

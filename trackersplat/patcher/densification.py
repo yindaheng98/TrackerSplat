@@ -1,10 +1,15 @@
+import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import BaseTrainer, OpacityResetDensificationTrainer, OpacityResetAdaptiveDensificationTrainer
 from reduced_3dgs.combinations import PrunerInDensifyTrainer, PrunerInAdaptiveDensifyTrainer
 from reduced_3dgs.combinations import SHCullingDensificationTrainer, SHCullingAdaptiveDensificationTrainer
 from reduced_3dgs.combinations import SHCullingPrunerInDensifyTrainer, SHCullingPrunerInAdaptiveDensifyTrainer
+from trackersplat import MotionEstimator
+from trackersplat.dataset import VideoCameraDataset
 from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
 from trackersplat.motionestimator.incremental_trainer import TrainerFactory
+from .abc import PatchCompensater
+from .training import TrainingPatchCompensater, TrainingProcess, BaseTrainingProcess
 
 densification_trainer = {
     "densify": OpacityResetDensificationTrainer,
@@ -27,3 +32,21 @@ class DensificationTrainerFactory(TrainerFactory):
 
     def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
         return self.trainer(model, dataset.scene_extent(), dataset, *self.args, **self.kwargs) if self.input_dataset else self.trainer(model, dataset, *self.args, **self.kwargs)
+
+
+def build_densification_patcher(
+        dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator,  # 3 of 4 basic args
+        *args,
+        training_proc: TrainingProcess = BaseTrainingProcess(),
+        iteration: int = 1000,
+        device: torch.device = "cuda",  # 1 of 4 basic args
+        **kwargs) -> PatchCompensater:
+    return TrainingPatchCompensater(
+        trainer_factory=DensificationTrainerFactory(*args, **kwargs),
+        dataset=dataset,
+        gaussians=gaussians,
+        estimator=estimator,
+        training_proc=training_proc,
+        iteration=iteration,
+        device=device,
+    )
