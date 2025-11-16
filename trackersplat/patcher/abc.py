@@ -18,7 +18,7 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
     def __iter__(self) -> 'MotionCompensater':
         self.estimator = self.estimator.__iter__()
         self.update_baseframe(self.initframe)
-        self.frame_idx = 0
+        self.frame_idx = 1
         return self
 
     def __next__(self) -> GaussianModel:
@@ -29,7 +29,7 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
         motion.validate()
         currframe = self.compensate(self.baseframe, motion)
 
-        currframe = self.patch(currframe, self.dataset[self.frame_idx])
+        currframe = self.patch(currframe, self.dataset[self.frame_idx], self.frame_idx)
         self.frame_idx += 1
 
         if motion.update_baseframe:
@@ -37,5 +37,5 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
         return currframe
 
     @abstractmethod
-    def patch(self, gaussians: GaussianModel, dataset: FrameCameraDataset) -> GaussianModel:
+    def patch(self, gaussians: GaussianModel, dataset: FrameCameraDataset, frame_idx: int) -> GaussianModel:
         pass
