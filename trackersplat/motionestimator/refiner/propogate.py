@@ -2,14 +2,12 @@ import copy
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import Motion
+from trackersplat.motionestimator import Motion, transform_xyz, transform_rotation, transform_scaling, compare
 from trackersplat.utils import axis_angle_to_quaternion, quaternion_to_axis_angle, propagate
-
-from .base import transform_xyz, transform_rotation, transform_scaling
-from .filter import FilteredMotionCompensater
+from .filter import FilteredMotionRefiner
 
 
-class PropagatedMotionCompensater(FilteredMotionCompensater):
+class PropagatedMotionRefiner(FilteredMotionRefiner):
 
     def compute_neighbor_rotation(self, rotation_quaternion: torch.Tensor, motion_mask_cov: torch.Tensor, confidence_cov: torch.Tensor, fixed_mask: torch.Tensor) -> torch.Tensor:
         assert rotation_quaternion is not None, "Rotation quaternion is required"
@@ -45,7 +43,7 @@ class PropagatedMotionCompensater(FilteredMotionCompensater):
                 break
         return fixed_mask
 
-    def compensate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
+    def propagate(self, baseframe: GaussianModel, motion: Motion) -> GaussianModel:
         '''Overload this method to make your own compensation'''
         currframe = copy.deepcopy(baseframe)
         median_translation_vector = self.median_filter_neighbor_transformation(motion.translation_vector, motion.motion_mask_mean)
@@ -72,4 +70,8 @@ class PropagatedMotionCompensater(FilteredMotionCompensater):
         if motion.features_rest_modifier is not None:
             with torch.no_grad():
                 currframe._features_rest = nn.Parameter(motion.features_rest_modifier + baseframe._features_rest)
-        return currframe
+        return compare(baseframe, currframe)
+
+    def filter(self, motion: Motion) -> GaussianModel:
+        '''Overload this method to make your own compensation'''
+        return self.propagate(self.baseframe, motion)
