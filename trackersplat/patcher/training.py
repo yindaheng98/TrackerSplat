@@ -37,7 +37,7 @@ class BaseTrainingProcess(TrainingProcess):
             with torch.no_grad():
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log})
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'n': trainer.model._xyz.shape[0]})
 
 
 class TrainingPatchCompensater(PatchCompensater):
@@ -55,6 +55,6 @@ class TrainingPatchCompensater(PatchCompensater):
         self.iteration = iteration
 
     def patch(self, gaussians: GaussianModel, dataset: FrameCameraDataset, frame_idx: int) -> GaussianModel:
-        trainer = self.trainer_factory(gaussians, self.baseframe, dataset, False)
+        trainer = self.trainer_factory(gaussians, dataset)
         self.training(dataset, trainer, self.iteration, frame_idx)
         return gaussians

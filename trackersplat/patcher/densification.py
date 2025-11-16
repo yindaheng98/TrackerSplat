@@ -31,7 +31,7 @@ class DensificationTrainerFactory(TrainerFactory):
         self.kwargs = kwargs
 
     def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
-        return self.trainer(model, dataset.scene_extent(), dataset, *self.args, **self.kwargs) if self.input_dataset else self.trainer(model, dataset, *self.args, **self.kwargs)
+        return self.trainer(model, dataset.scene_extent(), dataset, *self.args, **self.kwargs) if self.input_dataset else self.trainer(model, dataset.scene_extent(), *self.args, **self.kwargs)
 
 
 def build_densification_patcher(
