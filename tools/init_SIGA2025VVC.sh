@@ -42,7 +42,7 @@ ARGSCOMMON=$ARGSCOMMON" -oimportance_score_resize=1280"
 ARGSSTEPS=$ARGSSTEPS" --save_iterations=10000"
 ARGSSTEPS=$ARGSSTEPS" -oposition_lr_max_steps=10000"
 ARGSSTEPS=$ARGSSTEPS" -ocull_at_steps=[9000]"
-ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
+# ARGSSTEPS=$ARGSSTEPS" -oscale_reg_from_iter=500"
 ARGSSTEPS=$ARGSSTEPS" -odepth_l1_weight_max_steps=10000"
 
 # steps for densify
