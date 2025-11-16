@@ -20,6 +20,7 @@ from trackersplat.motionestimator import FixedViewMotionEstimator
 from trackersplat.motionestimator.point_tracker import DetectFixMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 from trackersplat.motionestimator.refiner import build_training_refiner, build_regularization_refiner
+from trackersplat.patcher import build_densification_patcher
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:
@@ -173,6 +174,11 @@ if __name__ == "__main__":
     parser.add_argument("--start_frame", default=1, type=int, help="start from which frame")
     parser.add_argument("-o", "--option_estimation", default=[], action='append', type=str)
     parser.add_argument("-r", "--option_refining", default=[], action='append', type=str)
+
+    parser.add_argument("--patcher", choices=["none", "densify"], default="none")
+    parser.add_argument("--iteration_patch", required=True, type=str, help="iteration of the initial gaussians")
+    parser.add_argument("-p", "--option_patching", default=[], action='append', type=str)
+
     args = parser.parse_args()
     save_frame_cfg_args = partial(save_cfg_args, sh_degree=args.sh_degree, source=args.source, destination=os.path.join(args.destination, args.pipeline), frame_folder_fmt=args.frame_folder_fmt)
     configs = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_estimation}
@@ -188,4 +194,9 @@ if __name__ == "__main__":
         load_mask=args.with_image_mask, load_depth=args.with_depth_data)
     training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
     motion_compensater = build_pipeline(args.pipeline, gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, configs_refining, **configs)
+
+    configs_patching = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_patching}
+    if args.patcher == "densify":
+        motion_compensater = build_densification_patcher(dataset=dataset, gaussians=gaussians, estimator=motion_compensater.estimator, device=args.device, **configs_patching)
+
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)

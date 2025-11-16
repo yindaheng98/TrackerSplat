@@ -26,7 +26,7 @@ densification_trainer = {
 class DensificationTrainerFactory(TrainerFactory):
     def __init__(self, trainer: str, *args, **kwargs):
         self.trainer = densification_trainer[trainer]
-        self.input_dataset = trainer in ["densify", "adaptivedensify"]
+        self.input_dataset = trainer not in ["densify", "adaptivedensify"]
         self.args = args
         self.kwargs = kwargs
 

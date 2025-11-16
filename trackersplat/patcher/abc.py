@@ -7,8 +7,8 @@ from trackersplat.dataset import VideoCameraDataset, FrameCameraDataset
 
 class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
     def __init__(self, dataset: VideoCameraDataset, gaussians: GaussianModel, estimator: MotionEstimator, device: torch.device = "cuda"):  # 4 basic args
-        super().__init__(gaussians=gaussians, estimator=estimator, device=device)  # 3 basic args for MotionCompensater
         self.dataset = dataset
+        super().__init__(gaussians=gaussians, estimator=estimator, device=device)  # 3 basic args for MotionCompensater
 
     def to(self, device):
         self.dataset = self.dataset.to(device)

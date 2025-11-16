@@ -158,6 +158,11 @@
                 "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/cameras.json",
                 "-rposition_lr_init=0.0016",
                 "-rposition_lr_max_steps=1000",
+                // patcher args
+                "--patcher=densify",
+                "--iteration_patch=1000",
+                "-ptrainer='densify'",
+                "-pposition_lr_max_steps=1000",
             ]
         },
         {
