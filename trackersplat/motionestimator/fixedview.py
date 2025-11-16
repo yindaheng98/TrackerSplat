@@ -118,6 +118,12 @@ class FixedViewMotionEstimator(MotionEstimator):
         for frame in cameras:
             assert len(frame) == len(cameras[0])
         self.cameras = [FixedViewFrameSequenceMeta.from_datasetcameras(frame) for frame in zip(*cameras)]
+        for camera in self.cameras:
+            assert len(camera.frames_path) == len(self.cameras[0].frames_path)
+            assert len(camera.frame_masks_path) == len(self.cameras[0].frame_masks_path)
+            assert len(camera.depths_path) == len(self.cameras[0].depths_path)
+            assert len(camera.depth_masks_path) == len(self.cameras[0].depth_masks_path)
+            assert len(camera.frame_idx) == len(self.cameras[0].frame_idx)
         self.batch_func = batch_func
         self.batch_size = batch_size
         self.to(device)
@@ -126,42 +132,19 @@ class FixedViewMotionEstimator(MotionEstimator):
         self.batch_func = self.batch_func.to(device)
         return self
 
-    @property
-    def frames(self) -> List[FixedViewFrameSequenceMeta]:
-        '''So you can access the views like this: estimator.frames[0] or estimator.frames[0:10]'''
-        class ViewCollector:
-            def __init__(self, cameras: List[FixedViewFrameSequenceMeta]):
-                self.cameras = cameras
-                for camera in self.cameras:
-                    assert len(camera.frames_path) == len(self.cameras[0].frames_path)
-                    assert len(camera.frame_masks_path) == len(self.cameras[0].frame_masks_path)
-                    assert len(camera.depths_path) == len(self.cameras[0].depths_path)
-                    assert len(camera.depth_masks_path) == len(self.cameras[0].depth_masks_path)
-                    assert len(camera.frame_idx) == len(self.cameras[0].frame_idx)
-
-            def __getitem__(self, frame_idx: Union[int, slice]) -> List[FixedViewFrameSequenceMeta]:
-                if isinstance(frame_idx, slice):
-                    return [camera._replace(
-                        frames_path=camera.frames_path[frame_idx],
-                        frame_masks_path=camera.frame_masks_path[frame_idx],
-                        depths_path=camera.depths_path[frame_idx],
-                        depth_masks_path=camera.depth_masks_path[frame_idx],
-                        frame_idx=camera.frame_idx[frame_idx]) for camera in self.cameras]
-                if isinstance(frame_idx, int):
-                    return [camera._replace(
-                        frames_path=[camera.frames_path[frame_idx]],
-                        frame_masks_path=[camera.frame_masks_path[frame_idx]],
-                        depths_path=[camera.depths_path[frame_idx]],
-                        depth_masks_path=[camera.depth_masks_path[frame_idx]],
-                        frame_idx=[camera.frame_idx[frame_idx]]) for camera in self.cameras]
-                raise ValueError("frame_idx must be either an integer or a slice")
-        return ViewCollector(self.cameras)
-
     def __iter__(self) -> 'FixedViewMotionEstimator':
         self.frame_idx = 0
         self.curr_initframe_idx = -1
         self.curr_motions = []
         return self
+
+    def get_cameras(self, frame_idx: slice):
+        return [camera._replace(
+            frames_path=camera.frames_path[frame_idx],
+            frame_masks_path=camera.frame_masks_path[frame_idx],
+            depths_path=camera.depths_path[frame_idx],
+            depth_masks_path=camera.depth_masks_path[frame_idx],
+            frame_idx=camera.frame_idx[frame_idx]) for camera in self.cameras]
 
     def __next__(self) -> Motion:
         length = len(self.cameras[0].frames_path)
@@ -175,7 +158,7 @@ class FixedViewMotionEstimator(MotionEstimator):
         if initframe_idx + self.batch_size > length:
             initframe_idx = length - self.batch_size
         if initframe_idx != self.curr_initframe_idx:
-            motions = self.batch_func(self.frames[initframe_idx:initframe_idx + self.batch_size])
+            motions = self.batch_func(self.get_cameras(slice(initframe_idx, initframe_idx + self.batch_size)))
             assert len(motions) == self.batch_size-1
             motions = [motion._replace(update_baseframe=False) for motion in motions]
             motions[-1] = motions[-1]._replace(update_baseframe=True)
