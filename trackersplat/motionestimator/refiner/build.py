@@ -8,23 +8,22 @@ from .propogate import PropagatedMotionRefiner
 
 
 def build_refiner(
-        type: str,
+        refiner: str,
         base_batch_func: FixedViewBatchMotionEstimator, device=torch.device("cuda"),  # 2 basic args
         *args, **kwargs):
     return {
         "training": build_training_refiner,
         "filter": FilteredMotionRefiner,
         "propagate": PropagatedMotionRefiner,
-    }[type](
+    }[refiner](
         base_batch_func=base_batch_func, device=device,  # 2 basic args
         *args, **kwargs)
 
 
-def build_compensater_with_refine(
-        type: str, gaussians: GaussianModel, dataset: VideoCameraDataset, batch_size: int,
+def build_motion_estimator_with_refine(
+        refiner: str, dataset: VideoCameraDataset, batch_size: int,
         base_batch_func: FixedViewBatchMotionEstimator, device=torch.device("cuda"),  # 2 basic args
         *args, **kwargs):
-    batch_func = build_refiner(type=type, base_batch_func=base_batch_func, device=device, *args, **kwargs)
+    batch_func = build_refiner(refiner=refiner, base_batch_func=base_batch_func, device=device, *args, **kwargs)
     motion_estimator = FixedViewMotionEstimator(dataset=dataset, batch_func=batch_func, batch_size=batch_size, device=device)
-    motion_compensater = MotionCompensater(gaussians=gaussians, estimator=motion_estimator, device=device)
-    return motion_compensater
+    return motion_estimator

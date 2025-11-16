@@ -10,8 +10,13 @@ from trackersplat.motionestimator import Motion, FixedViewBatchMotionEstimator, 
 
 
 class FilteredMotionRefiner(FixedViewBatchMotionEstimatorWrapper):
-    def __init__(self, base_batch_func: FixedViewBatchMotionEstimator, k: int = 8, device=torch.device("cuda")):
-        super().__init__(base_batch_func=base_batch_func, device=device)
+    def __init__(
+            self,
+            base_batch_func: FixedViewBatchMotionEstimator,  # 1 of 2 basic args
+            k: int = 8,
+            device=torch.device("cuda"),  # 1 of 2 basic args
+    ):
+        super().__init__(base_batch_func=base_batch_func, device=device)  # 2 basic args for FixedViewBatchMotionEstimatorWrapper
         self.k = k
 
     def update_knn(self, gaussians: GaussianModel, k: int) -> 'FilteredMotionRefiner':
