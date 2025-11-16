@@ -129,7 +129,7 @@ def build_pipeline(pipeline: str, gaussians: GaussianModel, dataset: VideoCamera
     elif mode == "track":
         refiner, estimator = estimator.split("-", 1)
         batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=DetectFixMotionFuser(gaussians), device=device, **kwargs)
-        batch_func = build_regularization_refiner(refiner=refiner, dataset=dataset, batch_size=batch_size, base_batch_func=batch_func, device=device)
+        batch_func = build_regularization_refiner(refiner=refiner, base_batch_func=batch_func, device=device)
     elif mode == "refine":
         trainer, refiner, estimator = estimator.split("-", 2)
         batch_func = build_point_track_batch_motion_estimator(estimator=estimator, fuser=DetectFixMotionFuser(gaussians), device=device, **kwargs)
