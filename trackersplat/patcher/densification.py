@@ -6,19 +6,21 @@ from reduced_3dgs.combinations import SHCullingPrunerInDensifyTrainer, SHCulling
 from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
 from trackersplat.motionestimator.incremental_trainer import TrainerFactory
 
+densification_trainer = {
+    "densify": OpacityResetDensificationTrainer,
+    "adaptivedensify": OpacityResetAdaptiveDensificationTrainer,
+    "densify-pruning": PrunerInDensifyTrainer,
+    "adaptivedensify-pruning": PrunerInAdaptiveDensifyTrainer,
+    "densify-shculling": SHCullingDensificationTrainer,
+    "adaptivedensify-shculling": SHCullingAdaptiveDensificationTrainer,
+    "densify-prune-shculling": SHCullingPrunerInDensifyTrainer,
+    "adaptivedensify-prune-shculling": SHCullingPrunerInAdaptiveDensifyTrainer,
+}
+
 
 class DensificationTrainerFactory(TrainerFactory):
     def __init__(self, trainer: str, *args, **kwargs):
-        self.trainer = {
-            "densify": OpacityResetDensificationTrainer,
-            "adaptivedensify": OpacityResetAdaptiveDensificationTrainer,
-            "densify-pruning": PrunerInDensifyTrainer,
-            "adaptivedensify-pruning": PrunerInAdaptiveDensifyTrainer,
-            "densify-shculling": SHCullingDensificationTrainer,
-            "adaptivedensify-shculling": SHCullingAdaptiveDensificationTrainer,
-            "densify-prune-shculling": SHCullingPrunerInDensifyTrainer,
-            "adaptivedensify-prune-shculling": SHCullingPrunerInAdaptiveDensifyTrainer,
-        }[trainer]
+        self.trainer = densification_trainer[trainer]
         self.input_dataset = trainer in ["densify", "adaptivedensify"]
         self.args = args
         self.kwargs = kwargs
