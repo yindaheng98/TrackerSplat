@@ -13,6 +13,10 @@ class PatchableGaussianModel(GaussianModel):
         self._opacity = nn.Parameter(torch.empty((0, *base._opacity.shape[1:]), device=base._opacity.device))
         self._scaling = nn.Parameter(torch.empty((0, *base._scaling.shape[1:]), device=base._scaling.device))
         self._rotation = nn.Parameter(torch.empty((0, *base._rotation.shape[1:]), device=base._rotation.device))
+        self.setup_functions()
+        self.scale_modifier = 1.0
+        self.debug = False
+        self.antialiasing = False
 
     @property
     def get_scaling(self):
@@ -37,3 +41,13 @@ class PatchableGaussianModel(GaussianModel):
     @property
     def get_opacity(self):
         return self.opacity_activation(torch.cat((self.base._opacity, self._opacity), dim=0))
+
+    def full_model(self) -> GaussianModel:
+        full_model = GaussianModel(sh_degree=self.base.max_sh_degree)
+        full_model._xyz = nn.Parameter(self.get_xyz.detach())
+        full_model._features_dc = nn.Parameter(self.get_features_dc.detach())
+        full_model._features_rest = nn.Parameter(self.get_features_rest.detach())
+        full_model._opacity = nn.Parameter(self.opacity_inverse_activation(self.get_opacity.detach()))
+        full_model._scaling = nn.Parameter(self.scaling_inverse_activation(self.get_scaling.detach()))
+        full_model._rotation = nn.Parameter(self.rotation_inverse_activation(self.get_rotation.detach()))
+        return full_model
