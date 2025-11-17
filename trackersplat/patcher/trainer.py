@@ -2,18 +2,34 @@ from typing import Callable
 import torch
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import OpacityResetter
-from gaussian_splatting.trainer.densifier import AbstractDensifier, SplitCloneDensifier, DensificationInstruct, DensificationTrainer, NoopDensifier
+from gaussian_splatting.trainer.densifier import AbstractDensifier, AdaptiveSplitCloneDensifier, DensificationInstruct, DensificationTrainer, NoopDensifier
 
 
-class GradientAttractDensifier(SplitCloneDensifier):
+class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
     """Move low-opacity gaussians to high gradient areas."""
 
     def densify(self) -> DensificationInstruct:
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
 
-        clone = self.densify_and_clone(grads, self.densify_grad_threshold, self.scene_extent)
-        split = self.densify_and_split(grads, self.densify_grad_threshold, self.scene_extent)
+        gradscore = torch.norm(grads, dim=-1)
+        score_scaling = torch.max(self.model.get_scaling, dim=1).values
+        score_opacity = self.model.get_opacity.squeeze(-1)
+        score = score_scaling * score_opacity
+
+        too_big_pts_mask = torch.max(self.model.get_scaling, dim=1).values > self.densify_percent_too_big*self.scene_extent
+        n_should_select = max(0, self.densify_target_n - grads.shape[0] - too_big_pts_mask.sum().item())
+        gradscore = torch.norm(grads, dim=-1)
+        gradscore_rest = gradscore[~too_big_pts_mask]
+        _, indices = torch.sort(gradscore_rest, descending=True)
+        grad_threshold = gradscore_rest[indices[min(n_should_select, gradscore_rest.shape[0]) - 1]].item()
+        if n_should_select <= 0:
+            grad_threshold = self.densify_grad_threshold
+        big_grad_pts_mask = gradscore >= min(grad_threshold, self.densify_grad_threshold)
+        pts_mask = torch.logical_or(too_big_pts_mask, big_grad_pts_mask)
+
+        clone = self.densify_and_clone(pts_mask, self.scene_extent)
+        split = self.densify_and_split(pts_mask, self.scene_extent)
 
         return DensificationInstruct(
             new_xyz=torch.cat((clone.new_xyz, split.new_xyz), dim=0),
