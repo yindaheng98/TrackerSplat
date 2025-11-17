@@ -1,6 +1,6 @@
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer import OpacityResetter
-from .trainer import GradientPatchDensificationTrainer
+from .gradientpatch import GradientPatchDensificationTrainer
 
 
 def OpacityResetGradientPatchDensificationTrainer(
