@@ -1,3 +1,8 @@
+from typing import Callable
+from gaussian_splatting import GaussianModel
+from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
+from trackersplat.patcher import TrainerFactory
+from gaussian_splatting.trainer import BaseTrainer
 from gaussian_splatting.trainer.densifier import AbstractDensifier, DensificationTrainer, NoopDensifier
 from gaussian_splatting.trainer.densifier.trainer import cat_tensors_to_optimizer, mask_tensors_in_optimizer
 from gaussian_splatting.utils.schedular import get_expon_lr_func
@@ -68,3 +73,23 @@ class PatchDensificationTrainer(DensificationTrainer):
             scaling=optimizable_tensors["patch_scaling"],
             rotation=optimizable_tensors["patch_rotation"],
         )
+
+
+class PatchDensificationTrainerFactory(TrainerFactory):
+    def __init__(
+            self,
+            noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
+            *args, **kwargs):
+        self.noargs_base_densifier_constructor = noargs_base_densifier_constructor
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
+        trainer = PatchDensificationTrainer(
+            model=PatchableGaussianModel(model),
+            scene_extent=dataset.scene_extent(),
+            densifier=self.noargs_base_densifier_constructor(model, dataset.scene_extent()),
+            *self.args,
+            **self.kwargs
+        )
+        return trainer
