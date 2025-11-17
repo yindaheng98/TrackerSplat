@@ -1,10 +1,12 @@
 from typing import Callable
 import torch
 from gaussian_splatting import GaussianModel
-from gaussian_splatting.trainer.densifier import AbstractDensifier, SplitCloneDensifier, DensificationInstruct, DensificationTrainer
+from gaussian_splatting.trainer import OpacityResetter
+from gaussian_splatting.trainer.densifier import AbstractDensifier, SplitCloneDensifier, DensificationInstruct, DensificationTrainer, NoopDensifier
 
 
-class PatchDensifier(SplitCloneDensifier):
+class GradientAttractDensifier(SplitCloneDensifier):
+    """Move low-opacity gaussians to high gradient areas."""
 
     def densify(self) -> DensificationInstruct:
         grads = self.xyz_gradient_accum / self.denom
@@ -24,20 +26,20 @@ class PatchDensifier(SplitCloneDensifier):
         )
 
 
-def PatchDensificationTrainerWrapper(
+def GradientAttractTrainerWrapper(
         noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
         *args,
         densify_from_iter=500,
-        densify_until_iter=15000,
+        densify_until_iter=1000,
         densify_interval=100,
         densify_grad_threshold=0.0002,
         densify_percent_dense=0.01,
         densify_percent_too_big=0.8,
         **kwargs):
     densifier = noargs_base_densifier_constructor(model, scene_extent)
-    densifier = SplitCloneDensifier(
+    densifier = GradientAttractDensifier(
         densifier,
         scene_extent,
         densify_from_iter=densify_from_iter,
@@ -52,3 +54,34 @@ def PatchDensificationTrainerWrapper(
         densifier,
         *args, **kwargs
     )
+
+
+def GradientAttractDensificationTrainer(
+        model: GaussianModel,
+        scene_extent: float,
+        *args, **kwargs):
+    return GradientAttractTrainerWrapper(
+        lambda model, scene_extent: NoopDensifier(model),
+        model,
+        scene_extent,
+        *args, **kwargs
+    )
+
+
+def OpacityResetGradientAttractDensificationTrainer(
+        model: GaussianModel, scene_extent: float,
+        *args,
+        opacity_reset_from_iter=0,
+        opacity_reset_until_iter=2,
+        opacity_reset_interval=2,
+        **kwargs):
+    trainer = OpacityResetter(
+        base_trainer=GradientAttractDensificationTrainer(model, scene_extent, *args, **kwargs),
+        opacity_reset_from_iter=opacity_reset_from_iter,
+        opacity_reset_until_iter=opacity_reset_until_iter,
+        opacity_reset_interval=opacity_reset_interval,
+    )
+    return trainer
+
+
+PatchDensificationTrainer = OpacityResetGradientAttractDensificationTrainer
