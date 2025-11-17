@@ -20,7 +20,7 @@ from trackersplat.motionestimator import FixedViewMotionEstimator
 from trackersplat.motionestimator.point_tracker import DetectFixMotionFuser, build_point_track_batch_motion_estimator
 from trackersplat.motionestimator.incremental_trainer import IncrementalTrainingMotionEstimator, build_trainer_factory, TrainingProcess, BaseTrainingProcess
 from trackersplat.motionestimator.refiner import build_training_refiner, build_regularization_refiner
-from trackersplat.patcher import build_densification_patcher
+from trackersplat.patcher.densification import build_densification_patcher
 
 
 def prepare_gaussians(sh_degree: int, device: str, load_ply: str) -> GaussianModel:

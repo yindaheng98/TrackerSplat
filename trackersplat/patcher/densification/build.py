@@ -8,8 +8,7 @@ from trackersplat import MotionEstimator
 from trackersplat.dataset import VideoCameraDataset
 from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
 from trackersplat.motionestimator.incremental_trainer import TrainerFactory
-from .abc import PatchCompensater
-from .training import TrainingPatchCompensater, TrainingProcess, BaseTrainingProcess
+from trackersplat.patcher import PatchCompensater, TrainingPatchCompensater, TrainingProcess, BaseTrainingProcess
 from .trainer import PatchDensificationTrainer
 
 densification_trainer = {
