@@ -1,6 +1,7 @@
 from typing import Callable
 import torch
 from gaussian_splatting import GaussianModel
+from gaussian_splatting.utils import build_rotation
 from gaussian_splatting.trainer.densifier import AbstractDensifier, AdaptiveSplitCloneDensifier, DensificationInstruct, DensificationTrainer, NoopDensifier
 
 
@@ -19,9 +20,11 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
         self,
         *args,
         densify_target_n=None,
+        densify_donot_increase=False,
         **kwargs
     ):
         super().__init__(*args, densify_target_n=densify_target_n, **kwargs)
+        self.densify_donot_increase = densify_donot_increase
 
     def prune(self, n_remove: int, donot_remove_mask: torch.Tensor, grads: torch.Tensor) -> None:
         # TODO: prune by importance score from reduced_3dgs.pruning and reduced_3dgs.importance
@@ -36,6 +39,32 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
         remove_mask[torch.arange(score.shape[0], device=score.device)[~donot_remove_mask][remove_indices]] = True
         return remove_mask
 
+    def densify_and_split(self, selected_pts_mask, scene_extent, N=2):
+        selected_pts_mask = torch.logical_and(
+            selected_pts_mask,
+            torch.max(self.model.get_scaling, dim=1).values > self.densify_percent_dense*scene_extent)
+        # N=selected_pts_mask.sum(), add 2N new points and remove N old points
+
+        stds = self.model.get_scaling[selected_pts_mask]
+        means = torch.zeros((stds.size(0), 3), device=self.model._xyz.device)
+        samples = torch.normal(mean=means, std=stds)
+        rots = build_rotation(self.model._rotation[selected_pts_mask])
+        new_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.model.get_xyz[selected_pts_mask]
+        new_scaling = self.model.scaling_inverse_activation(self.model.get_scaling[selected_pts_mask] / (0.8*N))
+        new_rotation = self.model._rotation[selected_pts_mask]
+        new_features_dc = self.model._features_dc[selected_pts_mask]
+        new_features_rest = self.model._features_rest[selected_pts_mask]
+        new_opacity = self.model._opacity[selected_pts_mask]
+
+        return DensificationInstruct(
+            new_xyz=new_xyz,
+            new_features_dc=new_features_dc,
+            new_features_rest=new_features_rest,
+            new_opacities=new_opacity,
+            new_scaling=new_scaling,
+            new_rotation=new_rotation,
+        )
+
     def densify(self) -> DensificationInstruct:
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
@@ -45,9 +74,11 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
         clone = self.densify_and_clone(pts_mask, self.scene_extent)
         split = self.densify_and_split(pts_mask, self.scene_extent)
 
-        # remove pts_mask.sum().item() points or as many as possible (there is no enough points to remove)
-        n_remove = min(pts_mask.sum().item(), grads.shape[0] - pts_mask.sum().item())
-        remove_mask = self.prune(n_remove, pts_mask, grads)
+        remove_mask = None
+        if self.densify_donot_increase:
+            # remove pts_mask.sum().item() points or as many as possible (there is no enough points to remove)
+            n_remove = min(pts_mask.sum().item(), grads.shape[0] - pts_mask.sum().item())
+            remove_mask = self.prune(n_remove, pts_mask, grads)
 
         return DensificationInstruct(
             new_xyz=torch.cat((clone.new_xyz, split.new_xyz), dim=0),
@@ -56,7 +87,7 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
             new_opacities=torch.cat((clone.new_opacities, split.new_opacities), dim=0),
             new_scaling=torch.cat((clone.new_scaling, split.new_scaling), dim=0),
             new_rotation=torch.cat((clone.new_rotation, split.new_rotation), dim=0),
-            remove_mask=split.remove_mask | remove_mask,
+            remove_mask=remove_mask,
         )
 
 
