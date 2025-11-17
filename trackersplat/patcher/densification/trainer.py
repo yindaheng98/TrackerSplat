@@ -4,6 +4,14 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer.densifier import AbstractDensifier, AdaptiveSplitCloneDensifier, DensificationInstruct, DensificationTrainer, NoopDensifier
 
 
+def select_gradient_patch(n_should_select: int, grads: torch.Tensor, grad_threshold: float):
+    gradscore = torch.norm(grads, dim=-1)
+    if n_should_select > 0:
+        _, indices = torch.sort(gradscore, descending=True)
+        grad_threshold = gradscore[indices[min(n_should_select, gradscore.shape[0]) - 1]].item()
+    return gradscore >= grad_threshold
+
+
 class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
     """Move low-opacity gaussians to high gradient areas."""
 
@@ -15,8 +23,9 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
     ):
         super().__init__(*args, densify_target_n=densify_target_n, **kwargs)
 
-    def prune(self, n_remove: int, donot_remove_mask: torch.Tensor, gradscore: torch.Tensor) -> None:
+    def prune(self, n_remove: int, donot_remove_mask: torch.Tensor, grads: torch.Tensor) -> None:
         # TODO: prune by importance score from reduced_3dgs.pruning and reduced_3dgs.importance
+        gradscore = torch.norm(grads, dim=-1)
         score_scaling = torch.max(self.model.get_scaling, dim=1).values
         score_opacity = self.model.get_opacity.squeeze(-1)
         score = score_scaling * score_opacity * (gradscore + gradscore[gradscore > 0].min())  # avoid zero
@@ -31,24 +40,14 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
 
-        too_big_pts_mask = torch.max(self.model.get_scaling, dim=1).values > self.densify_percent_too_big*self.scene_extent
-        n_should_select = max(0, self.densify_target_n - too_big_pts_mask.sum().item()) if self.densify_target_n is not None else 0
-        gradscore = torch.norm(grads, dim=-1)
-        if n_should_select <= 0:
-            grad_threshold = self.densify_grad_threshold
-        else:
-            gradscore_rest = gradscore[~too_big_pts_mask]
-            _, indices = torch.sort(gradscore_rest, descending=True)
-            grad_threshold = gradscore_rest[indices[min(n_should_select, gradscore_rest.shape[0]) - 1]].item()
-        big_grad_pts_mask = gradscore >= max(grad_threshold, self.densify_grad_threshold)
-        pts_mask = torch.logical_or(too_big_pts_mask, big_grad_pts_mask)
+        pts_mask = select_gradient_patch(self.densify_target_n, grads, self.densify_grad_threshold)
 
         clone = self.densify_and_clone(pts_mask, self.scene_extent)
         split = self.densify_and_split(pts_mask, self.scene_extent)
 
         # remove pts_mask.sum().item() points or as many as possible (there is no enough points to remove)
         n_remove = min(pts_mask.sum().item(), grads.shape[0] - pts_mask.sum().item())
-        remove_mask = self.prune(n_remove, pts_mask, gradscore)
+        remove_mask = self.prune(n_remove, pts_mask, grads)
 
         return DensificationInstruct(
             new_xyz=torch.cat((clone.new_xyz, split.new_xyz), dim=0),

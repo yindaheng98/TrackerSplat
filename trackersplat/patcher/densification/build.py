@@ -9,7 +9,7 @@ from trackersplat.dataset import VideoCameraDataset
 from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
 from trackersplat.motionestimator.incremental_trainer import TrainerFactory
 from trackersplat.patcher import PatchCompensater, TrainingPatchCompensater, TrainingProcess, BaseTrainingProcess
-from .trainer import PatchDensificationTrainer
+from .combinations import PatchDensificationTrainer
 
 densification_trainer = {
     "densify": OpacityResetDensificationTrainer,
