@@ -35,12 +35,12 @@ class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
         clone = self.densify_and_clone(pts_mask, self.scene_extent)
         split = self.densify_and_split(pts_mask, self.scene_extent)
 
+        # remove pts_mask.sum().item() points or as many as possible (there is no enough points to remove)
+        n_remove = min(pts_mask.sum().item(), grads.shape[0] - pts_mask.sum().item())
+
         score_scaling = torch.max(self.model.get_scaling, dim=1).values
         score_opacity = self.model.get_opacity.squeeze(-1)
         score = score_scaling * score_opacity * (gradscore + gradscore[gradscore > 0].min())  # avoid zero
-
-        # delete pts_mask.sum().item() lowest score gaussians outside the selected ones
-        n_remove = min(pts_mask.sum().item(), score.shape[0] - pts_mask.sum().item())
         rest_score = score[~pts_mask]
         _, rest_indices = torch.sort(rest_score, descending=False)
         remove_indices = rest_indices[:n_remove]
@@ -66,7 +66,7 @@ def GradientAttractTrainerWrapper(
         densify_from_iter=500,
         densify_until_iter=1000,
         densify_interval=100,
-        densify_grad_threshold=0.0002,
+        densify_grad_threshold=0.0001,
         densify_percent_dense=0.01,
         densify_percent_too_big=0.8,
         densify_target_n=None,  # ! this is different from usual AdaptiveSplitCloneDensifier, densify_target_n here is the target number of new gaussians to add at each densification step
