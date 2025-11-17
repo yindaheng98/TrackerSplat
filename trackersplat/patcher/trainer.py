@@ -16,6 +16,17 @@ class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
     ):
         super().__init__(*args, densify_target_n=densify_target_n, **kwargs)
 
+    def prune(self, n_remove: int, donot_remove_mask: torch.Tensor, gradscore: torch.Tensor) -> None:
+        score_scaling = torch.max(self.model.get_scaling, dim=1).values
+        score_opacity = self.model.get_opacity.squeeze(-1)
+        score = score_scaling * score_opacity * (gradscore + gradscore[gradscore > 0].min())  # avoid zero
+        rest_score = score[~donot_remove_mask]
+        _, rest_indices = torch.sort(rest_score, descending=False)
+        remove_indices = rest_indices[:n_remove]
+        remove_mask = torch.zeros_like(donot_remove_mask, dtype=torch.bool)
+        remove_mask[torch.arange(score.shape[0], device=score.device)[~donot_remove_mask][remove_indices]] = True
+        return remove_mask
+
     def densify(self) -> DensificationInstruct:
         grads = self.xyz_gradient_accum / self.denom
         grads[grads.isnan()] = 0.0
@@ -37,15 +48,7 @@ class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
 
         # remove pts_mask.sum().item() points or as many as possible (there is no enough points to remove)
         n_remove = min(pts_mask.sum().item(), grads.shape[0] - pts_mask.sum().item())
-
-        score_scaling = torch.max(self.model.get_scaling, dim=1).values
-        score_opacity = self.model.get_opacity.squeeze(-1)
-        score = score_scaling * score_opacity * (gradscore + gradscore[gradscore > 0].min())  # avoid zero
-        rest_score = score[~pts_mask]
-        _, rest_indices = torch.sort(rest_score, descending=False)
-        remove_indices = rest_indices[:n_remove]
-        remove_mask = torch.zeros_like(pts_mask, dtype=torch.bool)
-        remove_mask[torch.arange(score.shape[0], device=score.device)[~pts_mask][remove_indices]] = True
+        remove_mask = self.prune(n_remove, pts_mask, gradscore)
 
         return DensificationInstruct(
             new_xyz=torch.cat((clone.new_xyz, split.new_xyz), dim=0),
