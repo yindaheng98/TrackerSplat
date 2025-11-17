@@ -17,6 +17,7 @@ class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
         super().__init__(*args, densify_target_n=densify_target_n, **kwargs)
 
     def prune(self, n_remove: int, donot_remove_mask: torch.Tensor, gradscore: torch.Tensor) -> None:
+        # TODO: prune by importance score from reduced_3dgs.pruning and reduced_3dgs.importance
         score_scaling = torch.max(self.model.get_scaling, dim=1).values
         score_opacity = self.model.get_opacity.squeeze(-1)
         score = score_scaling * score_opacity * (gradscore + gradscore[gradscore > 0].min())  # avoid zero
