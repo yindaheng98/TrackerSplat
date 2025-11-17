@@ -1,2 +1,3 @@
 from .build import densification_trainer, DensificationTrainerFactory, build_densification_patcher
-from .trainer import GradientAttractDensifier, GradientAttractTrainerWrapper, GradientAttractDensificationTrainer, OpacityResetGradientAttractDensificationTrainer, PatchDensificationTrainer
+from .trainer import GradientAttractDensifier, GradientAttractTrainerWrapper, GradientAttractDensificationTrainer
+from .combinations import OpacityResetGradientAttractDensificationTrainer, PatchDensificationTrainer
