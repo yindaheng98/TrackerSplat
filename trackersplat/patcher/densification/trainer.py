@@ -4,7 +4,7 @@ from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer.densifier import AbstractDensifier, AdaptiveSplitCloneDensifier, DensificationInstruct, DensificationTrainer, NoopDensifier
 
 
-class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
+class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
     """Move low-opacity gaussians to high gradient areas."""
 
     def __init__(
@@ -61,7 +61,7 @@ class GradientAttractDensifier(AdaptiveSplitCloneDensifier):
         )
 
 
-def GradientAttractTrainerWrapper(
+def GradientPatchTrainerWrapper(
         noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
         model: GaussianModel,
         scene_extent: float,
@@ -75,7 +75,7 @@ def GradientAttractTrainerWrapper(
         densify_target_n=None,  # ! this is different from usual AdaptiveSplitCloneDensifier, densify_target_n here is the target number of new gaussians to add at each densification step
         **kwargs):
     densifier = noargs_base_densifier_constructor(model, scene_extent)
-    densifier = GradientAttractDensifier(
+    densifier = GradientPatchDensifier(
         densifier,
         scene_extent,
         densify_from_iter=densify_from_iter,
@@ -93,11 +93,11 @@ def GradientAttractTrainerWrapper(
     )
 
 
-def GradientAttractDensificationTrainer(
+def GradientPatchDensificationTrainer(
         model: GaussianModel,
         scene_extent: float,
         *args, **kwargs):
-    return GradientAttractTrainerWrapper(
+    return GradientPatchTrainerWrapper(
         lambda model, scene_extent: NoopDensifier(model),
         model,
         scene_extent,
