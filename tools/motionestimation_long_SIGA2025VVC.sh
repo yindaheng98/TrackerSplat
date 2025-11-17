@@ -33,15 +33,13 @@ REFINEARGS="$REFINEARGS -omask_output=False"
 
 REFINEARGS="$REFINEARGS -rposition_lr_init=0.0016"
 REFINEARGS="$REFINEARGS -rposition_lr_max_steps=$REFININGITERS"
-REFINEARGS="$REFINEARGS -rscaling_lr=0.000001"
-REFINEARGS="$REFINEARGS -ropacity_lr=0.000001"
+REFINEARGS="$REFINEARGS -rfeature_lr=0.0" # stable SH
 REFINEARGS="$REFINEARGS -rmask_mode='bg_color'"
 REFINEARGS="$REFINEARGS -rbg_color='random'"
 
 TRAINARGS="$TRAINARGS -oposition_lr_init=0.0016"
 TRAINARGS="$TRAINARGS -oposition_lr_max_steps=$REFININGITERS"
-TRAINARGS="$TRAINARGS -oscaling_lr=0.000001"
-TRAINARGS="$TRAINARGS -oopacity_lr=0.000001"
+TRAINARGS="$TRAINARGS -ofeature_lr=0.0" # stable SH
 TRAINARGS="$TRAINARGS -omask_mode='bg_color'"
 TRAINARGS="$TRAINARGS -obg_color='random'"
 
