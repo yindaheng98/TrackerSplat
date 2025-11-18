@@ -33,8 +33,8 @@ class PatchOpacityResetter(OpacityResetter):
             if self.base_opacity_reset_from_iter <= self.curr_step <= self.base_opacity_reset_until_iter and self.curr_step % self.base_opacity_reset_interval == 0:
                 opacities = self.model.base.opacity_activation(self.model.base._opacity)
                 opacities_new = self.model.base.inverse_opacity_activation(torch.min(opacities, torch.ones_like(opacities)*0.01))
-                optimizable_tensors = replace_tensor_to_optimizer(self.optimizer, opacities_new, "opacity")
-                self.model.base._opacity = optimizable_tensors["opacity"]
+                optimizable_tensors = replace_tensor_to_optimizer(self.optimizer, opacities_new, "base_opacity")
+                self.model.base._opacity = optimizable_tensors["base_opacity"]
                 torch.cuda.empty_cache()
         return super().optim_step()
 

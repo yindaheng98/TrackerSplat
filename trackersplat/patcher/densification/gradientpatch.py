@@ -25,21 +25,42 @@ class GradientPatchDensifier(AdaptiveSplitCloneDensifier):
         # N=selected_pts_mask.sum(), add 2N new points and remove N old points
 
         stds = self.model.get_scaling[selected_pts_mask]
-        means = torch.zeros((stds.size(0), 3), device=self.model._xyz.device)
+        means = torch.zeros((stds.size(0), 3), device=self.model.get_xyz.device)
         samples = torch.normal(mean=means, std=stds)
-        rots = build_rotation(self.model._rotation[selected_pts_mask])
+        rots = build_rotation(self.model.get_rotation[selected_pts_mask])
         new_xyz = torch.bmm(rots, samples.unsqueeze(-1)).squeeze(-1) + self.model.get_xyz[selected_pts_mask]
         new_scaling = self.model.scaling_inverse_activation(self.model.get_scaling[selected_pts_mask] / (0.8*N))
-        new_rotation = self.model._rotation[selected_pts_mask]
-        new_features_dc = self.model._features_dc[selected_pts_mask]
-        new_features_rest = self.model._features_rest[selected_pts_mask]
-        new_opacity = self.model._opacity[selected_pts_mask]
+        new_rotation = self.model.get_rotation[selected_pts_mask]
+        new_features_dc = self.model.get_features_dc[selected_pts_mask]
+        new_features_rest = self.model.get_features_rest[selected_pts_mask]
+        new_opacity = self.model.inverse_opacity_activation(self.model.get_opacity[selected_pts_mask])
 
         return DensificationInstruct(
             new_xyz=new_xyz,
             new_features_dc=new_features_dc,
             new_features_rest=new_features_rest,
             new_opacities=new_opacity,
+            new_scaling=new_scaling,
+            new_rotation=new_rotation,
+        )
+
+    def densify_and_clone(self, selected_pts_mask, scene_extent):
+        selected_pts_mask = torch.logical_and(selected_pts_mask,
+                                              torch.max(self.model.get_scaling, dim=1).values <= self.densify_percent_dense*scene_extent)
+        # N=selected_pts_mask.sum(), add N new points
+
+        new_xyz = self.model.get_xyz[selected_pts_mask]
+        new_features_dc = self.model.get_features_dc[selected_pts_mask]
+        new_features_rest = self.model.get_features_rest[selected_pts_mask]
+        new_opacities = self.model.inverse_opacity_activation(self.model.get_opacity[selected_pts_mask])
+        new_scaling = self.model.scaling_inverse_activation(self.model.get_scaling[selected_pts_mask])
+        new_rotation = self.model.get_rotation[selected_pts_mask]
+
+        return DensificationInstruct(
+            new_xyz=new_xyz,
+            new_features_dc=new_features_dc,
+            new_features_rest=new_features_rest,
+            new_opacities=new_opacities,
             new_scaling=new_scaling,
             new_rotation=new_rotation,
         )
