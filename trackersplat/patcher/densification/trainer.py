@@ -1,9 +1,5 @@
 import copy
-from typing import Callable
 from gaussian_splatting import GaussianModel
-from trackersplat.motionestimator import FixedViewFrameSequenceMetaDataset
-from trackersplat.patcher import TrainerFactory
-from gaussian_splatting.trainer import BaseTrainer
 from gaussian_splatting.trainer.densifier import AbstractDensifier, DensificationTrainer, NoopDensifier
 from gaussian_splatting.utils.schedular import get_expon_lr_func
 
@@ -15,7 +11,7 @@ class PatchDensificationTrainer(DensificationTrainer):
 
     def __init__(
         self,
-        model: PatchableGaussianModel,
+        model: GaussianModel,
         scene_extent: float,
         densifier: AbstractDensifier = NoopDensifier(),
         position_lr_init=0.00016,
@@ -37,6 +33,8 @@ class PatchDensificationTrainer(DensificationTrainer):
         *args,
         **kwargs
     ):
+        self.base = model
+        model = PatchableGaussianModel(copy.deepcopy(self.base))
         super().__init__(
             model, scene_extent, densifier,
             *args,
@@ -64,22 +62,7 @@ class PatchDensificationTrainer(DensificationTrainer):
             max_steps=position_lr_max_steps,
         )
 
-
-class PatchDensificationTrainerFactory(TrainerFactory):
-    def __init__(
-            self,
-            noargs_base_densifier_constructor: Callable[[GaussianModel, float], AbstractDensifier],
-            *args, **kwargs):
-        self.noargs_base_densifier_constructor = noargs_base_densifier_constructor
-        self.args = args
-        self.kwargs = kwargs
-
-    def __call__(self, model: GaussianModel, dataset: FixedViewFrameSequenceMetaDataset) -> BaseTrainer:
-        trainer = PatchDensificationTrainer(
-            model=PatchableGaussianModel(model),
-            scene_extent=dataset.scene_extent(),
-            densifier=self.noargs_base_densifier_constructor(model, dataset.scene_extent()),
-            *self.args,
-            **self.kwargs
-        )
-        return trainer
+    def step(self, camera):
+        o = super().step(camera)
+        self.model.load_full_model(self.base)
+        return o
