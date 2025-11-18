@@ -37,7 +37,7 @@ class BaseTrainingProcess(TrainingProcess):
             with torch.no_grad():
                 ema_loss_for_log = 0.4 * loss.item() + 0.6 * ema_loss_for_log
                 if step % 10 == 0:
-                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'n': trainer.model._xyz.shape[0]})
+                    pbar.set_postfix({'epoch': step // len(dataset), 'loss': ema_loss_for_log, 'n': trainer.model.get_xyz.shape[0]})
 
 
 class TrainingPatchCompensater(PatchCompensater):
