@@ -7,18 +7,13 @@ from gaussian_splatting.dataset import CameraDataset
 from gaussian_splatting import GaussianModel
 from trackersplat import MotionEstimator
 from trackersplat.dataset import VideoCameraDataset, FrameCameraDataset
+from trackersplat.motionestimator.incremental_trainer import TrainingProcess  # just borrow TrainingProcess from motionestimator
 from .abc import PatchCompensater
 
 
 class TrainerFactory(metaclass=ABCMeta):
     @abstractmethod
     def __call__(self, model: GaussianModel, dataset: FrameCameraDataset) -> AbstractTrainer:
-        raise NotImplementedError
-
-
-class TrainingProcess(metaclass=ABCMeta):
-    @abstractmethod
-    def __call__(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int, frame_idx: int):
         raise NotImplementedError
 
 
