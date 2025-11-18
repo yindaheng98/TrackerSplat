@@ -66,8 +66,8 @@ class PatchDensificationTrainer(DensificationTrainer):
     def set_output_model(self, model: GaussianModel):
         self.output_model = model
 
-    def step(self, *args, **kwargs):
-        o = super().step(*args, **kwargs)
+    def after_optim_hook(self, *args, **kwargs):
+        o = super().after_optim_hook(*args, **kwargs)
         if self.output_model is not None:
             self.model.load_full_model(self.output_model)
         return o
