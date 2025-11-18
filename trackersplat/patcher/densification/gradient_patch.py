@@ -22,8 +22,8 @@ class GradientPatchDensifier(SplitCloneDensifier):
         self, base_densifier: AbstractDensifier,
         scene_extent,
         *args,
-        densify_n_every_step=1000,
-        densify_n_limit=1500,
+        densify_n_every_step=300,
+        densify_n_limit=500,
         **kwargs
     ):
         super().__init__(base_densifier, scene_extent, *args, densify_percent_too_big=None, densify_limit_n=None, **kwargs)
@@ -126,8 +126,8 @@ def GradientPatchTrainerWrapper(
         densify_interval=100,
         densify_grad_threshold=0.0001,
         densify_percent_dense=0.01,
-        densify_n_every_step=1000,
-        densify_n_limit=1500,
+        densify_n_every_step=300,
+        densify_n_limit=500,
         **kwargs):
     return PatchDensificationTrainer.from_base_model(
         lambda model, scene_extent: GradientPatchDensifier(
