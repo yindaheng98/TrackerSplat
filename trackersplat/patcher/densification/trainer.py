@@ -59,3 +59,14 @@ class PatchDensificationTrainer(DensificationTrainer):
             lr_delay_mult=position_lr_delay_mult,
             max_steps=position_lr_max_steps,
         )
+
+        self.output_model = None
+
+    def set_output_model(self, model: GaussianModel):
+        self.output_model = model
+
+    def step(self, *args, **kwargs):
+        o = super().step(*args, **kwargs)
+        if self.output_model is not None:
+            self.model.load_full_model(self.output_model)
+        return o
