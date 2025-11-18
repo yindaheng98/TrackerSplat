@@ -13,7 +13,7 @@ class PatchDensificationTrainer(DensificationTrainer):
         self,
         model: GaussianModel,
         scene_extent: float,
-        densifier: AbstractDensifier = NoopDensifier(),
+        densifier: AbstractDensifier,
         position_lr_init=0.00016,
         position_lr_final=0.0000016,
         position_lr_delay_mult=0.01,
