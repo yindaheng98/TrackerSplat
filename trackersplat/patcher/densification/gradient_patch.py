@@ -127,7 +127,7 @@ def GradientPatchTrainerWrapper(
         densify_grad_threshold=0.0001,
         densify_percent_dense=0.01,
         densify_n_every_step=1000,
-        densify_n_limit=2000,
+        densify_n_limit=1500,
         **kwargs):
     return PatchDensificationTrainer.from_base_model(
         lambda model, scene_extent: GradientPatchDensifier(

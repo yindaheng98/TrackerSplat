@@ -89,6 +89,7 @@ class LoggerTrainingProcess(BaseTrainingProcess):
                         'psnr': f"{avg_psnr_for_log:.2f} (masked: {avg_maskpsnr_for_log:.2f})",
                         'ssim': f"{avg_ssim_for_log:.2f} (masked: {avg_maskssim_for_log:.2f})",
                         'lpips': f"{avg_lpips_for_log:.4f} (masked: {avg_masklpips_for_log:.4f})",
+                        'n': trainer.model.get_xyz.shape[0],
                     })
             if epoch_idx + 1 == len(dataset):
                 random.shuffle(epoch)
@@ -196,6 +197,7 @@ if __name__ == "__main__":
 
     if args.patcher == "densify":
         configs_patching = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_patching}
-        motion_compensater = build_densification_patcher(dataset=dataset, gaussians=gaussians, estimator=motion_compensater.estimator, device=args.device, base_size=gaussians._xyz.shape[0], **configs_patching)
+        training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log-patch.csv")), device=args.device)
+        motion_compensater = build_densification_patcher(dataset=dataset, gaussians=gaussians, estimator=motion_compensater.estimator, training_proc=training_proc, device=args.device, base_size=gaussians._xyz.shape[0], **configs_patching)
 
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
