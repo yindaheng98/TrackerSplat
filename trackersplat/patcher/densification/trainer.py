@@ -75,8 +75,8 @@ class PatchDensificationTrainer(DensificationTrainer):
     @staticmethod
     def from_base_model(
             noargs_base_densifier_constructor: Callable[[PatchableGaussianModel, float], AbstractDensifier],
-            model: GaussianModel, scene_extent: float, *args, **kwargs) -> 'PatchDensificationTrainer':
-        patchable = PatchableGaussianModel(copy.deepcopy(model))
+            model: GaussianModel, scene_extent: float, *args, base_size: int = None, **kwargs) -> 'PatchDensificationTrainer':
+        patchable = PatchableGaussianModel(copy.deepcopy(model), base_size=base_size)  # base_size can help keep number of patch gaussians
         trainer = PatchDensificationTrainer(
             patchable,
             scene_extent,

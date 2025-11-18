@@ -196,6 +196,6 @@ if __name__ == "__main__":
 
     if args.patcher == "densify":
         configs_patching = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_patching}
-        motion_compensater = build_densification_patcher(dataset=dataset, gaussians=gaussians, estimator=motion_compensater.estimator, device=args.device, **configs_patching)
+        motion_compensater = build_densification_patcher(dataset=dataset, gaussians=gaussians, estimator=motion_compensater.estimator, device=args.device, base_size=gaussians._xyz.shape[0], **configs_patching)
 
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame, args.n_frames)
