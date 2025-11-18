@@ -10,8 +10,8 @@ def OpacityResetGradientPatchDensificationTrainer(
         opacity_reset_until_iter=2,
         opacity_reset_interval=2,
         patch_opacity_reset_from_iter=500,
-        patch_opacity_reset_until_iter=800,
-        patch_opacity_reset_interval=150,
+        patch_opacity_reset_until_iter=8000,
+        patch_opacity_reset_interval=100,
         **kwargs):
     return PatchOpacityResetTrainerWrapper(
         GradientPatchDensificationTrainer, model, scene_extent, *args,
