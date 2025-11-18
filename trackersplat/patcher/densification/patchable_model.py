@@ -52,7 +52,7 @@ class PatchableGaussianModel(GaussianModel):
         full_model._xyz = nn.Parameter(self.get_xyz.detach())
         full_model._features_dc = nn.Parameter(self.get_features_dc.detach())
         full_model._features_rest = nn.Parameter(self.get_features_rest.detach())
-        full_model._opacity = nn.Parameter(self.opacity_inverse_activation(self.get_opacity.detach()))
+        full_model._opacity = nn.Parameter(self.inverse_opacity_activation(self.get_opacity.detach()))
         full_model._scaling = nn.Parameter(self.scaling_inverse_activation(self.get_scaling.detach()))
-        full_model._rotation = nn.Parameter(self.rotation_inverse_activation(self.get_rotation.detach()))
+        full_model._rotation = nn.Parameter(self.get_rotation.detach())
         return full_model
