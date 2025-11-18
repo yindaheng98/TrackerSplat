@@ -43,6 +43,16 @@ TRAINARGS="$TRAINARGS -ofeature_lr=0.0" # stable SH
 TRAINARGS="$TRAINARGS -omask_mode='bg_color'"
 TRAINARGS="$TRAINARGS -obg_color='random'"
 
+PATCHARGS="$PATCHARGS --patcher=densify"
+PATCHARGS="$PATCHARGS -ppatch_every_n_frames=1"
+PATCHARGS="$PATCHARGS -ppatch_every_n_updates=1"
+PATCHARGS="$PATCHARGS -piteration=$REFININGITERS"
+PATCHARGS="$PATCHARGS -ptrainer='patch-densify'"
+TRAINARGS="$TRAINARGS -pposition_lr_max_steps=$REFININGITERS"
+PATCHARGS="$PATCHARGS -ppatch_feature_lr=0.0" # stable SH
+PATCHARGS="$PATCHARGS -pmask_mode='bg_color'"
+PATCHARGS="$PATCHARGS -pbg_color='random'"
+
 initialize_and_train_video_allmethods() {
     CAMERAS="output/$1/frame$2/cameras.json"
     train $1 $2 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$3 $REFINEARGS" 5 $4 "$CAMERAS"

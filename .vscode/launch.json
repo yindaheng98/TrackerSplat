@@ -127,9 +127,9 @@
             "justMyCode": false,
             "args": [
                 "-s",
-                "data/discussion",
+                "data/SIGA2025VVC-Dataset/compression/test/004_1_seq1",
                 "-d",
-                "output/discussion",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1",
                 "-i",
                 "1000",
                 "--pipeline",
@@ -147,7 +147,7 @@
                 "-n300",
                 "-b9",
                 "--load_camera",
-                "output/discussion/frame1/cameras.json",
+                "output/SIGA2025VVC-Dataset/compression/test/004_1_seq1/frame1/cameras.json",
                 "--with_image_mask",
                 "-orescale_factor=0.25",
                 "-omask_input=False",
@@ -167,6 +167,8 @@
                 "-ptrainer='patch-densify'",
                 "-pposition_lr_max_steps=1000",
                 "-ppatch_feature_lr=0.0",
+                "-pmask_mode='bg_color'",
+                "-pbg_color='random'",
             ]
         },
         {
