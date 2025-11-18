@@ -1,4 +1,5 @@
 import copy
+from typing import Callable
 from gaussian_splatting import GaussianModel
 from gaussian_splatting.trainer.densifier import AbstractDensifier, DensificationTrainer, NoopDensifier
 from gaussian_splatting.utils.schedular import get_expon_lr_func
@@ -72,9 +73,14 @@ class PatchDensificationTrainer(DensificationTrainer):
         return o
 
     @staticmethod
-    def from_base_model(model: GaussianModel, *args, **kwargs) -> 'PatchDensificationTrainer':
+    def from_base_model(
+            noargs_base_densifier_constructor: Callable[[PatchableGaussianModel, float], AbstractDensifier],
+            model: GaussianModel, scene_extent: float, *args, **kwargs) -> 'PatchDensificationTrainer':
+        patchable = PatchableGaussianModel(copy.deepcopy(model))
         trainer = PatchDensificationTrainer(
-            PatchableGaussianModel(copy.deepcopy(model)),
+            patchable,
+            scene_extent,
+            noargs_base_densifier_constructor(patchable, scene_extent),
             *args,
             **kwargs
         )
