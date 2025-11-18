@@ -42,8 +42,7 @@ class PatchableGaussianModel(GaussianModel):
     def get_opacity(self):
         return self.opacity_activation(torch.cat((self.base._opacity, self._opacity), dim=0))
 
-    def full_model(self) -> GaussianModel:
-        full_model = GaussianModel(sh_degree=self.base.max_sh_degree)
+    def load_full_model(self, full_model: GaussianModel) -> GaussianModel:
         full_model._xyz = nn.Parameter(self.get_xyz.detach())
         full_model._features_dc = nn.Parameter(self.get_features_dc.detach())
         full_model._features_rest = nn.Parameter(self.get_features_rest.detach())
