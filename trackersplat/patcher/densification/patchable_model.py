@@ -31,6 +31,12 @@ class PatchableGaussianModel(GaussianModel):
         return torch.cat((self.base._xyz, self._xyz), dim=0)
 
     @property
+    def get_features(self):
+        features_dc = torch.cat((self.base._features_dc, self._features_dc), dim=0)
+        features_rest = torch.cat((self.base._features_rest, self._features_rest), dim=0)
+        return torch.cat((features_dc, features_rest), dim=1)
+
+    @property
     def get_features_dc(self):
         return torch.cat((self.base._features_dc, self._features_dc), dim=0)
 
