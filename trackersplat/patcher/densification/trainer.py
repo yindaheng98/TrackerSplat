@@ -70,3 +70,13 @@ class PatchDensificationTrainer(DensificationTrainer):
         if self.output_model is not None:
             self.model.load_full_model(self.output_model)
         return o
+
+    @staticmethod
+    def from_base_model(model: GaussianModel, *args, **kwargs) -> 'PatchDensificationTrainer':
+        trainer = PatchDensificationTrainer(
+            PatchableGaussianModel(copy.deepcopy(model)),
+            *args,
+            **kwargs
+        )
+        trainer.set_output_model(model)
+        return trainer
