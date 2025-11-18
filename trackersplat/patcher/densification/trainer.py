@@ -11,7 +11,7 @@ class PatchDensificationTrainer(DensificationTrainer):
 
     def __init__(
         self,
-        model: GaussianModel,
+        model: PatchableGaussianModel,
         scene_extent: float,
         densifier: AbstractDensifier,
         position_lr_init=0.00016,
@@ -33,8 +33,6 @@ class PatchDensificationTrainer(DensificationTrainer):
         *args,
         **kwargs
     ):
-        self.base = model
-        model = PatchableGaussianModel(copy.deepcopy(self.base))
         super().__init__(
             model, scene_extent, densifier,
             *args,
@@ -61,8 +59,3 @@ class PatchDensificationTrainer(DensificationTrainer):
             lr_delay_mult=position_lr_delay_mult,
             max_steps=position_lr_max_steps,
         )
-
-    def step(self, camera):
-        o = super().step(camera)
-        self.model.load_full_model(self.base)
-        return o
