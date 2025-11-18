@@ -1,3 +1,4 @@
+import copy
 import torch
 import torch.nn as nn
 from gaussian_splatting import GaussianModel
@@ -7,14 +8,20 @@ class PatchableGaussianModel(GaussianModel):
     def __init__(self, base: GaussianModel, base_size: int = None):
         super().__init__(sh_degree=base.max_sh_degree)
         base_size = base_size or base._xyz.shape[0]
-        self.base = base
-        self.base_size = base_size
+        self.base = copy.deepcopy(base)
+        self.base._xyz = nn.Parameter(base._xyz[:base_size])
+        self.base._features_dc = nn.Parameter(base._features_dc[:base_size])
+        self.base._features_rest = nn.Parameter(base._features_rest[:base_size])
+        self.base._opacity = nn.Parameter(base._opacity[:base_size])
+        self.base._scaling = nn.Parameter(base._scaling[:base_size])
+        self.base._rotation = nn.Parameter(base._rotation[:base_size])
         self._xyz = nn.Parameter(base._xyz[base_size:])
         self._features_dc = nn.Parameter(base._features_dc[base_size:])
         self._features_rest = nn.Parameter(base._features_rest[base_size:])
         self._opacity = nn.Parameter(base._opacity[base_size:])
         self._scaling = nn.Parameter(base._scaling[base_size:])
         self._rotation = nn.Parameter(base._rotation[base_size:])
+        self.base_size = base_size
         self.setup_functions()
         self.scale_modifier = 1.0
         self.debug = False
