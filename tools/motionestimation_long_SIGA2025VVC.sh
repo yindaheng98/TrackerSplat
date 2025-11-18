@@ -55,8 +55,8 @@ PATCHARGS="$PATCHARGS -pbg_color='random'"
 
 initialize_and_train_video_allmethods() {
     CAMERAS="output/$1/frame$2/cameras.json"
-    train $1 $2 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$3 $REFINEARGS" 5 $4 "$CAMERAS"
-    train $1 $2 train/regularized "-o neighbors=8 -o loss_weight_overall=0.1 $TRAINARGS" 2 $4 "$CAMERAS"
+    train $1 $2 refine/base-propagate-dot-cotracker3 "-o rescale_factor=$3 $REFINEARGS $PATCHARGS" 5 $4 "$CAMERAS"
+    train $1 $2 train/regularized "-o neighbors=8 -o loss_weight_overall=0.1 $TRAINARGS $PATCHARGS" 2 $4 "$CAMERAS"
 }
 
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/004_1_seq1 1 0.25 300
