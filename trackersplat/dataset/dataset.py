@@ -28,13 +28,13 @@ class DatasetCameraMeta(NamedTuple):
 
 
 class FrameCameraDataset(CameraDataset):
-    def __init__(self, DatasetCameraMetas: List[DatasetCameraMeta], device=torch.device("cuda")):
+    def __init__(self, camerametas: List[DatasetCameraMeta], device=torch.device("cuda")):
         super().__init__()
-        self.DatasetCameraMetas = [DatasetCameraMeta(**camera._asdict()) for camera in DatasetCameraMetas]
+        self.camerametas = [DatasetCameraMeta(**camera._asdict()) for camera in camerametas]
         self.to(device)
 
     def to(self, device) -> 'FrameCameraDataset':
-        self.cameras = [camera.build_camera(device=device) for camera in self.DatasetCameraMetas]
+        self.cameras = [camera.build_camera(device=device) for camera in self.camerametas]
         return self
 
     def __getitem__(self, idx) -> Camera:
