@@ -68,7 +68,6 @@ initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/004_1
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/006_1_seq1 1 0.25 300
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/007_0_seq1 1 0.25 300
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/008_2_seq1 1 0.25 300
-initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/008_2_seq1 1 0.25 300
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/test/011_0_seq1 1 0.25 300
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/val/001_1_seq0 1 0.25 300
 initialize_and_train_video_allmethods SIGA2025VVC-Dataset/compression/val/012_0_seq0 1 0.25 300

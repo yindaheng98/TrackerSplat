@@ -15,7 +15,6 @@ extract_SIGA2025VVC compression/test/004_1_seq1 300
 extract_SIGA2025VVC compression/test/006_1_seq1 300
 extract_SIGA2025VVC compression/test/007_0_seq1 300
 extract_SIGA2025VVC compression/test/008_2_seq1 300
-extract_SIGA2025VVC compression/test/008_2_seq1 300
 extract_SIGA2025VVC compression/test/011_0_seq1 300
 extract_SIGA2025VVC compression/val/001_1_seq0 300
 extract_SIGA2025VVC compression/val/012_0_seq0 300
@@ -80,7 +79,6 @@ train() {
 train SIGA2025VVC-Dataset/compression/test/004_1_seq1 1
 train SIGA2025VVC-Dataset/compression/test/006_1_seq1 1
 train SIGA2025VVC-Dataset/compression/test/007_0_seq1 1
-train SIGA2025VVC-Dataset/compression/test/008_2_seq1 1
 train SIGA2025VVC-Dataset/compression/test/008_2_seq1 1
 train SIGA2025VVC-Dataset/compression/test/011_0_seq1 1
 train SIGA2025VVC-Dataset/compression/val/001_1_seq0 1
