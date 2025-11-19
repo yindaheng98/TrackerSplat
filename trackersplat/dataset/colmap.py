@@ -64,7 +64,7 @@ def FixedViewColmapVideoCameraDataset_from_json(*args, jsonpath: str, load_mask=
     assert len(framemetas[0]) == len(jsoncameras)
     for i, framemeta in enumerate(framemetas[0]):  # should load the first camera
         for j, jsoncamera in enumerate(jsoncameras):
-            if os.path.normpath(framemeta.image_path) == os.path.normpath(jsoncamera.ground_truth_image_path):
+            if os.path.basename(framemeta.image_path) == os.path.basename(jsoncamera.ground_truth_image_path):
                 assert framemeta.image_height == jsoncamera.image_height
                 assert framemeta.image_width == jsoncamera.image_width
                 cam_idx_in_json[i] = j
