@@ -37,7 +37,7 @@ class PatchCompensater(MotionCompensater, metaclass=ABCMeta):
         currframe = self.compensate(self.baseframe, motion)
 
         if (self.frame_idx % self.patch_every_n_frames == 0) or (motion.update_baseframe and (self.update_idx % self.patch_every_n_updates == 0)):
-            currframe = self.patch(currframe, self.dataset[self.frame_idx], self.frame_idx + 1)
+            currframe = self.patch(currframe, self.dataset[self.frame_idx], self.dataset.framemetas[self.frame_idx][0].frame_idx)
         self.frame_idx += 1
 
         if motion.update_baseframe:

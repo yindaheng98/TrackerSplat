@@ -204,7 +204,7 @@ if __name__ == "__main__":
 
     if args.patcher == "densify":
         configs_patching = {o.split("=", 1)[0]: eval(o.split("=", 1)[1]) for o in args.option_patching}
-        training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log-patch.csv")), skipped=args.skip, device=args.device)
+        training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log-patch.csv")), device=args.device)
         motion_compensater = build_densification_patcher(dataset=dataset, gaussians=continue_gaussians, estimator=motion_compensater.estimator, training_proc=training_proc, device=args.device, base_size=gaussians._xyz.shape[0], **configs_patching)
 
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame + args.skip, args.n_frames - args.skip)
