@@ -38,14 +38,12 @@ def save_cfg_args(sh_degree: int, source: str, destination: str, frame_folder_fm
 
 
 class LoggerTrainingProcess(BaseTrainingProcess):
-    def __init__(self, log_path: Callable[[int], str], skipped=0, device: torch.device = torch.device("cuda")):
+    def __init__(self, log_path: Callable[[int], str], device: torch.device = torch.device("cuda")):
         self.log_path = log_path
-        self.skipped = skipped
         self.device = device
 
     def __call__(self, dataset: CameraDataset, trainer: AbstractTrainer, iteration: int, frame_idx: int):
         '''Overload this method to make your own training'''
-        frame_idx += self.skipped
         log_path = self.log_path(frame_idx)
         os.makedirs(os.path.dirname(log_path), exist_ok=True)
         with open(log_path, "w") as f:
@@ -195,6 +193,6 @@ if __name__ == "__main__":
         frame_folder_fmt=args.frame_folder_fmt, start_frame=args.start_frame + args.skip, n_frames=args.n_frames - args.skip,
         load_camera=args.load_camera,
         load_mask=args.with_image_mask, load_depth=args.with_depth_data)
-    training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), skipped=args.skip, device=args.device)
+    training_proc = LoggerTrainingProcess(lambda frame: os.path.join(save_frame_cfg_args(frame=frame), os.path.join("log", "iteration_" + str(args.iteration), "log.csv")), device=args.device)
     motion_compensater = build_pipeline(args.pipeline, continue_gaussians, dataset, training_proc, args.device, args.batch_size, args.iteration, configs_refining, **configs)
     motion_compensate(motion_compensater, dataset, save_frame_cfg_args, args.iteration, args.start_frame + args.skip, args.n_frames - args.skip)
