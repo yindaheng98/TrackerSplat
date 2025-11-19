@@ -3,11 +3,15 @@ INITTRAININGITERS=10000
 REFININGITERS=1000
 train() {
     ok=true
+    skip=0
     for i in $(seq $(expr $2 + 1) $(expr $2 + $6 - 1)); do
         EXISTSPATH="output/$1/$3/frame$i/point_cloud/iteration_$REFININGITERS/point_cloud.ply"
         if [ -e "$EXISTSPATH" ]; then
             echo "(skip) exists: $EXISTSPATH"
             ok=true
+            if [ $(( (i-1) % ("$5" - 1) )) -eq 0 ]; then
+              skip=$((skip + "$5" - 1))
+            fi
         else
             echo "not exists: $EXISTSPATH"
             ok=false
@@ -18,12 +22,13 @@ train() {
         echo "(skip) all exists: output/$1/$3/frame<$2-$(expr $2 + $6 - 1)>/point_cloud/iteration_$REFININGITERS/point_cloud.ply"
         return
     fi
+    echo "(skip) exists: output/$1/$3/frame<$2-$(expr $2 + $skip)>/point_cloud/iteration_$REFININGITERS/point_cloud.ply"
     # echo \
     python -m trackersplat.motionestimation \
         -s data/$1 -d output/$1 --start_frame $2 \
         --iteration_init $INITTRAININGITERS -i $REFININGITERS \
         --pipeline $3 $4 \
-        -b $5 -n $6 \
+        -b $5 -n $6 --skip $skip \
         --load_camera $7 \
         --with_image_mask
 }
