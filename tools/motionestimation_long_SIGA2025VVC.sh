@@ -54,7 +54,7 @@ PATCHARGS="$PATCHARGS -ppatch_every_n_updates=1"
 PATCHARGS="$PATCHARGS -piteration=$REFININGITERS"
 PATCHARGS="$PATCHARGS -ptrainer='patch-densify'"
 TRAINARGS="$TRAINARGS -pposition_lr_max_steps=$REFININGITERS"
-PATCHARGS="$PATCHARGS -ppatch_feature_lr=0.0" # stable SH
+PATCHARGS="$PATCHARGS -pfeature_lr=0.0" # stable SH
 PATCHARGS="$PATCHARGS -pmask_mode='bg_color'"
 PATCHARGS="$PATCHARGS -pbg_color='random'"
 
