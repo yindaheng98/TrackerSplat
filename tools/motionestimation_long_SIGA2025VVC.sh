@@ -39,6 +39,7 @@ REFINEARGS="$REFINEARGS -omask_output=False"
 REFINEARGS="$REFINEARGS -rposition_lr_init=0.0016"
 REFINEARGS="$REFINEARGS -rposition_lr_max_steps=$REFININGITERS"
 REFINEARGS="$REFINEARGS -rfeature_lr=0.0" # stable SH
+REFINEARGS="$REFINEARGS -rscaling_lr=0.00005" # stable scaling
 REFINEARGS="$REFINEARGS -rmask_mode='bg_color'"
 REFINEARGS="$REFINEARGS -rbg_color='random'"
 
@@ -53,8 +54,10 @@ PATCHARGS="$PATCHARGS -ppatch_every_n_frames=1"
 PATCHARGS="$PATCHARGS -ppatch_every_n_updates=1"
 PATCHARGS="$PATCHARGS -piteration=$REFININGITERS"
 PATCHARGS="$PATCHARGS -ptrainer='patch-densify'"
+TRAINARGS="$TRAINARGS -pposition_lr_init=0.0016"
 TRAINARGS="$TRAINARGS -pposition_lr_max_steps=$REFININGITERS"
 PATCHARGS="$PATCHARGS -pfeature_lr=0.0" # stable SH
+PATCHARGS="$PATCHARGS -pscaling_lr=0.00005" # stable scaling
 PATCHARGS="$PATCHARGS -pmask_mode='bg_color'"
 PATCHARGS="$PATCHARGS -pbg_color='random'"
 
