@@ -157,7 +157,7 @@
                 "-rposition_lr_init=0.0016",
                 "-rposition_lr_max_steps=1000",
                 "-rfeature_lr=0.0",
-                "-rscaling_lr=0.00005",
+                // "-rscaling_lr=0.00005",
                 "-rmask_mode='bg_color'",
                 "-rbg_color='random'",
                 // patcher args
@@ -170,7 +170,7 @@
                 "-pposition_lr_init=0.0016",
                 "-pposition_lr_max_steps=1000",
                 "-pfeature_lr=0.0",
-                "-pscaling_lr=0.00005",
+                // "-pscaling_lr=0.00005",
                 "-pmask_mode='bg_color'",
                 "-pbg_color='random'",
             ]
