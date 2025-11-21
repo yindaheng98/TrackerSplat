@@ -37,7 +37,7 @@ pip install --upgrade git+https://github.com/yindaheng98/TrackerSplat.git@main
 ```shell
 git clone --recursive https://github.com/yindaheng98/TrackerSplat
 cd TrackerSplat
-pip install -U taichi einshape timm jaxtyping numpy==1.26.4 imageio==2.37.0 imageio-ffmpeg==0.4.7
+pip install -U taichi einshape einops timm jaxtyping numpy==1.26.4 imageio==2.37.0 imageio-ffmpeg==0.4.7
 pip install --target . --upgrade --no-deps .
 ```
 
