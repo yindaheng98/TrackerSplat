@@ -11,7 +11,7 @@ Install [`gaussian-splatting`](https://github.com/yindaheng98/gaussian-splatting
 
 ```sh
 pip install wheel setuptools
-pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@master --no-build-isolation
+pip install --upgrade git+https://github.com/yindaheng98/gaussian-splatting.git@d655087170489a8fac707fca9c8ec773b21fb4ad --no-build-isolation
 pip install --upgrade git+https://github.com/yindaheng98/InstantSplat.git@main --no-build-isolation
 pip install --upgrade git+https://github.com/yindaheng98/reduced-3dgs.git@main --no-build-isolation
 pip install --upgrade git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master --no-build-isolation

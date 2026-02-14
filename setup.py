@@ -70,7 +70,7 @@ setup(
         'build_ext': BuildExtension
     },
     install_requires=[
-        'gaussian-splatting',
+        'gaussian-splatting < 2.3.0',
         'instantsplat',
         'reduced-3dgs',
         'extrinterp @ git+https://github.com/yindaheng98/ExtrinsicInterpolator.git@master',
