@@ -1,6 +1,8 @@
 # TrackerSplat 重构计划
 
-TrackerSplat抽象为一个通用的框架, 专用于实现根据一些外部信息移动Gaussian点的算法, 本项目提供统一的数据读写渲染测试后处理等周边功能
+将TrackerSplat库抽象为一个通用的框架, 专用于实现根据一些外部信息移动Gaussian点的算法, 本项目提供统一的数据读写渲染测试后处理等周边功能
+
+设计TrackerSplat库使得用户可以用register将它们自己写的实现注册到TrackerSplat里
 
 Point Tracker为其中的一种实现, 用训练移动Gaussian点是另一种实现, 还可以有其他的实现方式
 
@@ -8,7 +10,7 @@ Point Tracker实现单独拎出来作为一个库实现, 在TrackerSplat里面�
 
 refiner也是Point Tracker里的
 
-基于训练的TrackerSplat实现还是留在本项目里
+基于训练的TrackerSplat实现还是留在TrackerSplat库里
 
 trackersplat/incrementaltraining.py移动到基于基于训练的TrackerSplat实现中作为测试代码
 
@@ -20,3 +22,9 @@ fixed view的抽象是给Point Tracker用的, 因为Point Tracker推断需要视
 基于训练的TrackerSplat实现应该是无所谓fixed view和dynamic view的, 应该做成通用的, 直接基于MotionEstimator实现, 通过参数调节控制几帧更新一次
 
 TrackerSplat里应该包含batch func的实现, 因为几个baseline的实现需要用到后帧加点影响前帧, 但是不包含fixed view的实现, 这就需要修改fixed view和batch func的继承顺序, 应该是先有batch func再有fixed view
+
+## 2026-4-25: 多帧多视角dataset类型已经在feature-4dgs上实现
+
+dataset类型已经在feature-4dgs上实现，本想进一步把point track位移的结果当成一种feature实现在feature-4dgs里面的，但是想想发现point track位移结果和视角有关，而目前feature-4dgs所基于的feature-3dgs中feature渲染过程用到的feature是不会随视角变化的，无法兼容。
+
+正确的做法是新开一个库继承feature-3dgs-anisotropic定义一个feature可以随视角变化的AnisotropicSemanticGaussianModel，进而基于这个库和feature-4dgs里的数据集类型构造一个tracker-4dgs库，把TrackerSplat里的point tracker功能作为其init_semantic实现在里面，这样还能基于feature-3dgs里的训练功能进一步实现TrackerSplat里目前没有的point track结果引导训练的功能
